@@ -285,6 +285,13 @@ arrows for a linkage. Measured before the rules in `STANDARD.md` §3 were writte
   - mongodb-poc `grpc-through-envoy` figure 1: the reverse leg from a mongot pod to mongod. Its name, "⑧ the reverse
     leg", sits far from the arrow, and the legend's "Dashed = present but carrying no traffic" does not fit it.
   - mongodb-poc `mongot-openshift` figures 5, 9 and 10, a page that already failed on its unfilled text.
+- **Revised in 0.1.1, on the rollout (2026-10-06).** `mongot-openshift`'s three sync legs were labelled ("sync leg …
+  does NOT cross Envoy") but 27 px or more from the line, and figure 5's label sits inside the cluster box the arrow
+  starts in (it holds the arrow's start and midpoint; the arrow ends at mongod, outside it), which 0.1.0 took for a
+  box's own text. The page now sets each label against its line, and the check takes a box that holds the arrow's
+  midpoint as a container, whose text can label the arrow. A box that holds one end of the arrow and no other box is
+  still the arrow's end box, so its own text never labels it (OB1-lite's review: an arrow drawn from inside its start
+  box passed otherwise). Four browser tests; on the 158 pages, the rule changes exactly this one arrow.
 
 ## Appendix: every page
 
