@@ -203,9 +203,9 @@ it was applied: a spec carrying computed `font-stretch` (`100%`) is refused by t
 `SyntaxError`, which the proposed `catch` turned into "every page fails"; and `\p{N}` takes in ①, which the IBM Plex
 subsets do not carry. Symbols stay out of the check (Limits, above). A face that does not decode makes the load reject
 with `NetworkError`; that is reported, not swallowed. On the 159 pages of 2026-10-06 the revised kit gives the same
-verdict and the same failure lines as before on every page (128 pass, 31 fail, counting mongodb-poc `mongot-runbooks` rendered
-from its branch, exit 0 under both); the only face failures are still `metallb`'s Arial and Menlo. Total time
-381.5 s against 384.4 s.
+verdict and the same failure lines as before on every page (128 pass, 31 fail, counting mongodb-poc
+`mongot-runbooks` rendered from its branch, exit 0 under both); the only face failures are still `metallb`'s Arial
+and Menlo. Total time 381.5 s against 384.4 s.
 
 ## 4. Which Mermaid sources are live
 

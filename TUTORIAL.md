@@ -76,7 +76,7 @@ wrote …/docs/diagrams/first/sign-in.dark.png (…bytes)
 375 px viewport: scrollWidth 375
 ```
 
-and exit status 0. The first render needs the network once, for the Google Fonts stylesheet.
+and exit status 0. Every render reaches the network for the Google Fonts stylesheet and the font files it names.
 
 ## 4. Look at it
 
@@ -167,6 +167,9 @@ Each reviewer checks the claims against the code. `STANDARD.md` §6 has the rule
 
 ## Walked
 
-Walked on 2026-10-06 from a fresh `git clone` of the kit, on macOS 26 (Darwin 25.5.0), Python 3.14.7, Playwright
-1.63.0. Every command above ran as written, from step 1's clone install to step 6's path check, and every result
-matched. Installing from the tag is the one command not walked, because the repository is not published yet.
+Walked on 2026-10-06 at kit commit `b9c9b2f`, from a fresh `git clone`, a fresh venv and an empty Chromium cache
+(`PLAYWRIGHT_BROWSERS_PATH` pointed at a new directory), on macOS 26.5.2 (Darwin 25.5.0), Python 3.14.7, Playwright
+1.63.0. Every command above ran as written, from step 1's clone install to step 6's path check (step 4's `open` is
+the one look by eye), and every result matched: step 2's second run refused with exit 1, and step 5's failed render
+left the PNGs of step 3 byte for byte. Installing from the tag is the one command not walked, because the repository
+is not published yet.
