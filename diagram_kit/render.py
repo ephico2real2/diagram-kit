@@ -75,30 +75,31 @@ UNLOADED_FAMILIES = r"""async () => {
 
 # Dashed arrows (a line, path or polyline with a dasharray and a marker) with no label beside them. A dashed arrow is
 # a relationship that carries no traffic, so the reader must be told which one (STANDARD.md §3, Connectors). A label
-# is a <text> outside every box (a box's own text sits beside every arrow that ends there) whose bounds come within
-# 16 px of a point sampled every 4 units along the arrow. Dashed boxes (proposed) and dashed lines without a marker
-# (lane dividers) are not arrows.
+# is a <text> whose bounds come within 16 px of a point sampled every 4 units along the arrow, and that is not a box's
+# own text (a box's text sits beside every arrow that ends there). A box that holds the arrow's midpoint is a container
+# around it (a cluster drawn around the arrow and its label, or a chip on the line), so its text can label the arrow.
+# Dashed boxes (proposed) and dashed lines without a marker (lane dividers) are not arrows.
 DASHED_UNLABELLED = """() => [...document.querySelectorAll(".fig-scroll")].flatMap((figure, i) => {
-  const boxes = [...figure.querySelectorAll("rect")].map((r) => r.getBoundingClientRect());
-  const inBox = (b) => boxes.some((r) => {
-    const x = (b.left + b.right) / 2, y = (b.top + b.bottom) / 2;
-    return x > r.left && x < r.right && y > r.top && y < r.bottom;
-  });
-  const labels = [...figure.querySelectorAll("text")].map((t) => t.getBoundingClientRect())
-    .filter((b) => b.width && !inBox(b));
-  const near = (p) => labels.some((b) =>
-    Math.hypot(Math.max(b.left - p.x, 0, p.x - b.right), Math.max(b.top - p.y, 0, p.y - b.bottom)) <= 16);
+  const rects = [...figure.querySelectorAll("rect")].map((r) => r.getBoundingClientRect());
+  const texts = [...figure.querySelectorAll("text")].map((t) => t.getBoundingClientRect()).filter((b) => b.width);
+  const inside = (r, x, y) => x > r.left && x < r.right && y > r.top && y < r.bottom;
+  const centre = (b) => [(b.left + b.right) / 2, (b.top + b.bottom) / 2];
+  const near = (p, b) =>
+    Math.hypot(Math.max(b.left - p.x, 0, p.x - b.right), Math.max(b.top - p.y, 0, p.y - b.bottom)) <= 16;
   return [...figure.querySelectorAll("line, path, polyline")].filter((el) => {
     if (el.closest("marker")) return false;
     const s = getComputedStyle(el);
     return s.strokeDasharray !== "none" && (s.markerEnd !== "none" || s.markerStart !== "none");
   }).filter((el) => {
-    const m = el.getScreenCTM(), n = el.getTotalLength();
+    const m = el.getScreenCTM(), n = el.getTotalLength(), points = [];
     for (let d = 0; d <= n + 4; d += 4) {
       const p = el.getPointAtLength(Math.min(d, n));
-      if (near(new DOMPoint(p.x, p.y).matrixTransform(m))) return false;
+      points.push(new DOMPoint(p.x, p.y).matrixTransform(m));
     }
-    return true;
+    const mid = points[Math.floor(points.length / 2)];
+    const boxes = rects.filter((r) => !inside(r, mid.x, mid.y));
+    const labels = texts.filter((b) => !boxes.some((r) => inside(r, ...centre(b))));
+    return !points.some((p) => labels.some((b) => near(p, b)));
   }).map((el) => {
     const a = el.getPointAtLength(0), b = el.getPointAtLength(el.getTotalLength());
     return `figure ${i + 1}: from (${Math.round(a.x)},${Math.round(a.y)}) to (${Math.round(b.x)},${Math.round(b.y)})`;

@@ -182,3 +182,20 @@ def test_dashed_shapes_that_are_not_arrows_render(tmp_path):
               '<line x1="150" y1="60" x2="298" y2="60" stroke="currentColor" marker-end="url(#ah)"/>')
     result = render(tmp_path, page(body=dashed_figure(shapes), figures=0))
     assert result.returncode == 0, result.stderr
+
+
+def test_a_label_inside_a_box_drawn_around_the_arrow_counts(tmp_path):
+    # A cluster box drawn around both the arrow and its label is a container, not the box the label belongs to: the
+    # text beside the line labels it (mongodb-poc mongot-openshift's sync legs, 2026-10-06).
+    around = ('<rect x="160" y="20" width="390" height="90" fill="none" stroke="currentColor"/>'
+              '<text x="320" y="52" font-family="Inter, sans-serif" font-size="12" fill="currentColor">sync leg</text>')
+    result = render(tmp_path, page(body=dashed_figure(DASHED_ARROW, around), figures=0))
+    assert result.returncode == 0, result.stderr
+
+
+def test_a_box_text_beside_an_arrow_inside_a_container_is_still_not_a_label(tmp_path):
+    # The end boxes keep their own text out, container or not: only the container's free text is the label.
+    around = '<rect x="2" y="20" width="720" height="90" fill="none" stroke="currentColor"/>'
+    result = render(tmp_path, page(body=dashed_figure(DASHED_ARROW, around), figures=0))
+    assert result.returncode == 1
+    assert "a dashed arrow with no label beside it in figure 1" in result.stderr

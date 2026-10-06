@@ -26,7 +26,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 
 ```sh
 python3 -m venv .venv
-.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.1.0"
+.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.1.1"
 .venv/bin/playwright install chromium
 .venv/bin/diagram-template docs/diagrams/<slug>/source.html
 .venv/bin/diagram-render docs/diagrams/<slug>/source.html docs/diagrams/<slug> <name-1>,<name-2>
