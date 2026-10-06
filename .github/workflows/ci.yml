@@ -21,6 +21,9 @@ jobs:
           python -m playwright install --with-deps chromium
       - name: Tests (no network)
         run: python -m pytest tests -q
-      # The one step that reaches the network: the template as a page renders, Google Fonts and all, with 0 failures.
+      # The one step that reaches the network: the installed template as a page renders, Google Fonts and all,
+      # with 0 failures.
       - name: Render the template
-        run: diagram-render template.html out template
+        run: |
+          diagram-template out/template.html
+          diagram-render out/template.html out template

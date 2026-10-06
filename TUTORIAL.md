@@ -17,11 +17,13 @@ python3 -m venv .venv
 .venv/bin/playwright install chromium
 ```
 
-Until the repository is published, clone it and install the clone. `../diagram-kit` below is that clone:
+Until the repository is published, install a clone in place of the third line, then install Chromium (the
+`playwright` command comes with the kit). `../diagram-kit` below is that clone:
 
 ```sh
 git clone -q <where-the-kit-is> ../diagram-kit
 .venv/bin/pip install -q ../diagram-kit
+.venv/bin/playwright install chromium
 ```
 
 Check it:
@@ -34,12 +36,14 @@ Result: the usage text, and exit status 2.
 
 ## 2. Generate a first page from the template
 
-A diagram's page lives at `docs/diagrams/<slug>/source.html`. Start it as a copy of the template:
+A diagram's page lives at `docs/diagrams/<slug>/source.html`. Start it from the template the kit ships:
 
 ```sh
-mkdir -p docs/diagrams/first
-cp ../diagram-kit/template.html docs/diagrams/first/source.html
+.venv/bin/diagram-template docs/diagrams/first/source.html
 ```
+
+Result: `wrote docs/diagrams/first/source.html`. Run it again and it refuses (`refusing to overwrite …`, exit 1):
+an existing page is never replaced.
 
 Then make it say something. In the page:
 
@@ -99,12 +103,13 @@ sed -i.bak 's|>the caller signs in<|>the caller signs in with a token that the p
 Result:
 
 ```text
-FAIL: text crosses the edge of a box in figure 1: "the caller signs in with a token that the proxy checks first"
 375 px viewport: scrollWidth 375
+FAIL: text crosses the edge of a box in figure 1: "the caller signs in with a token that the proxy checks first"
 exit 1
 ```
 
-A page that fails writes no PNG; the ones from the last good render stay as they were. Put the label back, or split it over two `<text>` lines, and render again:
+A render that fails writes no PNG, whichever check failed: the PNGs of the last good render stay as they were.
+Put the label back, or split it over two `<text>` lines, and render again:
 
 ```sh
 mv docs/diagrams/first/source.html.bak docs/diagrams/first/source.html
@@ -115,8 +120,8 @@ Result: the two `wrote` lines, then `exit 0`. `STANDARD.md` §5 lists every chec
 
 ## 6. Embed it in a document
 
-In a Markdown document, here `docs/first.md`: the picture, an italic caption, a text twin, and a "Diagram sources"
-section.
+Create a Markdown document, `docs/first.md`, holding the picture, an italic caption, a text twin, and a "Diagram
+sources" section. Write this into it:
 
 ````markdown
 <!-- markdownlint-disable MD033 -->
@@ -164,5 +169,4 @@ Each reviewer checks the claims against the code. `STANDARD.md` §6 has the rule
 
 Walked on 2026-10-06 from a fresh `git clone` of the kit, on macOS 26 (Darwin 25.5.0), Python 3.14.7, Playwright
 1.63.0. Every command above ran as written, from step 1's clone install to step 6's path check, and every result
-matched; the record is in the kit's first report. Installing from the tag is the one command not walked, because
-the repository is not published yet.
+matched. Installing from the tag is the one command not walked, because the repository is not published yet.

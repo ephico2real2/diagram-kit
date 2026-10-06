@@ -2,9 +2,10 @@
 
 The renderer's value is its refusals: a figure drawn in a fallback face, or a page that scrolls sideways at
 375 px, looks like a design choice once it is a PNG. So every page it opens, the 375 px one included, must turn a
-page error, a failed request or an HTTP error into a non-zero exit, and figure text in a face no loaded
-@font-face declares fails too. Playwright is replaced by a stand-in that fires those events on demand, so this
-needs no browser and no network; tests/test_render_browser.py renders real pages in Chromium.
+page error, a failed request or an HTTP error into a non-zero exit, and figure text in a fallback face fails
+too. A failed render writes no PNG: the ones from the last good render stay as they were. Playwright is replaced
+by a stand-in that fires those events on demand, so this needs no browser and no network;
+tests/test_render_browser.py renders real pages in Chromium.
 """
 
 from __future__ import annotations
@@ -55,7 +56,7 @@ def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, 
 
         def evaluate(self, expression):
             if expression == render.UNLOADED_FAMILIES:
-                return ["IBM Plex Sans"] if case == "fallback-face" else []
+                return ["no loaded face of 'IBM Plex Sans' draws its letters"] if case == "fallback-face" else []
             if expression == render.LOW_CONTRAST:
                 return ['figure 1: "Ownership" at 1.22:1'] if case == "low-contrast" else []
             if expression == render.CROSSINGS:
@@ -98,7 +99,14 @@ def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, 
     page = tmp_path / "page.html"
     page.write_text("<html><body>four figures</body></html>")
     out = tmp_path / "png"
+    out.mkdir()
+    previous = {f"{name}.{theme}.png": b"last good render" for name in "abcd" for theme in ("light", "dark")}
+    for name, data in previous.items():
+        (out / name).write_bytes(data)
     monkeypatch.setattr(render.sys, "argv", ["render.py", str(page), str(out), "a,b,c,d"])
     assert render.main() == (0 if case == "ok" else 1), case
+    after = {p.name: p.read_bytes() for p in out.iterdir()}
     if case == "ok":
-        assert len(list(out.glob("*.png"))) == 8
+        assert after == {name: b"png" for name in previous}, case
+    else:
+        assert after == previous, case  # the 375 px and dark-theme failures included, and no staging dir left

@@ -96,7 +96,9 @@ Each written PNG was compared by sha256 with every committed PNG beside its page
   - envoy-tutorial's `12-gateway-api` figure 3, on all seven trees;
   - the dashboard's figure 4.
 
-Why they differ (a page edited after its PNGs, or a font or Chromium difference) was not investigated.
+Why they differ (a page edited after its PNGs, or a font or Chromium difference) was not investigated. One cause is
+the renderer itself: the same page (envoy-tutorial `08-tls-on-envoy`, `module-18-keycloak-ldap`) rendered six times
+gave one run whose two light PNGs differ from the other five in 24 and 101 pixels, by at most 5 of 255.
 
 **Kit `render.py`: 126 pages exit 0, 30 exit 1.** Every failure is one of the three new checks:
 
@@ -145,7 +147,7 @@ and ran the suite:
 
 | Removed | Tests that fail |
 |---|---|
-| face check | stand-in `fallback-face`; browser: undeclared family, face that does not decode |
+| face check | stand-in `fallback-face`; browser: undeclared family, face that does not decode, face whose subset leaves the label out (added on review) |
 | `pageerror` | stand-in `pageerror`, `phone-pageerror`; browser: page error |
 | `requestfailed` | stand-in `offline`, `phone-requestfailed`; browser: stylesheet that does not load |
 | HTTP ≥ 400 | stand-in `404`, `phone-404` |
@@ -177,15 +179,33 @@ The template palette test was also run against the commit before the palette cha
 **On our pages: 1 hit, envoy-tutorial `metallb`.** Its tokens are `--font-body: Arial, Helvetica, sans-serif` and
 `--font-mono: Menlo, monospace`, and it loads no web font. On this Mac, CDP reports Arial (1,949 glyphs) and Menlo
 (530) drawn, as intended. On a machine without those fonts, such as a Linux CI runner, the figure falls back; that
-was not measured here. The check's rule is that figure text names a face the page loads, or a generic family, so the
-PNG does not depend on the machine. The page needs its two tokens set to the template's to pass.
+was not measured here. The check's rule is that figure text names a face the page loads, or a generic family. That
+keeps a system font from being named first; it does not make the PNG independent of the machine (Limits, below).
+The page needs its two tokens set to the template's to pass.
 
 **Limits, measured.**
 
 - **The weight drawn is not checked.** The template asks for IBM Plex Mono at weight 600 in its lane headers, and
   its stylesheet loaded only 400 and 500, so Chromium drew IBM Plex Mono Medium (CDP). The kit's template now loads
   600, and CDP reports IBM Plex Mono SemiBold.
-- **A family that loads only a `unicode-range` subset other than the text's** passes. Not seen on our pages.
+- **A family that loads only a `unicode-range` subset other than the text's** passed the check as first built. Not
+  seen on our pages; closed on review (below).
+- **Glyphs outside the loaded subsets are drawn in the machine's fonts.** The template's Google Fonts request carries
+  no U+2190–21FF or U+2460–24FF, so → ← ⇄ ①–⑪ ✕ come from the machine (Lucida Grande, Hiragino Sans, Menlo here):
+  812 of 8,170 figure texts on 125 of the 156 pages. A generic family named first is a machine face as well. The
+  verdicts hold: with DejaVu Sans arrows (Ubuntu's usual fallback), all 156 pages check the same.
+
+**Revised after review (2026-10-06).** Codex showed the adopted check proves only that some face of the family
+loaded, not that it drew the text: a face loaded for `unicode-range: U+0041` passes "A Ownership". The check now
+asks `document.fonts.load()` for each letter and decimal digit the figure text draws, in its style, weight and size,
+and fails unless a loaded face of the first family answers. Two defects in the fix as proposed were measured before
+it was applied: a spec carrying computed `font-stretch` (`100%`) is refused by the `font` shorthand with a
+`SyntaxError`, which the proposed `catch` turned into "every page fails"; and `\p{N}` takes in ①, which the IBM Plex
+subsets do not carry. Symbols stay out of the check (Limits, above). A face that does not decode makes the load reject
+with `NetworkError`; that is reported, not swallowed. On the 159 pages of 2026-10-06 the revised kit gives the same
+verdict and the same failure lines as before on every page (128 pass, 31 fail, counting mongodb-poc `mongot-runbooks` rendered
+from its branch, exit 0 under both); the only face failures are still `metallb`'s Arial and Menlo. Total time
+381.5 s against 384.4 s.
 
 ## 4. Which Mermaid sources are live
 

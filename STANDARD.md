@@ -5,7 +5,8 @@ repositories already follow, and cites where, or one a measured defect on our ow
 `RESEARCH.md`. A rule with neither does not belong here.
 
 Where this says "the skill", it means the `/visual` skill that generates the pages (its `SKILL.md` and
-`template.html`; this kit's `template.html` started as a verbatim copy of it).
+`template.html`; this kit's `diagram_kit/template.html`, which `diagram-template` writes to a new page, started as a verbatim
+copy of it).
 
 ## 1. The core strategy: one generated `source.html` per diagram
 
@@ -59,8 +60,10 @@ document that GitHub renders. The block is the source, and nothing is committed 
 **Mermaid as PNGs.** Where the reader's surface renders no Mermaid (Confluence), `envoy-reference-architecture`
 keeps `.mmd` sources and renders them to the PNGs its documents embed (`docs/diagrams/render.sh`). That script fetches
 mermaid-cli unpinned. Re-rendered today with 12.0.0, all 5 PNGs differ from the committed ones, in size as well as
-in pixels (`RESEARCH.md` §4). A repository that commits Mermaid PNGs pins the mermaid-cli version, as the dashboard's
-CI job does (`@11`).
+in pixels (`RESEARCH.md` §4). A repository that commits Mermaid PNGs pins mermaid-cli to one exact version, such as
+`@mermaid-js/mermaid-cli@11.17.0`. A major tag is not a pin: the dashboard's `diagrams` job runs `@11`, which takes the
+newest 11.x on each run (16 releases, 11.1.1 to 11.17.0, on 2026-10-06), and that is right for a job that only checks
+that every block parses and commits nothing.
 
 **Mermaid text twins.** `openshift-ipsec-nas` keeps a `.mmd` beside each figure (`docs/diagrams/mermaid/`), "kept for
 editing and diffs. They are not what the documents display" (its `docs/00-prepare-the-cluster.md`, Diagram sources).
@@ -68,7 +71,9 @@ A twin is optional. Where one exists, it changes in the same commit as the page.
 
 ## 3. The page contract
 
-These rules come from the skill's mechanics, and every page in §1 follows them.
+These rules come from the skill's mechanics. The pages in §1 follow them, except where `RESEARCH.md` §2 names a
+page that does not: `metallb`'s system fonts, `mongot-openshift`'s texts without a fill, `modernize-architecture`'s
+label past its box, and the light `--none` of the 30 pages made before this template.
 
 - **One page per diagram** at `docs/diagrams/<slug>/source.html`, rendered PNGs beside it as
   `<name>.light.png` and `<name>.dark.png`.
@@ -128,7 +133,7 @@ These rules come from the skill's mechanics, and every page in §1 follows them.
 |---|---|
 | a page error | the page did not finish what it draws |
 | a request that did not load, or an HTTP error | a failed font stylesheet leaves the figure in a fallback face (#342) |
-| figure text naming a family no loaded `@font-face` declares | the same fallback, with every request answered 200 (#436, 2026-09-27) |
+| figure text whose letters or digits no loaded face of its family draws | the same fallback, with every request answered 200 (#436, 2026-09-27), or a face whose `unicode-range` leaves the text out (review, 2026-10-06) |
 | figure text crossing the edge of a box | a label longer than its box (one committed figure ships it, `RESEARCH.md` §2) |
 | figure text under 4.5:1 against the box under it, in either theme | WCAG 2.2 SC 1.4.3; one committed dark render ships black text on the dark ground |
 | a name/figure count mismatch | a PNG named for the wrong figure |
@@ -140,14 +145,17 @@ What the checks do not see, and review must:
 - a line crossing a label;
 - an arrow into the wrong box;
 - the weight drawn (a weight the stylesheet does not load is drawn in the nearest one it does);
-- `fill-opacity`;
-- text on a shape other than a `<rect>`.
+- `fill-opacity`, or a fill colour with alpha: the contrast check takes the fill as opaque, so a readable label on a
+  translucent highlight can fail (light ink over 6 % white in the dark theme measures 1.22:1);
+- text on a shape other than a `<rect>`: the contrast check measures it against the rect or ground beneath, so a
+  readable label on a filled circle can fail (white on `--remote` measures 1.00:1).
 
 Open the PNGs and read them before anyone else does.
 
-**Renderer version.** Playwright is pinned in `pyproject.toml`, and that pin chooses the Chromium build, so a
-re-render changes pixels only when the pin moves. Committed PNGs change only when their page is re-rendered on
-purpose (#436, "Must not change").
+**Renderer version.** Playwright is pinned in `pyproject.toml`, and that pin chooses the Chromium build, so the
+browser changes only when the pin moves. The pixels do not follow the pin alone: glyphs outside the IBM Plex subsets
+are drawn in the machine's fonts, and a render can differ from the last in a few pixels (`RESEARCH.md` §2, §3).
+Committed PNGs change only when their page is re-rendered on purpose (#436, "Must not change").
 
 ## 6. Review
 

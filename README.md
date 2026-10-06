@@ -2,8 +2,8 @@
 
 One renderer, one template and one standard for the figures in our repositories.
 
-Each diagram has a `source.html` page, generated from `template.html`. `diagram-render` turns every figure on it
-into a light and a dark PNG, and refuses the defects a review of the SVG text does not see:
+Each diagram has a `source.html` page, started by `diagram-template` from the template the kit ships. `diagram-render`
+turns every figure on it into a light and a dark PNG, and refuses the defects a review of the SVG text does not see:
 
 - a fallback font;
 - a label that runs past its box;
@@ -13,7 +13,7 @@ into a light and a dark PNG, and refuses the defects a review of the SVG text do
 | File | What it is |
 |---|---|
 | `diagram_kit/render.py` | the renderer (`diagram-render` once installed): PNGs plus the checks in `STANDARD.md` §5 |
-| `template.html` | the page every `source.html` is generated from: the palette, `.fig-scroll`, solid and dashed |
+| `diagram_kit/template.html` | the page every `source.html` starts from (`diagram-template <path>` writes it, never over an existing page): the palette, `.fig-scroll`, solid and dashed |
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |
@@ -25,10 +25,12 @@ into a light and a dark PNG, and refuses the defects a review of the SVG text do
 python3 -m venv .venv
 .venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.1.0"
 .venv/bin/playwright install chromium
+.venv/bin/diagram-template docs/diagrams/<slug>/source.html
 .venv/bin/diagram-render docs/diagrams/<slug>/source.html docs/diagrams/<slug> <name-1>,<name-2>
 ```
 
-The repository is not published yet. Until it is, install from a local clone: `.venv/bin/pip install <path-to-clone>`.
+The repository is not published yet. Until it is, install from a local clone in place of the second line:
+`.venv/bin/pip install <path-to-clone>`.
 `TUTORIAL.md` walks the whole path.
 
 ## Why a kit

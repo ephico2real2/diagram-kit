@@ -16,8 +16,9 @@ RENDER = ROOT / "diagram_kit" / "render.py"
 INTER = base64.b64encode((ROOT / "tests" / "fixtures" / "fonts" / "Inter-latin.woff2").read_bytes()).decode()
 
 
-def page(family: str = "Inter, sans-serif", *, font_data: str = INTER, head: str = "", body: str = "",
-         scroller: str = "overflow-x: auto", figures: int = 1, label: str = "a label in its box") -> str:
+def page(family: str = "Inter, sans-serif", *, font_data: str = INTER, font_descriptors: str = "",
+         head: str = "", body: str = "", scroller: str = "overflow-x: auto", figures: int = 1,
+         label: str = "a label in its box") -> str:
     """A page in the template's shape: a .fig-scroll holding an SVG at least 760 px wide, one label in one box."""
     figure = (f'<div class="fig-scroll" style="{scroller}"><svg viewBox="0 0 760 60" role="img" '
               f'aria-label="A test figure." style="display:block;width:100%;min-width:760px">'
@@ -25,7 +26,8 @@ def page(family: str = "Inter, sans-serif", *, font_data: str = INTER, head: str
               f'<text x="16" y="33" font-family="{family}" font-size="13">{label}</text></svg></div>')
     return ('<!doctype html><html><head><meta charset="utf-8">'
             '<meta name="viewport" content="width=device-width,initial-scale=1">'
-            f'<style>@font-face {{ font-family: "Inter"; src: url(data:font/woff2;base64,{font_data}) format("woff2"); }}'
+            f'<style>@font-face {{ font-family: "Inter"; src: url(data:font/woff2;base64,{font_data}) '
+            f'format("woff2"); {font_descriptors} }}'
             f'body {{ margin: 0; }}</style>{head}</head><body>{body}{figure * figures}</body></html>')
 
 
@@ -52,14 +54,22 @@ def test_a_family_no_stylesheet_declares_fails(tmp_path):
     # The gap #436 measured: every request succeeds, and the text is drawn in a fallback face.
     result = render(tmp_path, page("'IBM Plex Sans', sans-serif"))
     assert result.returncode == 1
-    assert "light: figure text in a fallback face: no loaded @font-face declares 'IBM Plex Sans'" in result.stderr
+    assert ("light: figure text in a fallback face: no loaded face of 'IBM Plex Sans' draws its letters and digits"
+            in result.stderr)
 
 
 def test_a_declared_face_that_does_not_decode_fails(tmp_path):
     # A data: URL is not a network request, so only the face check sees this one.
     result = render(tmp_path, page(font_data=base64.b64encode(b"not a font").decode()))
     assert result.returncode == 1
-    assert "no loaded @font-face declares 'Inter'" in result.stderr
+    assert "figure text in a fallback face: loading 'Inter' failed (NetworkError" in result.stderr
+
+
+def test_a_loaded_face_that_does_not_draw_the_label_fails(tmp_path):
+    # Inter loads for "A" only, so every other letter of the label falls back: a check of loaded family names passes it.
+    result = render(tmp_path, page(label="A Ownership", font_descriptors="unicode-range: U+0041;"))
+    assert result.returncode == 1
+    assert "no loaded face of 'Inter' draws its letters and digits" in result.stderr
 
 
 def test_a_stylesheet_that_does_not_load_fails(tmp_path):
@@ -102,3 +112,19 @@ def test_text_with_no_fill_on_a_dark_figure_fails_in_the_dark_theme(tmp_path):
     assert result.returncode == 1
     assert 'dark: text under 4.5:1 contrast in figure 1: "Ownership" at 1.22:1' in result.stderr
     assert "light: text under" not in result.stderr
+
+
+def test_contrast_is_measured_against_the_last_box_painted_under_the_text(tmp_path):
+    # The measured pair: --none #6b7684 on --none-wash #eef0f3 is 4.04:1 and fails; the template's #5f6a77 is 4.82:1
+    # and passes. Each wash is painted over a dark box, so only the last box under the text gives these verdicts.
+    def figure(fill: str) -> str:
+        return ('<div class="fig-scroll"><svg viewBox="0 0 760 60" role="img" aria-label="A test figure." '
+                'style="display:block;width:100%;min-width:760px">'
+                '<rect x="4" y="8" width="320" height="44" fill="#151c25"/>'
+                '<rect x="8" y="12" width="300" height="36" fill="#eef0f3"/>'
+                f'<text x="16" y="35" font-family="Inter, sans-serif" font-size="13" fill="{fill}">denied</text>'
+                '</svg></div>')
+    result = render(tmp_path, page(body=figure("#6b7684") + figure("#5f6a77"), figures=0), names="old,new")
+    assert result.returncode == 1
+    assert 'light: text under 4.5:1 contrast in figure 1: "denied" at 4.04:1' in result.stderr
+    assert "figure 2" not in result.stderr

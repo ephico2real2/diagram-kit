@@ -10,10 +10,12 @@ from __future__ import annotations
 
 import pathlib
 import re
+import subprocess
+import sys
 
 import pytest
 
-TEMPLATE = (pathlib.Path(__file__).resolve().parents[1] / "template.html").read_text()
+TEMPLATE = (pathlib.Path(__file__).resolve().parents[1] / "diagram_kit" / "template.html").read_text()
 TOKENS = ("ink", "muted", "host", "remote", "gap", "none")
 WASHES = ("host-wash", "remote-wash", "gap-wash", "none-wash")
 
@@ -59,3 +61,16 @@ def test_text_meets_wcag_aa_on_the_fills_it_is_drawn_on(theme, text, ground):
     palette = THEMES[theme]
     ratio = contrast(palette[text], palette[ground])
     assert ratio >= 4.5, f"{theme}: --{text} {palette[text]} on --{ground} {palette[ground]} is {ratio:.2f}:1"
+
+
+def test_the_installed_kit_writes_this_template_and_never_overwrites(tmp_path):
+    # The template ships inside the package, so a consumer who installed a tag starts a page with
+    # `diagram-template <path>` and gets the template this version's renderer and tests were run against.
+    command = str(pathlib.Path(sys.executable).with_name("diagram-template"))
+    source = tmp_path / "docs" / "diagrams" / "first" / "source.html"
+    assert subprocess.run([command, str(source)], capture_output=True, text=True).returncode == 0
+    assert source.read_text() == TEMPLATE
+    source.write_text("an edited diagram")
+    again = subprocess.run([command, str(source)], capture_output=True, text=True)
+    assert again.returncode == 1 and "refusing to overwrite" in again.stderr
+    assert source.read_text() == "an edited diagram"

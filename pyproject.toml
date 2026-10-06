@@ -15,6 +15,10 @@ test = ["pytest==9.1.1"]
 
 [project.scripts]
 diagram-render = "diagram_kit.render:main"
+diagram-template = "diagram_kit.template:main"
 
 [tool.setuptools]
 packages = ["diagram_kit"]
+
+[tool.setuptools.package-data]
+diagram_kit = ["template.html"]
