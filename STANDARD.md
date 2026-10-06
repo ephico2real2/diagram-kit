@@ -1,7 +1,8 @@
 # The diagram standard
 
-How a figure is made, checked, embedded and reviewed across our repositories. Every rule here is one the
-repositories already follow, and each cites where. A rule with no citation does not belong here.
+How a figure is made, checked, embedded and reviewed across our repositories. Every rule here is either one the
+repositories already follow, and cites where, or one a measured defect on our own figures added, and cites
+`RESEARCH.md`. A rule with neither does not belong here.
 
 Where this says "the skill", it means the `/visual` skill that generates the pages (its `SKILL.md` and
 `template.html`; this kit's `template.html` started as a verbatim copy of it).
@@ -13,7 +14,7 @@ The page is **generated** for that diagram from `template.html`, then rendered b
 PNG per figure, which are committed beside it. The page is the source; the PNGs are derived from it and are never
 edited.
 
-This is how every figure in our repositories is made today:
+Every `source.html` figure in our repositories is made this way today:
 
 | Repository | Pages | Where |
 |---|---|---|

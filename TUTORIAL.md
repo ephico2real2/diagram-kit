@@ -104,7 +104,7 @@ FAIL: text crosses the edge of a box in figure 1: "the caller signs in with a to
 exit 1
 ```
 
-No PNG is written for a page that fails. Put the label back, or split it over two `<text>` lines, and render again:
+A page that fails writes no PNG; the ones from the last good render stay as they were. Put the label back, or split it over two `<text>` lines, and render again:
 
 ```sh
 mv docs/diagrams/first/source.html.bak docs/diagrams/first/source.html
