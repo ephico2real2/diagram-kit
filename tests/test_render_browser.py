@@ -199,3 +199,31 @@ def test_a_box_text_beside_an_arrow_inside_a_container_is_still_not_a_label(tmp_
     result = render(tmp_path, page(body=dashed_figure(DASHED_ARROW, around), figures=0))
     assert result.returncode == 1
     assert "a dashed arrow with no label beside it in figure 1" in result.stderr
+
+
+def test_an_end_box_holding_the_arrows_midpoint_is_still_a_box(tmp_path):
+    # An arrow drawn from inside its start box (centre to centre, the box painted over it) has its midpoint in that
+    # box: the box holds one end, so it is the arrow's end box, not a container, and its own text is not the label.
+    figure = ('<div class="fig-scroll" style="overflow-x: auto"><svg viewBox="0 0 760 120" role="img" '
+              'aria-label="A test figure." style="display:block;width:100%;min-width:760px">'
+              '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
+              'orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>'
+              '<path d="M200,60 L558,60" fill="none" stroke="currentColor" stroke-dasharray="6 5" '
+              'marker-end="url(#ah)"/>'
+              '<rect x="10" y="40" width="400" height="40" fill="var(--surface, #fff)" stroke="currentColor"/>'
+              '<text x="404" y="65" text-anchor="end" font-family="Inter, sans-serif" font-size="13" '
+              'fill="currentColor">envoy</text>'
+              '<rect x="560" y="40" width="140" height="40" fill="none" stroke="currentColor"/>'
+              '<text x="574" y="65" font-family="Inter, sans-serif" font-size="13" fill="currentColor">service</text>'
+              '</svg></div>')
+    result = render(tmp_path, page(body=figure, figures=0))
+    assert result.returncode == 1
+    assert "a dashed arrow with no label beside it in figure 1: from (200,60) to (558,60)" in result.stderr
+
+
+def test_a_chip_on_the_line_labels_the_arrow(tmp_path):
+    # A chip drawn on the line holds the midpoint and neither end: its text names the arrow.
+    chip = ('<rect x="300" y="48" width="110" height="24" rx="12" fill="#fff" stroke="currentColor"/>'
+            '<text x="312" y="65" font-family="Inter, sans-serif" font-size="12" fill="currentColor">DNS lookup</text>')
+    result = render(tmp_path, page(body=dashed_figure(DASHED_ARROW, chip), figures=0))
+    assert result.returncode == 0, result.stderr

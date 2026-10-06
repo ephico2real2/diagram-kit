@@ -77,8 +77,9 @@ UNLOADED_FAMILIES = r"""async () => {
 # a relationship that carries no traffic, so the reader must be told which one (STANDARD.md §3, Connectors). A label
 # is a <text> whose bounds come within 16 px of a point sampled every 4 units along the arrow, and that is not a box's
 # own text (a box's text sits beside every arrow that ends there). A box that holds the arrow's midpoint is a container
-# around it (a cluster drawn around the arrow and its label, or a chip on the line), so its text can label the arrow.
-# Dashed boxes (proposed) and dashed lines without a marker (lane dividers) are not arrows.
+# around it (a cluster drawn around the arrow and its label, or a chip on the line), so its text can label the arrow,
+# unless it holds one end of the arrow and no other box: that is the arrow's own end box, drawn over an arrow that
+# starts inside it. Dashed boxes (proposed) and dashed lines without a marker (lane dividers) are not arrows.
 DASHED_UNLABELLED = """() => [...document.querySelectorAll(".fig-scroll")].flatMap((figure, i) => {
   const rects = [...figure.querySelectorAll("rect")].map((r) => r.getBoundingClientRect());
   const texts = [...figure.querySelectorAll("text")].map((t) => t.getBoundingClientRect()).filter((b) => b.width);
@@ -96,8 +97,10 @@ DASHED_UNLABELLED = """() => [...document.querySelectorAll(".fig-scroll")].flatM
       const p = el.getPointAtLength(Math.min(d, n));
       points.push(new DOMPoint(p.x, p.y).matrixTransform(m));
     }
-    const mid = points[Math.floor(points.length / 2)];
-    const boxes = rects.filter((r) => !inside(r, mid.x, mid.y));
+    const mid = points[Math.floor(points.length / 2)], start = points[0], end = points[points.length - 1];
+    const endBox = (r) => inside(r, start.x, start.y) !== inside(r, end.x, end.y) &&
+      !rects.some((o) => o !== r && inside(r, ...centre(o)));
+    const boxes = rects.filter((r) => !inside(r, mid.x, mid.y) || endBox(r));
     const labels = texts.filter((b) => !boxes.some((r) => inside(r, ...centre(b))));
     return !points.some((p) => labels.some((b) => near(p, b)));
   }).map((el) => {

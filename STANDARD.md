@@ -150,7 +150,7 @@ label past its box, and the light `--none` of the 30 pages made before this temp
 | a request that did not load, or an HTTP error | a failed font stylesheet leaves the figure in a fallback face (#342) |
 | figure text whose letters or digits no loaded face of its family draws | the same fallback, with every request answered 200 (#436, 2026-09-27), or a face whose `unicode-range` leaves the text out (review, 2026-10-06) |
 | figure text crossing the edge of a box | a label longer than its box (one committed figure ships it, `RESEARCH.md` §2) |
-| a dashed arrow with no text within 16 px of it other than a box's own (a container around the arrow does not count as a box) | a relationship the reader cannot name, or a proposal that reads as traffic (§3, Connectors) |
+| a dashed arrow with no text within 16 px of it other than a box's own (a container around the arrow does not count as a box; a box the arrow starts inside, holding no other box, still does) | a relationship the reader cannot name, or a proposal that reads as traffic (§3, Connectors) |
 | figure text under 4.5:1 against the box under it, in either theme | WCAG 2.2 SC 1.4.3; one committed dark render ships black text on the dark ground |
 | a name/figure count mismatch | a PNG named for the wrong figure |
 | sideways page scroll at 375 px | a figure that widens the page on a phone |
