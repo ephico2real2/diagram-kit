@@ -67,4 +67,11 @@ written independently, and keeps its own page format. From diagram-design it bor
 
 ## Licence
 
-Not chosen yet.
+| What | Licence | What it means |
+|---|---|---|
+| the renderer, the tests, the documents | [MPL-2.0](LICENSE) | use it for anything, commercial included; keep the notices; a changed copy of a kit file you distribute stays open under the MPL |
+| `diagram_kit/template.html`, `examples/` | [MIT-0](LICENSES/MIT-0.txt) | a page started from the template, and its PNGs, are yours with no obligation |
+
+Credit the kit as `diagram-kit (https://github.com/ephico2real2/diagram-kit), MPL-2.0` and keep `NOTICE` with any
+copy. Please send enhancements back as a pull request (`CONTRIBUTING.md`): the licence keeps changed kit files open,
+and a pull request is how they reach every project that uses the kit.

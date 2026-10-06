@@ -1,0 +1,17 @@
+diagram-kit
+Copyright 2026 ephico2real2 and the diagram-kit contributors
+https://github.com/ephico2real2/diagram-kit
+
+The renderer, its tests and the documents are licensed under the Mozilla Public License 2.0 (LICENSE).
+The page template (diagram_kit/template.html) and the examples (examples/) are licensed under MIT No
+Attribution (LICENSES/MIT-0.txt), so a diagram page started from the template, and the PNGs rendered
+from it, carry no licence obligation.
+
+Commercial and non-commercial use are both permitted. When you use or redistribute diagram-kit, keep
+this notice and the licence texts with it, and credit it as:
+
+    diagram-kit (https://github.com/ephico2real2/diagram-kit), MPL-2.0
+
+If you change any MPL-covered file and distribute the result, the MPL requires you to make that
+file's source available under the MPL. We ask, beyond what the licence requires, that you send your
+enhancements back as a pull request so that every user gets them (CONTRIBUTING.md).

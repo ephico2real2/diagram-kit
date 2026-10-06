@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MPL-2.0
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
+# distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """diagram-template <path/to/source.html>: start a diagram's page from the template this installed kit ships.
 
 The template is package data, so one pin carries the renderer, its checks and the template they were tested against.

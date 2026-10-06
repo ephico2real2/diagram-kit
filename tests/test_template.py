@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MPL-2.0
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
+# distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """template.html's palette: text drawn in a token stays readable on the fills the template draws it on.
 
 WCAG 2.2 success criterion 1.4.3 asks 4.5:1 of normal text, and every figure text in the template is under the

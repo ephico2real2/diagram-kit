@@ -1,4 +1,7 @@
 #!/usr/bin/env python3
+# SPDX-License-Identifier: MPL-2.0
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
+# distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """Render every .fig-scroll figure of a diagram page to light and dark PNGs, and check the page.
 
     diagram-render <page.html> <out-dir> <name-1>,<name-2>,...      (installed)

@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MPL-2.0
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
+# distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """diagram_kit/render.py on real pages in Chromium, one per check, with no network.
 
 Each page is built in tmp_path. Its one web face is tests/fixtures/fonts/Inter-latin.woff2 (OFL-1.1, beside it),

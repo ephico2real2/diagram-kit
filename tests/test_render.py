@@ -1,3 +1,6 @@
+# SPDX-License-Identifier: MPL-2.0
+# This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
+# distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
 """diagram_kit/render.py's exit status, on every path its docstring promises.
 
 The renderer's value is its refusals: a figure drawn in a fallback face, or a page that scrolls sideways at
