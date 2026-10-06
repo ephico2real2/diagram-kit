@@ -2,9 +2,9 @@
 
 The renderer's value is its refusals: a figure drawn in a fallback face, or a page that scrolls sideways at
 375 px, looks like a design choice once it is a PNG. So every page it opens, the 375 px one included, must turn a
-page error, a failed request or an HTTP error into a non-zero exit. Playwright is replaced by a stand-in that fires
-those events on demand, so this needs no browser and no network; the real render is SPEC_D2b §7's "After the
-blocks" step.
+page error, a failed request or an HTTP error into a non-zero exit, and figure text in a face no loaded
+@font-face declares fails too. Playwright is replaced by a stand-in that fires those events on demand, so this
+needs no browser and no network; tests/test_render_browser.py renders real pages in Chromium.
 """
 
 from __future__ import annotations
@@ -17,7 +17,7 @@ import pytest
 
 RENDER = pathlib.Path(__file__).resolve().parents[1] / "diagram_kit" / "render.py"
 
-# case -> (fired on the 375 px page?, event, payload); "ok", "mismatch" and "scroll" fire nothing.
+# case -> (fired on the 375 px page?, event, payload); the cases not listed here fire nothing.
 EVENTS = {
     "offline": (False, "requestfailed", SimpleNamespace(url="https://fonts.invalid/face.woff2")),
     "404": (False, "response", SimpleNamespace(url="https://fonts.invalid/face.woff2", status=404)),
@@ -35,7 +35,7 @@ def _render():
     return module
 
 
-@pytest.mark.parametrize("case", ["ok", "mismatch", "scroll", *EVENTS])
+@pytest.mark.parametrize("case", ["ok", "mismatch", "scroll", "fallback-face", "crossing", "low-contrast", *EVENTS])
 def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, case):
     render = _render()
 
@@ -54,6 +54,12 @@ def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, 
                     callback(payload)
 
         def evaluate(self, expression):
+            if expression == render.UNLOADED_FAMILIES:
+                return ["IBM Plex Sans"] if case == "fallback-face" else []
+            if expression == render.LOW_CONTRAST:
+                return ['figure 1: "Ownership" at 1.22:1'] if case == "low-contrast" else []
+            if expression == render.CROSSINGS:
+                return ['figure 1: "a label longer than its box"'] if case == "crossing" else []
             return (500 if case == "scroll" else 375) if "scrollWidth" in expression else True
 
         def locator(self, selector):

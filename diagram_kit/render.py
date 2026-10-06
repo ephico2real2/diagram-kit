@@ -1,14 +1,22 @@
 #!/usr/bin/env python3
 """Render every .fig-scroll figure of a diagram page to light and dark PNGs, and check the page.
 
-    local-development/.venv/bin/python docs/diagrams/render.py <page.html> <out-dir> <name-1>,<name-2>,...
+    diagram-render <page.html> <out-dir> <name-1>,<name-2>,...      (installed)
+    python diagram_kit/render.py <page.html> <out-dir> <name-1>,<name-2>,...
 
 One name per .fig-scroll, in document order; each becomes <out-dir>/<name>.light.png and
 <name>.dark.png at 2x pixel density. The page may be a fragment (an Artifact page starts at
-<title>): it is wrapped in a document for rendering, never modified. Exit status is non-zero on a
-page error, a request that did not load (a web font that fails leaves the figures in a fallback
-face), a name/figure count mismatch, or horizontal page scroll at 375 px — the defects a code review
-of the SVG text does not see.
+<title>): it is wrapped in a document for rendering, never modified. Exit status is non-zero on
+the defects a code review of the SVG text does not see:
+  - a page error;
+  - a request that did not load, or answered an HTTP error (a web font that fails leaves the
+    figures in a fallback face);
+  - figure text whose font family no loaded @font-face declares (the same fallback, with every
+    request answered 200);
+  - figure text that crosses the edge of a box (a label longer than its box);
+  - figure text under 4.5:1 contrast with the box it sits in, in either theme (WCAG 1.4.3);
+  - a name/figure count mismatch;
+  - horizontal page scroll at 375 px.
 """
 
 from __future__ import annotations
@@ -21,6 +29,57 @@ try:
     from playwright.sync_api import sync_playwright
 except ImportError:
     sys.exit("playwright is not installed: python3 -m pip install playwright && python3 -m playwright install chromium")
+
+# The first family each piece of figure text asks for, when it is neither a generic family nor a face that
+# loaded. A stylesheet answering 200 can still leave a family out (Google Fonts drops an unknown family and
+# returns CSS for the rest), and then no request fails while the text falls back (#436, 2026-09-27).
+UNLOADED_FAMILIES = """() => document.fonts.ready.then(() => {
+  const name = (f) => f.trim().replace(/^["']|["']$/g, "");
+  const ok = new Set(["serif", "sans-serif", "monospace", "cursive", "fantasy", "system-ui", "ui-serif",
+    "ui-sans-serif", "ui-monospace", "ui-rounded", "math", "emoji", "fangsong", "-apple-system", "blinkmacsystemfont"]);
+  for (const face of document.fonts) if (face.status === "loaded") ok.add(name(face.family).toLowerCase());
+  const asked = new Set();
+  for (const el of document.querySelectorAll(".fig-scroll *"))
+    if ([...el.childNodes].some((n) => n.nodeType === Node.TEXT_NODE && n.textContent.trim()))
+      asked.add(name(getComputedStyle(el).fontFamily.split(",")[0]));
+  return [...asked].filter((f) => !ok.has(f.toLowerCase())).sort();
+})"""
+
+# Figure text whose box is partly inside and partly outside a <rect>: a label that ran past its box, which the
+# template's 6.3 px-per-character budget only estimates. Measured in the face actually drawn, after it loaded.
+CROSSINGS = """() => [...document.querySelectorAll(".fig-scroll")].flatMap((figure, i) => {
+  const boxes = [...figure.querySelectorAll("rect")].map((r) => r.getBoundingClientRect()).filter((r) => r.width && r.height);
+  const crosses = (t) => boxes.some((r) => {
+    const overlap = Math.min(t.right, r.right) - Math.max(t.left, r.left) > 1 && Math.min(t.bottom, r.bottom) - Math.max(t.top, r.top) > 1;
+    const inside = t.left >= r.left - 1 && t.top >= r.top - 1 && t.right <= r.right + 1 && t.bottom <= r.bottom + 1;
+    const covers = t.left <= r.left + 1 && t.top <= r.top + 1 && t.right >= r.right - 1 && t.bottom >= r.bottom - 1;
+    return overlap && !inside && !covers;
+  });
+  return [...figure.querySelectorAll("text")].filter((t) => t.textContent.trim() && crosses(t.getBoundingClientRect()))
+    .map((t) => `figure ${i + 1}: ${JSON.stringify(t.textContent.trim())}`);
+})"""
+
+# Figure text under 4.5:1 (WCAG 2.2 SC 1.4.3, normal text) against what is painted under it: the last filled
+# <rect> before it in document order whose box holds it, else the figure's background. A text with no fill is
+# black, which the light theme hides and the dark theme shows; fill-opacity and gradients are not modelled.
+LOW_CONTRAST = """() => [...document.querySelectorAll(".fig-scroll")].flatMap((figure, i) => {
+  const rgb = (c) => { const m = /^rgba?\\(([^)]+)\\)/.exec(c); const v = m ? m[1].split(/[\\s,\\/]+/).map(Number) : [];
+                       return v.length < 3 || v[3] === 0 ? null : v.slice(0, 3); };
+  const lum = (c) => c.map((x) => (x /= 255) <= 0.04045 ? x / 12.92 : ((x + 0.055) / 1.055) ** 2.4)
+                      .reduce((sum, x, k) => sum + x * [0.2126, 0.7152, 0.0722][k], 0);
+  const ground = rgb(getComputedStyle(figure).backgroundColor) || rgb(getComputedStyle(document.body).backgroundColor) || [255, 255, 255];
+  const painted = [], low = [];
+  for (const el of figure.querySelectorAll("rect, text")) {
+    const box = el.getBoundingClientRect(), fill = rgb(getComputedStyle(el).fill);
+    if (el.tagName === "rect") { if (fill) painted.push([box, fill]); continue; }
+    if (!fill || !el.textContent.trim()) continue;
+    const holds = painted.filter(([r]) => box.left >= r.left - 1 && box.top >= r.top - 1 && box.right <= r.right + 1 && box.bottom <= r.bottom + 1);
+    const [high, dark] = [lum(fill), lum(holds.length ? holds[holds.length - 1][1] : ground)].sort((a, b) => b - a);
+    const ratio = (high + 0.05) / (dark + 0.05);
+    if (ratio < 4.5) low.push(`figure ${i + 1}: ${JSON.stringify(el.textContent.trim())} at ${ratio.toFixed(2)}:1`);
+  }
+  return low;
+})"""
 
 
 def main() -> int:
@@ -55,7 +114,11 @@ def main() -> int:
             watch(page, theme)
             page.goto(doc.as_uri(), wait_until="networkidle")
             page.evaluate(f"() => document.documentElement.setAttribute('data-theme', '{theme}')")
-            page.evaluate("document.fonts.ready.then(() => true)")
+            failures.extend(f"{theme}: figure text in a fallback face: no loaded @font-face declares {family!r}"
+                            for family in page.evaluate(UNLOADED_FAMILIES))
+            failures.extend(f"{theme}: text under 4.5:1 contrast in {text}" for text in page.evaluate(LOW_CONTRAST))
+            if theme == "light":  # the geometry is the same in both themes
+                failures.extend(f"text crosses the edge of a box in {text}" for text in page.evaluate(CROSSINGS))
             if failures:
                 break
             figures = page.locator(".fig-scroll")
