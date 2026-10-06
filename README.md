@@ -7,6 +7,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 
 - a fallback font;
 - a label that runs past its box;
+- a dashed arrow with no label naming what it links;
 - text the reader cannot read in one of the two themes;
 - a page that scrolls sideways on a phone.
 
@@ -17,6 +18,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |
+| `examples/fan-out/` | the connector kinds of `STANDARD.md` §3 on one page (curved fan-out, labelled dashed arrows), with its PNGs |
 | `tests/` | one test per check, offline: a stand-in browser for the exit paths, real Chromium on local pages |
 
 ## Install and render

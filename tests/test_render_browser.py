@@ -128,3 +128,44 @@ def test_contrast_is_measured_against_the_last_box_painted_under_the_text(tmp_pa
     assert result.returncode == 1
     assert 'light: text under 4.5:1 contrast in figure 1: "denied" at 4.04:1' in result.stderr
     assert "figure 2" not in result.stderr
+
+
+def dashed_figure(arrow: str, label: str = "") -> str:
+    """A figure with two boxes and one connector between them, and optionally a free label."""
+    return ('<div class="fig-scroll" style="overflow-x: auto"><svg viewBox="0 0 760 120" role="img" aria-label="A test figure." '
+            'style="display:block;width:100%;min-width:760px">'
+            '<defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" '
+            'orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>'
+            '<rect x="10" y="40" width="140" height="40" fill="none" stroke="currentColor"/>'
+            # right-aligned against the arrow's start, as a box's text often is: it must not pass for the label
+            '<text x="144" y="65" text-anchor="end" font-family="Inter, sans-serif" font-size="13" '
+            'fill="currentColor">envoy</text>'
+            '<rect x="560" y="40" width="140" height="40" fill="none" stroke="currentColor"/>'
+            '<text x="574" y="65" font-family="Inter, sans-serif" font-size="13" fill="currentColor">service</text>'
+            f'{arrow}{label}</svg></div>')
+
+
+DASHED_ARROW = ('<path d="M150,60 C350,60 350,60 558,60" fill="none" stroke="currentColor" stroke-dasharray="6 5" '
+                'marker-end="url(#ah)"/>')
+
+
+def test_a_dashed_arrow_with_no_label_fails(tmp_path):
+    # The box texts sit at both ends of the arrow and do not count: a box's own text is not the arrow's label.
+    result = render(tmp_path, page(body=dashed_figure(DASHED_ARROW), figures=0))
+    assert result.returncode == 1
+    assert "a dashed arrow with no label beside it in figure 1: from (150,60) to (558,60)" in result.stderr
+
+
+def test_a_dashed_arrow_with_its_label_beside_it_renders(tmp_path):
+    label = '<text x="320" y="52" font-family="Inter, sans-serif" font-size="12" fill="currentColor">DNS lookup</text>'
+    result = render(tmp_path, page(body=dashed_figure(DASHED_ARROW, label), figures=0))
+    assert result.returncode == 0, result.stderr
+
+
+def test_dashed_shapes_that_are_not_arrows_render(tmp_path):
+    # A dashed box is a proposal and a dashed line with no marker is a lane divider: neither needs an arrow label.
+    shapes = ('<rect x="300" y="40" width="140" height="40" fill="none" stroke="currentColor" stroke-dasharray="5 4"/>'
+              '<line x1="480" y1="10" x2="480" y2="110" stroke="currentColor" stroke-dasharray="6 5"/>'
+              '<line x1="150" y1="60" x2="298" y2="60" stroke="currentColor" marker-end="url(#ah)"/>')
+    result = render(tmp_path, page(body=dashed_figure(shapes), figures=0))
+    assert result.returncode == 0, result.stderr

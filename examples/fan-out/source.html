@@ -1,0 +1,126 @@
+<title>Envoy Fan-Out</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root {
+  --ground: #f5f6f8; --surface: #ffffff; --ink: #18212c; --muted: #58636f; --rule: #d7dce3;
+  --host: #a55a0b; --host-wash: #fbf1e4; --remote: #0e6f68; --remote-wash: #e3f3f1;
+  --gap: #b3261e; --gap-wash: #fbe9e7; --none: #5f6a77; --none-wash: #eef0f3;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0e131a; --surface: #151c25; --ink: #e5e9ef; --muted: #9aa5b3; --rule: #2a3440;
+    --host: #f0a53c; --host-wash: #2a2014; --remote: #3fcfc0; --remote-wash: #122a28;
+    --gap: #f2857c; --gap-wash: #2d1614; --none: #9aa5b3; --none-wash: #1b232d;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0e131a; --surface: #151c25; --ink: #e5e9ef; --muted: #9aa5b3; --rule: #2a3440;
+  --host: #f0a53c; --host-wash: #2a2014; --remote: #3fcfc0; --remote-wash: #122a28;
+  --gap: #f2857c; --gap-wash: #2d1614; --none: #9aa5b3; --none-wash: #1b232d;
+}
+* { box-sizing: border-box; }
+body { background: var(--ground); color: var(--ink); font-family: var(--font-body); font-size: 15px; line-height: 1.55; margin: 0; }
+.page { max-width: 1060px; margin: 0 auto; padding-inline: 16px; padding-block: 40px 72px; display: grid; gap: 44px; }
+header { display: grid; gap: 10px; }
+.eyebrow { font-family: var(--font-mono); font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+h1 { font-size: clamp(26px, 4vw, 36px); line-height: 1.15; margin: 0; font-weight: 700; text-wrap: balance; }
+h2 { font-size: 20px; margin: 0 0 6px; font-weight: 600; text-wrap: balance; }
+p { margin: 0; max-width: 72ch; }
+.lede { font-size: 17px; max-width: 70ch; }
+.muted { color: var(--muted); }
+code { font-family: var(--font-mono); font-size: .9em; }
+section { display: grid; gap: 14px; }
+figure { margin: 0; display: grid; gap: 10px; }
+.fig-scroll { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 12px; }
+.fig-scroll svg { display: block; width: 100%; min-width: 760px; height: auto; color: var(--ink); }
+figcaption { font-size: 13.5px; color: var(--muted); max-width: 80ch; }
+.tbl { overflow-x: auto; background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th, td { text-align: left; vertical-align: top; padding: 10px 14px; border-bottom: 1px solid var(--rule); }
+th { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); background: var(--ground); }
+tr:last-child td { border-bottom: 0; }
+.yes { color: var(--remote); font-weight: 600; } .no { color: var(--gap); font-weight: 600; }
+.cell-gap { background: var(--gap-wash); }
+.decisions { display: grid; gap: 12px; }
+.decision { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 16px 20px; display: grid; gap: 8px; }
+.decision .id { font-family: var(--font-mono); font-size: 12px; color: var(--muted); }
+.decision .q { font-weight: 600; }
+.decision .rec { font-size: 14px; border-left: 3px solid var(--remote); padding-left: 10px; }
+.decision .rec.warn { border-left-color: var(--host); }
+a { color: var(--remote); }
+:focus-visible { outline: 2px solid var(--remote); outline-offset: 2px; }
+</style>
+
+<div class="page">
+  <header>
+    <div class="eyebrow">diagram-kit · example · connectors</div>
+    <h1>Every Envoy pod reaches every mongot pod</h1>
+    <p class="lede">An example of the three connector kinds in STANDARD.md §3: solid arrows for traffic, one curve per
+      sender and receiver for many-to-many traffic, coloured by the sender, and a labelled dashed arrow for a
+      relationship that carries no traffic. The addresses are illustrative.</p>
+  </header>
+
+  <section>
+    <figure>
+      <div class="fig-scroll">
+        <svg viewBox="0 0 980 410" role="img" aria-label="An OpenShift Route sends each connection to one of two Envoy pods. Each Envoy pod looks up the headless Service in DNS, gets three A records, and spreads its requests over all three mongot pods: every Envoy reaches every mongot.">
+          <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
+          <g>
+            <path d="M200,182 C249,182 249,72 298,72" fill="none" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#ah)"/>
+            <path d="M200,182 C249,182 249,292 298,292" fill="none" stroke="var(--muted)" stroke-width="1.4" marker-end="url(#ah)"/>
+            <path d="M490,63 C604,63 604,56 718,56" fill="none" stroke="var(--remote)" stroke-width="1.4" marker-end="url(#ah)"/>
+            <path d="M490,72 C604,72 604,176 718,176" fill="none" stroke="var(--remote)" stroke-width="1.4" marker-end="url(#ah)"/>
+            <path d="M490,81 C604,81 604,296 718,296" fill="none" stroke="var(--remote)" stroke-width="1.4" marker-end="url(#ah)"/>
+            <path d="M490,283 C604,283 604,68 718,68" fill="none" stroke="var(--host)" stroke-width="1.4" marker-end="url(#ah)"/>
+            <path d="M490,292 C604,292 604,188 718,188" fill="none" stroke="var(--host)" stroke-width="1.4" marker-end="url(#ah)"/>
+            <path d="M490,301 C604,301 604,308 718,308" fill="none" stroke="var(--host)" stroke-width="1.4" marker-end="url(#ah)"/>
+            <line x1="395" y1="104" x2="395" y2="148" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="6 5" marker-end="url(#ah)"/>
+            <line x1="395" y1="260" x2="395" y2="216" stroke="var(--muted)" stroke-width="1.4" stroke-dasharray="6 5" marker-end="url(#ah)"/>
+          </g>
+          <g font-family="IBM Plex Sans, sans-serif" font-size="12.5" fill="currentColor">
+            <rect x="30" y="150" width="170" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="115" y="172" text-anchor="middle" font-weight="600">OpenShift Route</text>
+            <text x="115" y="189" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5">grpc-search.apps…</text>
+            <text x="115" y="205" text-anchor="middle" fill="var(--muted)">TLS passthrough</text>
+            <rect x="300" y="40" width="190" height="64" rx="8" fill="var(--remote-wash)" stroke="var(--remote)" stroke-width="1.5"/>
+            <text x="395" y="62" text-anchor="middle" font-weight="600" fill="var(--remote)">envoy-0</text>
+            <text x="395" y="79" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5">STRICT_DNS · 3 hosts</text>
+            <text x="395" y="95" text-anchor="middle" fill="var(--muted)">ROUND_ROBIN</text>
+            <rect x="300" y="260" width="190" height="64" rx="8" fill="var(--host-wash)" stroke="var(--host)" stroke-width="1.5"/>
+            <text x="395" y="282" text-anchor="middle" font-weight="600" fill="var(--host)">envoy-1</text>
+            <text x="395" y="299" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5">STRICT_DNS · 3 hosts</text>
+            <text x="395" y="315" text-anchor="middle" fill="var(--muted)">ROUND_ROBIN</text>
+            <rect x="320" y="150" width="150" height="64" rx="8" fill="var(--none-wash)" stroke="var(--none)" stroke-width="1.5"/>
+            <text x="395" y="172" text-anchor="middle" font-weight="600" fill="var(--none)">headless Service</text>
+            <text x="395" y="189" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5">clusterIP: None</text>
+            <text x="395" y="205" text-anchor="middle" fill="var(--muted)">answers 3 A records</text>
+            <rect x="720" y="30" width="230" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="835" y="52" text-anchor="middle" font-weight="600">mongot-search-0</text>
+            <text x="835" y="69" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5">10.217.1.36:27028</text>
+            <text x="835" y="85" text-anchor="middle" fill="var(--muted)">one A record each</text>
+            <rect x="720" y="150" width="230" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="835" y="172" text-anchor="middle" font-weight="600">mongot-search-1</text>
+            <text x="835" y="189" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5">10.217.1.37:27028</text>
+            <text x="835" y="205" text-anchor="middle" fill="var(--muted)">one A record each</text>
+            <rect x="720" y="270" width="230" height="64" rx="8" fill="none" stroke="currentColor" stroke-width="1.5"/>
+            <text x="835" y="292" text-anchor="middle" font-weight="600">mongot-search-2</text>
+            <text x="835" y="309" text-anchor="middle" font-family="IBM Plex Mono, monospace" font-size="11.5">10.217.1.38:27028</text>
+            <text x="835" y="325" text-anchor="middle" fill="var(--muted)">one A record each</text>
+            <text x="403" y="132" fill="var(--muted)" font-size="11.5">DNS lookup</text>
+            <text x="403" y="244" fill="var(--muted)" font-size="11.5">DNS lookup</text>
+            <text x="30" y="366" fill="var(--muted)">Each Envoy pod resolves the headless Service to three A records and round-robins across all of them.</text>
+            <text x="30" y="388">Solid = traffic: <tspan fill="var(--remote)" font-weight="600">teal</tspan> from envoy-0, <tspan fill="var(--host)" font-weight="600">amber</tspan> from envoy-1, grey is the Route's choice of pod.  Dashed grey = a relationship, not traffic.</text>
+          </g>
+        </svg>
+      </div>
+      <figcaption>Two Envoy pods, three mongot pods, six curves: every Envoy reaches every mongot. The dashed arrows are
+        the DNS lookups that tell each Envoy where the pods are.</figcaption>
+    </figure>
+  </section>
+</div>

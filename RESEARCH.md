@@ -258,6 +258,30 @@ embed.**
 It needs the repository public (step 3), because `pip` fetches the tag anonymously. The tutorial walk installed it
 from a local clone (`TUTORIAL.md`).
 
+## 6. Connectors: curves, dashed arrows, one arrowhead
+
+Asked for on 2026-10-06: curved arrows to show traffic from every Envoy pod reaching every mongot pod, and dashed
+arrows for a linkage. Measured before the rules in `STANDARD.md` §3 were written:
+
+- **No figure draws a fan-out.** The seven Envoy and mongot pages in mongodb-poc and envoy-tutorial's `metallb`
+  contain 0 curved paths (no `C` or `Q` command). envoy-flow's `headless-vs-clusterip` states "all three pods serve
+  traffic" as text in a box.
+- **A marker filled with `currentColor` takes the text colour, not its line's.** The first prototype drew every
+  arrowhead black on teal and amber curves: a marker's properties come from where it is defined. Filled with
+  `context-stroke` (SVG 2), it takes its line's stroke. Measured in the pinned Chromium 153.0.8010.12, sampling a
+  pixel inside the head of a red line: `[255, 0, 0, 255]` with `context-stroke`, `[0, 0, 0, 255]` with
+  `currentColor`. Lines stroked in `currentColor` look exactly as before.
+- **Dashed meant "proposed" for boxes and arrows alike.** A dashed arrow now means a relationship, always labelled,
+  and a dashed box still means proposed (the operator's decision, 2026-10-06). `render.py` refuses a dashed arrow
+  with no `<text>` outside every box within 16 px of it.
+- **On the 159 pages,** the check adds 8 lines on 3 pages, and no other failure line changes: 126 pages pass and 33
+  fail, against 128 and 31.
+  - openshift-upgrade `disconnected-update-problem` figure 2: 4 short arrows between planned hops, read through the
+    legend "Dashed = planned, not done". Each needs a label that says planned.
+  - mongodb-poc `grpc-through-envoy` figure 1: the reverse leg from a mongot pod to mongod. Its name, "⑧ the reverse
+    leg", sits far from the arrow, and the legend's "Dashed = present but carrying no traffic" does not fit it.
+  - mongodb-poc `mongot-openshift` figures 5, 9 and 10, a page that already failed on its unfilled text.
+
 ## Appendix: every page
 
 Repository, page, and the two renders. "Identical PNGs" counts the re-rendered PNGs byte-identical to a committed PNG beside the page.

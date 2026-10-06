@@ -14,6 +14,7 @@ the defects a code review of the SVG text does not see:
   - figure text whose letters or digits no loaded face of its font family draws (the same fallback,
     with every request answered 200, or a face whose unicode-range leaves the text out);
   - figure text that crosses the edge of a box (a label longer than its box);
+  - a dashed arrow with no label beside it (a dashed arrow is a relationship, and names it);
   - figure text under 4.5:1 contrast with the box it sits in, in either theme (WCAG 1.4.3);
   - a name/figure count mismatch;
   - horizontal page scroll at 375 px.
@@ -68,6 +69,38 @@ UNLOADED_FAMILIES = r"""async () => {
   }
   return [...failed].sort();
 }"""
+
+# Dashed arrows (a line, path or polyline with a dasharray and a marker) with no label beside them. A dashed arrow is
+# a relationship that carries no traffic, so the reader must be told which one (STANDARD.md §3, Connectors). A label
+# is a <text> outside every box (a box's own text sits beside every arrow that ends there) whose bounds come within
+# 16 px of a point sampled every 4 units along the arrow. Dashed boxes (proposed) and dashed lines without a marker
+# (lane dividers) are not arrows.
+DASHED_UNLABELLED = """() => [...document.querySelectorAll(".fig-scroll")].flatMap((figure, i) => {
+  const boxes = [...figure.querySelectorAll("rect")].map((r) => r.getBoundingClientRect());
+  const inBox = (b) => boxes.some((r) => {
+    const x = (b.left + b.right) / 2, y = (b.top + b.bottom) / 2;
+    return x > r.left && x < r.right && y > r.top && y < r.bottom;
+  });
+  const labels = [...figure.querySelectorAll("text")].map((t) => t.getBoundingClientRect())
+    .filter((b) => b.width && !inBox(b));
+  const near = (p) => labels.some((b) =>
+    Math.hypot(Math.max(b.left - p.x, 0, p.x - b.right), Math.max(b.top - p.y, 0, p.y - b.bottom)) <= 16);
+  return [...figure.querySelectorAll("line, path, polyline")].filter((el) => {
+    if (el.closest("marker")) return false;
+    const s = getComputedStyle(el);
+    return s.strokeDasharray !== "none" && (s.markerEnd !== "none" || s.markerStart !== "none");
+  }).filter((el) => {
+    const m = el.getScreenCTM(), n = el.getTotalLength();
+    for (let d = 0; d <= n + 4; d += 4) {
+      const p = el.getPointAtLength(Math.min(d, n));
+      if (near(new DOMPoint(p.x, p.y).matrixTransform(m))) return false;
+    }
+    return true;
+  }).map((el) => {
+    const a = el.getPointAtLength(0), b = el.getPointAtLength(el.getTotalLength());
+    return `figure ${i + 1}: from (${Math.round(a.x)},${Math.round(a.y)}) to (${Math.round(b.x)},${Math.round(b.y)})`;
+  });
+})"""
 
 # Figure text whose box is partly inside and partly outside a <rect>: a label that ran past its box, which the
 # template's 6.3 px-per-character budget only estimates. Measured in the face actually drawn, after it loaded.
@@ -148,6 +181,8 @@ def main() -> int:
             failures.extend(f"{theme}: text under 4.5:1 contrast in {text}" for text in page.evaluate(LOW_CONTRAST))
             if theme == "light":  # the geometry is the same in both themes
                 failures.extend(f"text crosses the edge of a box in {text}" for text in page.evaluate(CROSSINGS))
+                failures.extend(f"a dashed arrow with no label beside it in {arrow}"
+                                for arrow in page.evaluate(DASHED_UNLABELLED))
             if failures:
                 break
             figures = page.locator(".fig-scroll")

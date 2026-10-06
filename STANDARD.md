@@ -30,7 +30,7 @@ The template fixes the design that all of them share:
 - one palette (measured: all 156 pages across these repositories and envoy-tutorial's six branches compute the
   same token values in both themes, see `RESEARCH.md` §2);
 - `.fig-scroll` around each figure, so a phone scrolls the figure and never the page;
-- solid for shipped, dashed for proposed;
+- solid boxes for shipped, dashed boxes for proposed;
 - a light and a dark render of every figure.
 
 ## 2. A `source.html` page or a Mermaid block
@@ -40,7 +40,7 @@ Both are in use, for different jobs.
 **Use a `source.html` page** when the figure has to carry any of these:
 
 - a trust boundary drawn as lanes (HOST | REMOTE, cluster | NAS);
-- shipped and proposed in one picture (solid and dashed);
+- shipped and proposed in one picture (solid and dashed boxes);
 - failure branches in the gap colour, with the fix named;
 - numbered steps;
 - a picture that must look the same wherever the document is read.
@@ -77,8 +77,8 @@ label past its box, and the light `--none` of the 30 pages made before this temp
 
 - **One page per diagram** at `docs/diagrams/<slug>/source.html`, rendered PNGs beside it as
   `<name>.light.png` and `<name>.dark.png`.
-- **Self-contained.** No relative assets: `render.py` renders a copy of the page from a temporary directory. The one
-  remote request is the Google Fonts stylesheet.
+- **Self-contained.** No relative assets: `render.py` renders a copy of the page from a temporary directory. The only
+  remote dependency is Google Fonts: its stylesheet and the font files it names, fetched on every render.
 - **Fonts.** IBM Plex Sans for text and IBM Plex Mono for identifiers, loaded from Google Fonts in the weights the page
   uses. Figure text names a family the page loads, or a generic family, first. A system font named first (Arial,
   Menlo) is drawn in whatever the rendering machine has, and `render.py` refuses it (§5).
@@ -95,8 +95,22 @@ label past its box, and the light `--none` of the 30 pages made before this temp
 
   The light `--none` is `#5f6a77` in this kit's template; the pages generated before it carry `#6b7684`, which is
   4.04:1 on `--none-wash` (`RESEARCH.md` §2).
-- **Solid = shipped, dashed = proposed.** A proposed shape is dashed, and the figure carries a legend line naming each
-  one. The skill names a proposal drawn as current as the most common review finding.
+- **Solid box = shipped, dashed box = proposed.** A proposed box is dashed, and the figure carries a legend line naming
+  each one. The skill names a proposal drawn as current as the most common review finding.
+- **Connectors.** Every arrow is one of three kinds. A figure that uses more than one says which is which in its
+  legend line.
+  - *Solid*: traffic or a call that happens, drawn straight or elbowed.
+  - *Curved, solid*: traffic from several senders to several receivers. Draw one cubic Bézier per pair,
+    `M x1,y1 C mx,y1 mx,y2 x2,y2` with `mx` halfway, so each curve leaves and arrives level. Stroke it in the
+    sender's token, so a reader can follow one sender to every receiver. Offset the starts and ends a few units, so
+    no two curves merge. `examples/fan-out/` draws two Envoy pods sending to three mongot pods.
+  - *Dashed*: a relationship that carries no traffic, such as a DNS lookup, a selector or a watch. Draw it in
+    `--muted` with `stroke-dasharray="6 5"`, always with a label beside it that names the relationship. A proposed
+    arrow is dashed too, and its label says "proposed". `render.py` refuses a dashed arrow with no label (§5).
+- **Arrowheads take their line's colour.** The template's `#ah` is filled with `context-stroke`, so one marker serves
+  every token. Measured in the pinned Chromium 153: a red line gets a red head, where `currentColor` gives the text
+  colour. The PNGs are drawn by that Chromium; a browser without `context-stroke` draws the head black when the page
+  is opened directly.
 - **Every text has a fill** (a token or `currentColor`). A text with no fill is black: invisible in the dark render.
 - **Text fits its box.** The budget is IBM Plex Sans 12.5 px ≈ 6.3 px per character, so a box of width W holds
   ≈ (W − 32) / 6.3 characters per line, with at most three lines per box. `render.py` measures the real text (§5).
@@ -135,6 +149,7 @@ label past its box, and the light `--none` of the 30 pages made before this temp
 | a request that did not load, or an HTTP error | a failed font stylesheet leaves the figure in a fallback face (#342) |
 | figure text whose letters or digits no loaded face of its family draws | the same fallback, with every request answered 200 (#436, 2026-09-27), or a face whose `unicode-range` leaves the text out (review, 2026-10-06) |
 | figure text crossing the edge of a box | a label longer than its box (one committed figure ships it, `RESEARCH.md` §2) |
+| a dashed arrow with no label within 16 px of it | a relationship the reader cannot name, or a proposal that reads as traffic (§3, Connectors) |
 | figure text under 4.5:1 against the box under it, in either theme | WCAG 2.2 SC 1.4.3; one committed dark render ships black text on the dark ground |
 | a name/figure count mismatch | a PNG named for the wrong figure |
 | sideways page scroll at 375 px | a figure that widens the page on a phone |

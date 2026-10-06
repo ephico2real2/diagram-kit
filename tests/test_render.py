@@ -36,7 +36,8 @@ def _render():
     return module
 
 
-@pytest.mark.parametrize("case", ["ok", "mismatch", "scroll", "fallback-face", "crossing", "low-contrast", *EVENTS])
+@pytest.mark.parametrize("case", ["ok", "mismatch", "scroll", "fallback-face", "crossing", "low-contrast",
+                                  "unlabelled-dashed", *EVENTS])
 def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, case):
     render = _render()
 
@@ -61,6 +62,8 @@ def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, 
                 return ['figure 1: "Ownership" at 1.22:1'] if case == "low-contrast" else []
             if expression == render.CROSSINGS:
                 return ['figure 1: "a label longer than its box"'] if case == "crossing" else []
+            if expression == render.DASHED_UNLABELLED:
+                return ["figure 1: from (10,30) to (150,30)"] if case == "unlabelled-dashed" else []
             return (500 if case == "scroll" else 375) if "scrollWidth" in expression else True
 
         def locator(self, selector):

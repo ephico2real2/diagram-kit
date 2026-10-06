@@ -68,9 +68,11 @@ a { color: var(--remote); }
     <h2>How it works today</h2>
     <figure>
       <div class="fig-scroll">
-        <!-- Two lanes (a trust boundary), time flowing down; solid = shipped, dashed = proposed. -->
+        <!-- Two lanes (a trust boundary), time flowing down; solid box = shipped, dashed box = proposed. A dashed arrow is
+             a relationship, not traffic, and is labelled; curves draw many-to-many traffic (examples/fan-out). #ah takes
+             its line's colour (context-stroke), so one arrowhead serves every token. -->
         <svg viewBox="0 0 980 272" role="img" aria-label="State the figure's one claim here, the same words as the caption.">
-          <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="currentColor"/></marker></defs>
+          <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
           <g font-family="IBM Plex Mono, monospace" font-size="13" font-weight="600">
             <rect x="20" y="14" width="450" height="30" rx="6" fill="var(--host-wash)" stroke="var(--host)"/>
             <text x="245" y="34" text-anchor="middle" fill="var(--host)">HOST  ·  where the caller is</text>
@@ -95,7 +97,7 @@ a { color: var(--remote); }
             <text x="546" y="173">what the code does, in its order</text>
             <text x="546" y="189" fill="var(--gap)">the failure → what the reader gets · the fix</text>
             <text x="30" y="234" fill="var(--muted)">The takeaway, in one line.</text>
-            <text x="30" y="254" fill="var(--host)" font-weight="600">Dashed = proposed, not built: name each one.</text>
+            <text x="30" y="254" fill="var(--host)" font-weight="600">Dashed box = proposed, not built: name each one.</text>
           </g>
         </svg>
       </div>
