@@ -15,6 +15,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 |---|---|
 | `diagram_kit/render.py` | the renderer (`diagram-render` once installed): PNGs plus the checks in `STANDARD.md` §5 |
 | `diagram_kit/template.html` | the page every `source.html` starts from (`diagram-template <path>` writes it, never over an existing page): the palette, `.fig-scroll`, solid and dashed |
+| `skill/visual/SKILL.md` | the `/visual` Claude Code skill that designs the pages; link `~/.claude/skills/visual` to this directory |
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |

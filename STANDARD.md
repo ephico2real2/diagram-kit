@@ -4,9 +4,10 @@ How a figure is made, checked, embedded and reviewed across our repositories. Ev
 repositories already follow, and cites where, or one a measured defect on our own figures added, and cites
 `RESEARCH.md`. A rule with neither does not belong here.
 
-Where this says "the skill", it means the `/visual` skill that generates the pages (its `SKILL.md` and
-`template.html`; this kit's `diagram_kit/template.html`, which `diagram-template` writes to a new page, started as a verbatim
-copy of it).
+Where this says "the skill", it means the `/visual` skill that generates the pages. It lives in this repository,
+`skill/visual/SKILL.md`, and a Claude Code install links `~/.claude/skills/visual` to it. The kit's
+`diagram_kit/template.html`, which `diagram-template` writes to a new page, started as a verbatim copy of the skill's
+old `template.html`.
 
 ## 1. The core strategy: one generated `source.html` per diagram
 
