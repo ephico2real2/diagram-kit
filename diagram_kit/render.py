@@ -202,6 +202,10 @@ def main() -> int:
             failures.append(f"the page scrolls sideways at 375 px (scrollWidth {width})")
         browser.close()
         if not failures:
+            # A name may carry a subdirectory, which the screenshot used to make: make each one before the first
+            # move, so a missing directory cannot stop the moves half way.
+            for _, target in staged:
+                target.parent.mkdir(parents=True, exist_ok=True)
             for png, target in staged:
                 png.replace(target)
                 print(f"wrote {target} ({target.stat().st_size} bytes)")

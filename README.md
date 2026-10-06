@@ -7,7 +7,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 
 - a fallback font;
 - a label that runs past its box;
-- a dashed arrow with no label naming what it links;
+- a dashed arrow with no label beside it;
 - text the reader cannot read in one of the two themes;
 - a page that scrolls sideways on a phone.
 

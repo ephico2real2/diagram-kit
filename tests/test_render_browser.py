@@ -130,6 +130,16 @@ def test_contrast_is_measured_against_the_last_box_painted_under_the_text(tmp_pa
     assert "figure 2" not in result.stderr
 
 
+def test_a_name_in_a_subdirectory_renders_the_whole_set(tmp_path):
+    # Before staging, Playwright's screenshot made the directory a name carries. The move must too, or the render
+    # stops half way through the moves with a traceback: one figure's PNGs replaced, the other's not.
+    result = render(tmp_path, page(figures=2), names="a,sub/b")
+    assert result.returncode == 0, result.stderr
+    out = tmp_path / "out"
+    assert sorted(str(p.relative_to(out)) for p in out.rglob("*.png")) == [
+        "a.dark.png", "a.light.png", "sub/b.dark.png", "sub/b.light.png"]
+
+
 def dashed_figure(arrow: str, label: str = "") -> str:
     """A figure with two boxes and one connector between them, and optionally a free label."""
     return ('<div class="fig-scroll" style="overflow-x: auto"><svg viewBox="0 0 760 120" role="img" aria-label="A test figure." '

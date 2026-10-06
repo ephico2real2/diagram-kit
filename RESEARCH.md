@@ -190,6 +190,10 @@ The page needs its two tokens set to the template's to pass.
   600, and CDP reports IBM Plex Mono SemiBold.
 - **A family that loads only a `unicode-range` subset other than the text's** passed the check as first built. Not
   seen on our pages; closed on review (below).
+- **A face declared without `unicode-range` is taken at its word.** `document.fonts.load()` answers it for any
+  character, so Inter's Latin file with no range passes "Привет" while CDP reports Helvetica drawing it. Not seen on
+  our pages: Google Fonts declares a range on every face, and no figure text has a letter outside Latin-1 (review,
+  2026-10-06).
 - **Glyphs outside the loaded subsets are drawn in the machine's fonts.** The template's Google Fonts request carries
   no U+2190–21FF or U+2460–24FF, so → ← ⇄ ①–⑪ ✕ come from the machine (Lucida Grande, Hiragino Sans, Menlo here):
   812 of 8,170 figure texts on 125 of the 156 pages. A generic family named first is a machine face as well. The

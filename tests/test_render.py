@@ -37,13 +37,13 @@ def _render():
 
 
 @pytest.mark.parametrize("case", ["ok", "mismatch", "scroll", "fallback-face", "crossing", "low-contrast",
-                                  "unlabelled-dashed", *EVENTS])
+                                  "dark-low-contrast", "unlabelled-dashed", *EVENTS])
 def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, case):
     render = _render()
 
     class Page:
         def __init__(self, phone: bool):
-            self.phone, self.handlers = phone, {}
+            self.phone, self.handlers, self.theme = phone, {}, None
 
         def on(self, name, callback):
             self.handlers.setdefault(name, []).append(callback)
@@ -56,10 +56,14 @@ def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, 
                     callback(payload)
 
         def evaluate(self, expression):
+            if "setAttribute('data-theme'" in expression:
+                self.theme = "dark" if "'dark'" in expression else "light"
             if expression == render.UNLOADED_FAMILIES:
                 return ["no loaded face of 'IBM Plex Sans' draws its letters"] if case == "fallback-face" else []
             if expression == render.LOW_CONTRAST:
-                return ['figure 1: "Ownership" at 1.22:1'] if case == "low-contrast" else []
+                # dark-low-contrast fails in the dark pass only, after the light PNGs were taken
+                low = case == "low-contrast" or (case == "dark-low-contrast" and self.theme == "dark")
+                return ['figure 1: "Ownership" at 1.22:1'] if low else []
             if expression == render.CROSSINGS:
                 return ['figure 1: "a label longer than its box"'] if case == "crossing" else []
             if expression == render.DASHED_UNLABELLED:
