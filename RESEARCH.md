@@ -351,6 +351,9 @@ Search dashboard of mongodb-poc: 29 panels, on OpenShift Local 4.22.7.
   has the mode of any new file.
 - **A failed write left its temporary file** beside the target and ended in a traceback (an output path that is a
   directory). Since 0.2.2 the temporary file is removed and the error is one line.
+- **Not handled: a label taken from `reduceOptions.fields`.** For a stat on a table query, `percli` takes the label
+  from that setting and the command passes it on as it is. The review measured `/.*/` coming over as `.*`, and the
+  Perses 0.54.0 UI then showing the metric's name.
 
 The label without a brace, the unit without decimals and the failed write were found by a review after 0.2.1 was
 released, which ran the real `percli` on 21 legends and 31 units where the kit's own tests had injected `percli`'s
