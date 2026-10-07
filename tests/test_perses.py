@@ -127,7 +127,7 @@ def test_a_mapping_on_a_column_that_does_not_exist_is_refused(grafana, migrated)
 def test_a_colour_perses_cannot_take_is_refused(grafana, migrated):
     mapping = source(grafana, "Each pod, now")["fieldConfig"]["overrides"][0]["properties"][1]["value"][1]
     mapping["options"]["result"]["color"] = "purple"
-    with pytest.raises(perses.ConversionError, match=r"'purple' is not a hex colour"):
+    with pytest.raises(perses.ConversionError, match=r"the table 'Each pod, now': 'purple' is not a hex colour"):
         perses.finish(grafana, migrated, "app-thanos")
 
 
@@ -196,6 +196,70 @@ def test_a_broken_label_from_any_other_legend_is_refused(grafana, migrated, lege
         perses.finish(grafana, migrated, "app-thanos")
 
 
+def stat_showing_its_name(grafana: dict, migrated: dict, legends: list[str]) -> dict:
+    """The stat as percli 0.54.0 writes it when it shows its series' name (textMode "name"), one query per legend:
+    each legend is the query's name format, and the label is the FIRST legend with the braces trimmed off its ends
+    (StatChart 0.13.0, schemas/migrate/migrate.cue: strings.Trim(legendFormat, "{}"); measured 2026-10-07)."""
+    wanted, stat = source(grafana, "Pods up"), panel(migrated["spec"], "Pods up")
+    wanted["options"]["textMode"] = "name"
+    for extra in range(1, len(legends)):
+        wanted["targets"].append(dict(wanted["targets"][0], refId="ABCD"[extra], expr=f'sum(up{{job="app{extra}"}})'))
+        stat["queries"].append(copy.deepcopy(stat["queries"][0]))
+        stat["queries"][extra]["spec"]["plugin"]["spec"]["query"] = f'sum(up{{job="app{extra}"}})'
+    for target, query, legend in zip(wanted["targets"], stat["queries"], legends):
+        target["legendFormat"] = legend
+        query["spec"]["plugin"]["spec"]["seriesNameFormat"] = legend
+    stat["plugin"]["spec"]["metricLabel"] = legends[0].strip("{}")
+    return stat
+
+
+def names(stat: dict) -> list[str]:
+    return [q["spec"]["plugin"]["spec"]["seriesNameFormat"] for q in stat["queries"]]
+
+
+@pytest.mark.parametrize(("legend", "label"), [("{{node}}", "node"), ("{{ node }}", "node"), (" {{node}} ", "node"),
+                                               ("{{  k8s.version }}", "k8s.version")])
+def test_a_stat_whose_legend_is_one_label_shows_that_label(grafana, migrated, legend, label):
+    # From "{{ node }}" percli wrote the label " node ", spaces and all: no series has it, and the stat showed 1.
+    # From " {{node}} " it wrote the legend itself, braces and all.
+    assert stat_showing_its_name(grafana, migrated, [legend])["plugin"]["spec"]["metricLabel"] == legend.strip("{}")
+    stat = panel(perses.finish(grafana, migrated, "app-thanos"), "Pods up")
+    assert stat["plugin"]["spec"]["metricLabel"] == label
+    assert names(stat) == [legend]                                         # one label: the name is left alone
+
+
+@pytest.mark.parametrize("legends", [["Version"], ["__auto"], ["pods up"], ["{{node}}", "{{pod}}"],
+                                     ["{{node}}", "{{pod}}: {{version}}"]])
+def test_a_stat_whose_legend_is_not_one_label_for_every_query_is_refused(grafana, migrated, legends):
+    # A fixed text and Grafana's "__auto" came over as the label itself; with two queries only the first was read.
+    stat_showing_its_name(grafana, migrated, legends)
+    refusal = r"is not one label, the same for every query, and a Perses StatChart shows one"
+    with pytest.raises(perses.ConversionError, match=refusal):
+        perses.finish(grafana, migrated, "app-thanos")
+
+
+def test_a_label_that_did_not_come_from_the_legend_is_left_alone(grafana, migrated):
+    # textMode "auto" on a table query with reduceOptions.fields "/^version$/": percli wrote "version" from the
+    # field, whatever the legend says.
+    stat_showing_its_name(grafana, migrated, ["{{node}}"])["plugin"]["spec"]["metricLabel"] = "version"
+    source(grafana, "Pods up")["options"]["textMode"] = "auto"
+    stat = panel(perses.finish(grafana, migrated, "app-thanos"), "Pods up")
+    assert stat["plugin"]["spec"]["metricLabel"] == "version" and names(stat) == ["{{node}}"]
+
+
+def test_every_query_of_a_stat_with_two_labels_is_named_by_the_first(grafana, migrated):
+    stat_showing_its_name(grafana, migrated, ["{{node}}: {{version}}", "{{ node }} - {{ version }}"])
+    stat = panel(perses.finish(grafana, migrated, "app-thanos"), "Pods up")
+    assert stat["plugin"]["spec"]["metricLabel"] == "version" and names(stat) == ["{{node}}", "{{node}}"]
+
+
+@pytest.mark.parametrize("second", ["{{node}}: {{mode}}", "{{pod}}: {{version}}", "{{node}}", ""])
+def test_two_labels_on_one_query_and_another_legend_on_the_next_is_refused(grafana, migrated, second):
+    stat_showing_its_name(grafana, migrated, ["{{node}}: {{version}}", second])
+    with pytest.raises(perses.ConversionError, match=r"names several labels, and a Perses StatChart shows one"):
+        perses.finish(grafana, migrated, "app-thanos")
+
+
 def test_a_suffix_unit_perses_has_a_word_for_becomes_that_unit(grafana, migrated):
     source(grafana, "Pods up")["fieldConfig"]["defaults"]["unit"] = "suffix: days"
     assert panel(migrated["spec"], "Pods up")["plugin"]["spec"]["format"]["unit"] == "decimal"
@@ -210,6 +274,61 @@ def test_a_unit_perses_has_no_word_for_is_a_warning_and_not_a_refusal(grafana, m
     stat = panel(perses.finish(grafana, migrated, "app-thanos", warnings), "Pods up")
     assert stat["plugin"]["spec"]["format"]["unit"] == "decimal"
     assert warnings == ["'Pods up': the Grafana unit 'suffix: widgets' became a plain number in Perses"]
+
+
+@pytest.mark.parametrize("word", ["milliseconds", "seconds", "minutes", "hours", "days", "weeks", "months", "years"])
+def test_each_unit_of_time_perses_has_had_since_0_51_is_carried(grafana, migrated, word):
+    source(grafana, "Pods up")["fieldConfig"]["defaults"]["unit"] = f"suffix:{word}"
+    warnings: list[str] = []
+    stat = panel(perses.finish(grafana, migrated, "app-thanos", warnings), "Pods up")
+    assert stat["plugin"]["spec"]["format"] == {"unit": word} and warnings == []
+
+
+@pytest.mark.parametrize("unit", ["suffix: nanoseconds", "suffix: microseconds", "suffix: Days", "suffix: day",
+                                  "suffix: days left", "prefix: days"])
+def test_a_suffix_that_is_not_one_of_those_words_stays_a_plain_number(grafana, migrated, unit):
+    # nanoseconds and microseconds are units of Perses 0.53 and later only.
+    source(grafana, "Pods up")["fieldConfig"]["defaults"]["unit"] = unit
+    warnings: list[str] = []
+    stat = panel(perses.finish(grafana, migrated, "app-thanos", warnings), "Pods up")
+    assert stat["plugin"]["spec"]["format"] == {"unit": "decimal"} and len(warnings) == 1
+
+
+def test_a_time_series_takes_the_unit_on_its_y_axis(grafana, migrated):
+    # What percli 0.54.0 writes for a timeseries with the unit "suffix: days" and one decimal, 2026-10-07.
+    source(grafana, "Requests per second, per pod")["fieldConfig"]["defaults"]["unit"] = "suffix: days"
+    panel(migrated["spec"], "Requests per second, per pod")["plugin"]["spec"]["yAxis"]["format"] = {
+        "decimalPlaces": 1, "unit": "decimal"}
+    warnings: list[str] = []
+    chart = panel(perses.finish(grafana, migrated, "app-thanos", warnings), "Requests per second, per pod")["plugin"]
+    assert chart["spec"]["yAxis"]["format"] == {"decimalPlaces": 1, "unit": "days"} and warnings == []
+    assert "format" not in chart["spec"]
+
+
+@pytest.mark.parametrize(("title", "place"), [("Pods up", ("format",)), ("Share of requests now, by pod", ("format",)),
+                                              ("Requests per second, per pod", ("yAxis", "format"))])
+def test_a_suffix_unit_is_carried_when_percli_wrote_no_format_at_all(grafana, migrated, title, place):
+    # Without decimals on the panel, percli 0.54.0 writes no format for a unit it has no word for (2026-10-07):
+    # the number then came over bare, with no warning.
+    source(grafana, title)["fieldConfig"]["defaults"]["unit"] = "suffix: days"
+    holder = panel(migrated["spec"], title)["plugin"]["spec"]
+    for key in place[:-1]:
+        holder = holder[key]
+    del holder[place[-1]]
+    warnings: list[str] = []
+    found = panel(perses.finish(grafana, migrated, "app-thanos", warnings), title)["plugin"]["spec"]
+    for key in place:
+        found = found[key]
+    assert found == {"unit": "days"} and warnings == []
+
+
+def test_a_unit_lost_when_percli_wrote_no_format_at_all_is_a_warning_too(grafana, migrated):
+    source(grafana, "Pods up")["fieldConfig"]["defaults"]["unit"] = "currencyUSD"
+    del panel(migrated["spec"], "Pods up")["plugin"]["spec"]["format"]
+    warnings: list[str] = []
+    stat = panel(perses.finish(grafana, migrated, "app-thanos", warnings), "Pods up")
+    assert "format" not in stat["plugin"]["spec"]
+    assert warnings == ["'Pods up': the Grafana unit 'currencyUSD' became a plain number in Perses"]
 
 
 def test_a_dashboard_that_lost_nothing_has_no_warning(grafana, migrated):
@@ -283,6 +402,58 @@ def test_a_refused_dashboard_writes_nothing_and_leaves_the_old_file(tmp_path, ca
                           "--plugins", str(plugins)])
     assert status == 1
     assert "became placeholders" in capsys.readouterr().err
+    assert out.read_text() == "the last good one\n"
+    assert sorted(p.name for p in tmp_path.iterdir()) == ["dashboard.json", "percli", "plugins"]
+
+
+def convert_kinds(tmp_path: pathlib.Path, out: pathlib.Path) -> int:
+    (tmp_path / "plugins").mkdir(exist_ok=True)
+    return perses.main([str(FIXTURES / "kinds.grafana.json"), str(out), "--datasource", "app-thanos",
+                        "--percli", str(stand_in_percli(tmp_path, FIXTURES / "kinds.percli.json")),
+                        "--plugins", str(tmp_path / "plugins")])
+
+
+@pytest.mark.parametrize("umask", [0o022, 0o002, 0o077])
+def test_the_written_file_has_the_mode_of_an_ordinary_file_under_any_umask(tmp_path, monkeypatch, umask):
+    # The umask is set here: under 077 the temporary file's own 0600 is also the answer, and proves nothing.
+    out, handed, move = tmp_path / "chart" / "dashboard.perses.json", [], os.replace
+
+    def replace(src, dst):
+        handed.append(stat.S_IMODE(os.stat(src).st_mode))
+        move(src, dst)
+    monkeypatch.setattr(perses.os, "replace", replace)
+    before = os.umask(umask)
+    try:
+        status = convert_kinds(tmp_path, out)
+    finally:
+        after = os.umask(before)
+    assert status == 0 and after == umask                                   # the process keeps its umask
+    assert stat.S_IMODE(out.stat().st_mode) == 0o666 & ~umask
+    assert handed == [0o666 & ~umask]              # set before the move: the file is never 0600 under its own name
+
+
+def test_a_result_that_cannot_be_moved_into_place_leaves_no_temporary_file(tmp_path, capsys):
+    out = tmp_path / "chart" / "dashboard.perses.json"
+    out.mkdir(parents=True)                                                 # a directory stands where the file goes
+    assert convert_kinds(tmp_path, out) == 1
+    assert capsys.readouterr().err.startswith("perses-dashboard: ")
+    assert sorted(p.name for p in out.parent.iterdir()) == ["dashboard.perses.json"] and out.is_dir()
+
+
+def test_a_mode_that_cannot_be_set_leaves_no_temporary_file_and_the_old_result(tmp_path, capsys, monkeypatch):
+    out = tmp_path / "dashboard.json"
+    out.write_text("the last good one\n")
+    stand_in_percli(tmp_path, FIXTURES / "kinds.percli.json")               # made executable before chmod is refused
+
+    def refuse(*args, **kwargs):
+        raise PermissionError(1, "Operation not permitted")
+    monkeypatch.setattr(perses.os, "chmod", refuse)
+    monkeypatch.setattr(perses.os, "fchmod", refuse)
+    (tmp_path / "plugins").mkdir()
+    status = perses.main([str(FIXTURES / "kinds.grafana.json"), str(out), "--datasource", "app-thanos",
+                          "--percli", str(tmp_path / "percli"), "--plugins", str(tmp_path / "plugins")])
+    monkeypatch.undo()
+    assert status == 1 and "Operation not permitted" in capsys.readouterr().err
     assert out.read_text() == "the last good one\n"
     assert sorted(p.name for p in tmp_path.iterdir()) == ["dashboard.json", "percli", "plugins"]
 
