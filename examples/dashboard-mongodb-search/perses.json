@@ -1,0 +1,3418 @@
+{
+  "display": {
+    "name": "MongoDB Search"
+  },
+  "variables": [],
+  "panels": {
+    "0_0": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "mongot pods up",
+          "description": "mongot pods that Prometheus scrapes successfully."
+        },
+        "plugin": {
+          "kind": "StatChart",
+          "spec": {
+            "calculation": "last-number",
+            "colorMode": "value",
+            "format": {
+              "unit": "decimal"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "#e15759",
+                  "value": 0
+                },
+                {
+                  "color": "#59a14f",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "count(up{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"} == 1) or vector(0)"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "0_1": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Envoy pods up",
+          "description": "Envoy pods that Prometheus scrapes successfully."
+        },
+        "plugin": {
+          "kind": "StatChart",
+          "spec": {
+            "calculation": "last-number",
+            "colorMode": "value",
+            "format": {
+              "unit": "decimal"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "#e15759",
+                  "value": 0
+                },
+                {
+                  "color": "#59a14f",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "count(up{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\"} == 1) or vector(0)"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "0_2": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "mongot pods in Envoy",
+          "description": "The smallest number of healthy mongot pods any Envoy pod sees. Below the number of mongot pods, an Envoy pod has lost one."
+        },
+        "plugin": {
+          "kind": "StatChart",
+          "spec": {
+            "calculation": "last-number",
+            "colorMode": "value",
+            "format": {
+              "unit": "decimal"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "#e15759",
+                  "value": 0
+                },
+                {
+                  "color": "#59a14f",
+                  "value": 1
+                }
+              ]
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "min(envoy_cluster_membership_healthy{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\"})"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "0_3": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Searches per second",
+          "description": "Text and vector searches per second, all mongot pods, 5 minute rate."
+        },
+        "plugin": {
+          "kind": "StatChart",
+          "spec": {
+            "calculation": "last-number",
+            "colorMode": "value",
+            "format": {
+              "decimalPlaces": 2,
+              "unit": "decimal"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "#59a14f",
+                  "value": 0
+                }
+              ]
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "sum((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m])))"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "0_4": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Largest share on one pod",
+          "description": "The share of all searches that the busiest mongot pod served. With three pods and even balancing this is about 33%. Near 100% means one pod serves everything while the others stay Ready: the failure that produces no error. 0% when no search ran in the last 5 minutes."
+        },
+        "plugin": {
+          "kind": "StatChart",
+          "spec": {
+            "calculation": "last-number",
+            "colorMode": "value",
+            "format": {
+              "decimalPlaces": 0,
+              "unit": "percent-decimal"
+            },
+            "thresholds": {
+              "steps": [
+                {
+                  "color": "#59a14f",
+                  "value": 0
+                },
+                {
+                  "color": "#f28e2b",
+                  "value": 0.6
+                },
+                {
+                  "color": "#e15759",
+                  "value": 0.9
+                }
+              ]
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max(sum by (pod) ((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m])))) / (sum((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) > 0)) or vector(0)"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "1_0": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Searches per second, per mongot pod",
+          "description": "Stacked: one band per mongot pod, and the top edge is all searches. Envoy picks a mongot pod per request, so the bands should be of equal height. 5 minute rate."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.3,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.3,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.3,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.3,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1,
+              "stack": "all"
+            },
+            "yAxis": {
+              "format": {
+                "unit": "requests/sec"
+              },
+              "min": 0
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) ((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m])))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) ((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m])))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) ((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m])))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) ((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m])))) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "1_1": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Share of searches, per mongot pod",
+          "description": "Stacked: each pod's part of all searches over the last 5 minutes, adding up to 100%. Three pods sharing evenly are three bands of a third each."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.3,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.3,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.3,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.3,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1,
+              "stack": "all"
+            },
+            "yAxis": {
+              "format": {
+                "unit": "percent-decimal"
+              },
+              "max": 1,
+              "min": 0
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) ((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) / scalar(sum((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) ((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) / scalar(sum((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) ((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) / scalar(sum((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) ((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) / scalar(sum((rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))))) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "1_2": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Share of searches now, by mongot pod",
+          "description": "Each pod's part of the searches of the last 5 minutes. Three equal slices is even balancing; one slice taking the pie is the failure that produces no error. Empty when no search ran."
+        },
+        "plugin": {
+          "kind": "PieChart",
+          "spec": {
+            "calculation": "last-number",
+            "format": {
+              "unit": "requests/sec"
+            },
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "radius": 50,
+            "showLabels": false,
+            "colorPalette": [
+              "#4e79a7",
+              "#e15759",
+              "#edc948",
+              "#b07aa1"
+            ]
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod=\"__SEARCH__-search-0-0\"}[5m] @ end()) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod=\"__SEARCH__-search-0-0\"}[5m] @ end())) or label_replace(vector(0), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")) and on () (sum(rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m] @ end()) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m] @ end())) > 0)",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod=\"__SEARCH__-search-0-1\"}[5m] @ end()) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod=\"__SEARCH__-search-0-1\"}[5m] @ end())) or label_replace(count(up{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod!=\"__SEARCH__-search-0-0\"} @ end() or sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod!=\"__SEARCH__-search-0-0\"}[5m] @ end()) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod!=\"__SEARCH__-search-0-0\"}[5m] @ end()))) * 0, \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")) and on () (sum(rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m] @ end()) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m] @ end())) > 0)",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod=\"__SEARCH__-search-0-2\"}[5m] @ end()) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod=\"__SEARCH__-search-0-2\"}[5m] @ end())) or label_replace(count(up{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod!~\"__SEARCH__-search-0-[01]\"} @ end() or sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod!~\"__SEARCH__-search-0-[01]\"}[5m] @ end()) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod!~\"__SEARCH__-search-0-[01]\"}[5m] @ end()))) * 0, \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")) and on () (sum(rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m] @ end()) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m] @ end())) > 0)",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "label_replace(sum(sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod!~\"__SEARCH__-search-0-[0-2]\"}[5m] @ end()) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",pod!~\"__SEARCH__-search-0-[0-2]\"}[5m] @ end()))), \"pod\", \"further pods\", \"\", \"\") and on () (sum(rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m] @ end()) + rate(mongot_command_vectorSearchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m] @ end())) > 0)",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "2_0": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Requests per second to mongot, per Envoy pod",
+          "description": "5 minute rate. One Envoy pod at zero is normal with one mongod connection: the Route places connections, not requests."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "requests/sec"
+              },
+              "min": 0
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(envoy_cluster_upstream_rq_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\"}[5m]))) and on (pod) topk(1, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"}))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(envoy_cluster_upstream_rq_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\"}[5m]))) and on (pod) (topk(2, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"})) unless topk(1, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"})))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(envoy_cluster_upstream_rq_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\"}[5m]))) and on (pod) (topk(3, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"})) unless topk(2, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"})))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(envoy_cluster_upstream_rq_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\"}[5m]))) unless on (pod) topk(3, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"}))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "2_1": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Open connections from mongod, per Envoy pod",
+          "description": "Where the Route's balance algorithm put each connection."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "decimal"
+              }
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (envoy_listener_downstream_cx_active{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_listener_address=\"0.0.0.0_27028\"})) and on (pod) topk(1, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"}))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (envoy_listener_downstream_cx_active{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_listener_address=\"0.0.0.0_27028\"})) and on (pod) (topk(2, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"})) unless topk(1, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"})))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (envoy_listener_downstream_cx_active{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_listener_address=\"0.0.0.0_27028\"})) and on (pod) (topk(3, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"})) unless topk(2, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"})))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (envoy_listener_downstream_cx_active{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_listener_address=\"0.0.0.0_27028\"})) unless on (pod) topk(3, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"}))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "2_2": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Retries per second, per Envoy pod",
+          "description": "Envoy retries onto another mongot pod when one sheds load or resets a stream. Sustained retries mean mongot is undersized. 5 minute rate."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "requests/sec"
+              },
+              "min": 0
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(envoy_cluster_upstream_rq_retry_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\"}[5m]))) and on (pod) topk(1, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"}))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(envoy_cluster_upstream_rq_retry_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\"}[5m]))) and on (pod) (topk(2, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"})) unless topk(1, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"})))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(envoy_cluster_upstream_rq_retry_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\"}[5m]))) and on (pod) (topk(3, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"})) unless topk(2, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"})))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(envoy_cluster_upstream_rq_retry_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\"}[5m]))) unless on (pod) topk(3, max by (pod) (kube_pod_start_time{namespace=\"__NAMESPACE__\",pod=~\"__SEARCH__-search-lb-0-.*\"}))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "2_3": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Responses per second from mongot, by class",
+          "description": "2xx is success. gRPC errors still answer 200; see the search failures panel. 5 minute rate."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#59a14f",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#f28e2b",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "requests/sec"
+              },
+              "min": 0
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "sum by (envoy_response_code_class) (rate(envoy_cluster_upstream_rq_xx_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\",envoy_response_code_class=\"2\"}[5m]))",
+                  "seriesNameFormat": "{{envoy_response_code_class}}xx"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "sum by (envoy_response_code_class) (rate(envoy_cluster_upstream_rq_xx_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\",envoy_response_code_class=\"4\"}[5m]))",
+                  "seriesNameFormat": "{{envoy_response_code_class}}xx"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "sum by (envoy_response_code_class) (rate(envoy_cluster_upstream_rq_xx_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\",envoy_response_code_class=\"5\"}[5m]))",
+                  "seriesNameFormat": "{{envoy_response_code_class}}xx"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "sum by (envoy_response_code_class) (rate(envoy_cluster_upstream_rq_xx_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\",envoy_response_code_class!~\"2|4|5\"}[5m]))",
+                  "seriesNameFormat": "{{envoy_response_code_class}}xx"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "2_4": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Envoy to mongot latency, 95th percentile",
+          "description": "Time Envoy waited for mongot, across both Envoy pods, over the last 5 minutes."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.15,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "milliseconds"
+              }
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "histogram_quantile(0.95, sum by (le) (rate(envoy_cluster_upstream_rq_time_bucket{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-envoy-stats\",envoy_cluster_name=\"mongot_rs_cluster\"}[5m])))",
+                  "seriesNameFormat": "p95"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "3_0": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Average search latency, per mongot pod",
+          "description": "Text searches only, averaged over 5 minutes. An average hides the slowest searches: mongot exposes no latency buckets, only its own quantiles per pod (0.5 to 0.99), which this panel does not draw. No line while a pod serves none."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "seconds"
+              }
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_sum{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m])) / sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_sum{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m])) / sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_sum{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m])) / sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_sum{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m])) / sum by (pod) (rate(mongot_command_searchCommandTotalLatency_seconds_count{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "3_1": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Search failures per second, per mongot pod",
+          "description": "Text and vector searches that mongot failed, 5 minute rate."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "requests/sec"
+              },
+              "min": 0
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_command_searchCommandFailure_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandFailure_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_command_searchCommandFailure_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandFailure_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_command_searchCommandFailure_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandFailure_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_command_searchCommandFailure_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_command_vectorSearchCommandFailure_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "3_2": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Replication lag, per mongot pod",
+          "description": "How far the pod's most delayed index is behind the source replica set."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "milliseconds"
+              }
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max by (pod) (mongot_index_stats_indexing_replicationLagMs{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max by (pod) (mongot_index_stats_indexing_replicationLagMs{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max by (pod) (mongot_index_stats_indexing_replicationLagMs{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max by (pod) (mongot_index_stats_indexing_replicationLagMs{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "3_3": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "JVM memory used, per mongot pod",
+          "description": "Heap and non-heap together."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "bytes"
+              }
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_jvm_memory_used_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_jvm_memory_used_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_jvm_memory_used_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_jvm_memory_used_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "3_4": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "CPU used, per mongot pod",
+          "description": "mongot's own CPU use, averaged over 5 minutes, as a share of the CPUs the process sees (mongot_system_cpu_count; with a CPU limit of 1 that is one core)."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "percent-decimal"
+              }
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max by (pod) (avg_over_time(mongot_process_cpu_usage{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max by (pod) (avg_over_time(mongot_process_cpu_usage{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max by (pod) (avg_over_time(mongot_process_cpu_usage{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max by (pod) (avg_over_time(mongot_process_cpu_usage{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "3_5": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "JVM heap used, percent of limit, per mongot pod",
+          "description": "Heap in use against the heap's maximum. The panel above shows heap and non-heap together, in bytes."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "percent-decimal"
+              }
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_jvm_memory_used_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",area=\"heap\"}) / sum by (pod) (mongot_jvm_memory_max_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",area=\"heap\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_jvm_memory_used_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",area=\"heap\"}) / sum by (pod) (mongot_jvm_memory_max_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",area=\"heap\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_jvm_memory_used_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",area=\"heap\"}) / sum by (pod) (mongot_jvm_memory_max_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",area=\"heap\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_jvm_memory_used_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",area=\"heap\"}) / sum by (pod) (mongot_jvm_memory_max_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",area=\"heap\"})) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "3_6": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Time in garbage collection, per mongot pod",
+          "description": "Share of time the JVM spent paused for garbage collection, 5 minute rate."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "percent-decimal"
+              }
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_jvm_gc_pause_seconds_sum{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_jvm_gc_pause_seconds_sum{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_jvm_gc_pause_seconds_sum{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_jvm_gc_pause_seconds_sum{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "3_7": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Uptime, per mongot pod",
+          "description": "Time since the mongot process started. A fall to zero is a restart."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.15,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "seconds"
+              },
+              "min": 0
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max by (pod) (mongot_process_uptime_seconds{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max by (pod) (mongot_process_uptime_seconds{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max by (pod) (mongot_process_uptime_seconds{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(max by (pod) (mongot_process_uptime_seconds{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "3_8": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Search work run outside the parallel pool, per mongot pod",
+          "description": "Tasks per second (5 minute rate) that found mongot's concurrent search or vector rescoring pool full and ran on the calling thread instead. The search is still answered; above zero, the pool is saturated."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "ops/sec"
+              },
+              "min": 0
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_rejectedConcurrentSearchExecutionCount_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_rejectedConcurrentVectorRescoringExecutionCount_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_rejectedConcurrentSearchExecutionCount_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_rejectedConcurrentVectorRescoringExecutionCount_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_rejectedConcurrentSearchExecutionCount_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_rejectedConcurrentVectorRescoringExecutionCount_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_rejectedConcurrentSearchExecutionCount_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_rejectedConcurrentVectorRescoringExecutionCount_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "4_0": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Each mongot pod, now",
+          "description": "One row per mongot pod, its name on its colour in the charts. Every pod holds every index, so the first four columns should read the same on every row."
+        },
+        "plugin": {
+          "kind": "Table",
+          "spec": {
+            "columnSettings": [
+              {
+                "name": "timestamp",
+                "hide": true
+              },
+              {
+                "cellSettings": [
+                  {
+                    "backgroundColor": "#4e79a7",
+                    "condition": {
+                      "kind": "Value",
+                      "spec": {
+                        "value": "__SEARCH__-search-0-0"
+                      }
+                    },
+                    "textColor": "#000000"
+                  },
+                  {
+                    "backgroundColor": "#e15759",
+                    "condition": {
+                      "kind": "Value",
+                      "spec": {
+                        "value": "__SEARCH__-search-0-1"
+                      }
+                    },
+                    "textColor": "#000000"
+                  },
+                  {
+                    "backgroundColor": "#edc948",
+                    "condition": {
+                      "kind": "Value",
+                      "spec": {
+                        "value": "__SEARCH__-search-0-2"
+                      }
+                    },
+                    "textColor": "#000000"
+                  },
+                  {
+                    "condition": {
+                      "kind": "Regex",
+                      "spec": {
+                        "expr": "^__SEARCH__-search-0-([3-9]|[1-9][0-9]+)$"
+                      }
+                    },
+                    "backgroundColor": "#b07aa1",
+                    "textColor": "#000000"
+                  }
+                ],
+                "header": "mongot pod",
+                "name": "pod"
+              },
+              {
+                "format": {
+                  "unit": "bytes"
+                },
+                "header": "Index size",
+                "name": "value #1"
+              },
+              {
+                "format": {
+                  "unit": "decimal"
+                },
+                "header": "Documents",
+                "name": "value #2"
+              },
+              {
+                "format": {
+                  "unit": "decimal"
+                },
+                "header": "Indexes",
+                "name": "value #3"
+              },
+              {
+                "format": {
+                  "unit": "decimal"
+                },
+                "header": "Not STEADY",
+                "name": "value #4"
+              },
+              {
+                "format": {
+                  "unit": "percent-decimal"
+                },
+                "header": "Volume used",
+                "name": "value #5"
+              },
+              {
+                "format": {
+                  "unit": "seconds"
+                },
+                "header": "Uptime",
+                "name": "value #6"
+              }
+            ],
+            "density": "compact",
+            "transforms": [
+              {
+                "kind": "MergeSeries",
+                "spec": {}
+              }
+            ]
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "sum by (pod) (mongot_index_stats_indexSizeBytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})",
+                  "seriesNameFormat": ""
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "sum by (pod) (mongot_index_stats_numLuceneDocs{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})",
+                  "seriesNameFormat": ""
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "sum by (pod) (mongot_configState_indexesInCatalog{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})",
+                  "seriesNameFormat": ""
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "sum by (pod) (mongot_index_stats_indexStatusCode{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",status!=\"STEADY\"})",
+                  "seriesNameFormat": ""
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "1 - (sum by (pod) (mongot_system_disk_space_data_path_free_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}) / sum by (pod) (mongot_system_disk_space_data_path_total_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}))",
+                  "seriesNameFormat": ""
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "max by (pod) (mongot_process_uptime_seconds{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})",
+                  "seriesNameFormat": ""
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "4_1": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Index size, per mongot pod",
+          "description": "Bytes of all search and vector indexes on the pod. Every pod holds every index, so the lines should sit close together; each pod merges its own segments, so they need not be equal."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.15,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "bytes"
+              }
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_index_stats_indexSizeBytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_index_stats_indexSizeBytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_index_stats_indexSizeBytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_index_stats_indexSizeBytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "4_2": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Documents indexed, per mongot pod",
+          "description": "Documents in all indexes on the pod. Equal on every pod once each has caught up with mongod."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.15,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "decimal"
+              }
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_index_stats_numLuceneDocs{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_index_stats_numLuceneDocs{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_index_stats_numLuceneDocs{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_index_stats_numLuceneDocs{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "4_3": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Indexes not STEADY, per mongot pod",
+          "description": "Indexes whose state is anything but STEADY: INITIAL_SYNC, STALE, FAILED, RECOVERING and the rest. Should be 0; above it, that pod's copy of an index is not ready."
+        },
+        "plugin": {
+          "kind": "StatusHistoryChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "mappings": [
+              {
+                "kind": "Value",
+                "spec": {
+                  "result": {
+                    "color": "#59a14f",
+                    "value": "STEADY"
+                  },
+                  "value": "0"
+                }
+              },
+              {
+                "kind": "Range",
+                "spec": {
+                  "from": 1,
+                  "result": {
+                    "color": "#e15759",
+                    "value": "not STEADY"
+                  }
+                }
+              }
+            ],
+            "sorting": "asc"
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "sum by (pod) (mongot_index_stats_indexStatusCode{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\",status!=\"STEADY\"})",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "4_4": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Indexes in catalog, per mongot pod",
+          "description": "How many indexes each pod knows about. The same on every pod."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.15,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "decimal"
+              },
+              "min": 0
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_configState_indexesInCatalog{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_configState_indexesInCatalog{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_configState_indexesInCatalog{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (mongot_configState_indexesInCatalog{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"})) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "4_5": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Data volume used, per mongot pod",
+          "description": "Used share of the file system under mongot's data path, as mongot reports it. With a volume of its own per pod this is that volume; with a hostpath provisioner it is the node's disk, the same on every pod."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.15,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "percent-decimal"
+              },
+              "max": 1,
+              "min": 0
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(1 - (sum by (pod) (mongot_system_disk_space_data_path_free_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}) / sum by (pod) (mongot_system_disk_space_data_path_total_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(1 - (sum by (pod) (mongot_system_disk_space_data_path_free_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}) / sum by (pod) (mongot_system_disk_space_data_path_total_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(1 - (sum by (pod) (mongot_system_disk_space_data_path_free_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}) / sum by (pod) (mongot_system_disk_space_data_path_total_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(1 - (sum by (pod) (mongot_system_disk_space_data_path_free_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}) / sum by (pod) (mongot_system_disk_space_data_path_total_bytes{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}))) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "4_6": {
+      "kind": "Panel",
+      "spec": {
+        "display": {
+          "name": "Indexing operations per second, per mongot pod",
+          "description": "Inserts, updates and deletes applied to the indexes, 5 minute rate. Every pod applies the same changes, so the lines should move together."
+        },
+        "plugin": {
+          "kind": "TimeSeriesChart",
+          "spec": {
+            "legend": {
+              "mode": "list",
+              "position": "bottom"
+            },
+            "querySettings": [
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#4e79a7",
+                "queryIndex": 0
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#e15759",
+                "lineStyle": "dashed",
+                "queryIndex": 1
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#edc948",
+                "lineStyle": "dotted",
+                "queryIndex": 2
+              },
+              {
+                "areaOpacity": 0.1,
+                "colorMode": "fixed",
+                "colorValue": "#b07aa1",
+                "queryIndex": 3
+              }
+            ],
+            "visual": {
+              "areaOpacity": 0,
+              "lineWidth": 1
+            },
+            "yAxis": {
+              "format": {
+                "unit": "ops/sec"
+              },
+              "min": 0
+            }
+          }
+        },
+        "queries": [
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_index_stats_indexing_insert_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_index_stats_indexing_update_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_index_stats_indexing_delete_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_index_stats_indexing_insert_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_index_stats_indexing_update_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_index_stats_indexing_delete_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_index_stats_indexing_insert_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_index_stats_indexing_update_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_index_stats_indexing_delete_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) and on (pod) label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\")",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          },
+          {
+            "kind": "TimeSeriesQuery",
+            "spec": {
+              "plugin": {
+                "kind": "PrometheusTimeSeriesQuery",
+                "spec": {
+                  "datasource": {
+                    "kind": "PrometheusDatasource",
+                    "name": "__SEARCH__-thanos"
+                  },
+                  "query": "(sum by (pod) (rate(mongot_index_stats_indexing_insert_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_index_stats_indexing_update_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]) + rate(mongot_index_stats_indexing_delete_total{namespace=\"__NAMESPACE__\",job=\"__SEARCH__-search-0-svc\"}[5m]))) unless on (pod) (label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-0\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-1\", \"\", \"\") or label_replace(vector(1), \"pod\", \"__SEARCH__-search-0-2\", \"\", \"\"))",
+                  "seriesNameFormat": "{{pod}}"
+                }
+              }
+            }
+          }
+        ]
+      }
+    }
+  },
+  "layouts": [
+    {
+      "kind": "Grid",
+      "spec": {
+        "display": {
+          "title": "Is search up?",
+          "collapse": {
+            "open": true
+          }
+        },
+        "items": [
+          {
+            "x": 0,
+            "y": 1,
+            "width": 4,
+            "height": 4,
+            "content": {
+              "$ref": "#/spec/panels/0_0"
+            }
+          },
+          {
+            "x": 4,
+            "y": 1,
+            "width": 4,
+            "height": 4,
+            "content": {
+              "$ref": "#/spec/panels/0_1"
+            }
+          },
+          {
+            "x": 8,
+            "y": 1,
+            "width": 5,
+            "height": 4,
+            "content": {
+              "$ref": "#/spec/panels/0_2"
+            }
+          },
+          {
+            "x": 13,
+            "y": 1,
+            "width": 5,
+            "height": 4,
+            "content": {
+              "$ref": "#/spec/panels/0_3"
+            }
+          },
+          {
+            "x": 18,
+            "y": 1,
+            "width": 6,
+            "height": 4,
+            "content": {
+              "$ref": "#/spec/panels/0_4"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Grid",
+      "spec": {
+        "display": {
+          "title": "Is traffic spread across the mongot pods?",
+          "collapse": {
+            "open": true
+          }
+        },
+        "items": [
+          {
+            "x": 0,
+            "y": 6,
+            "width": 8,
+            "height": 11,
+            "content": {
+              "$ref": "#/spec/panels/1_0"
+            }
+          },
+          {
+            "x": 8,
+            "y": 6,
+            "width": 8,
+            "height": 11,
+            "content": {
+              "$ref": "#/spec/panels/1_1"
+            }
+          },
+          {
+            "x": 16,
+            "y": 6,
+            "width": 8,
+            "height": 11,
+            "content": {
+              "$ref": "#/spec/panels/1_2"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Grid",
+      "spec": {
+        "display": {
+          "title": "Is Envoy healthy?",
+          "collapse": {
+            "open": true
+          }
+        },
+        "items": [
+          {
+            "x": 0,
+            "y": 18,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/2_0"
+            }
+          },
+          {
+            "x": 12,
+            "y": 18,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/2_1"
+            }
+          },
+          {
+            "x": 0,
+            "y": 26,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/2_2"
+            }
+          },
+          {
+            "x": 12,
+            "y": 26,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/2_3"
+            }
+          },
+          {
+            "x": 0,
+            "y": 34,
+            "width": 24,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/2_4"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Grid",
+      "spec": {
+        "display": {
+          "title": "How is each mongot pod doing?",
+          "collapse": {
+            "open": true
+          }
+        },
+        "items": [
+          {
+            "x": 0,
+            "y": 43,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/3_0"
+            }
+          },
+          {
+            "x": 12,
+            "y": 43,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/3_1"
+            }
+          },
+          {
+            "x": 0,
+            "y": 51,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/3_2"
+            }
+          },
+          {
+            "x": 12,
+            "y": 51,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/3_3"
+            }
+          },
+          {
+            "x": 0,
+            "y": 59,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/3_4"
+            }
+          },
+          {
+            "x": 12,
+            "y": 59,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/3_5"
+            }
+          },
+          {
+            "x": 0,
+            "y": 67,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/3_6"
+            }
+          },
+          {
+            "x": 12,
+            "y": 67,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/3_7"
+            }
+          },
+          {
+            "x": 0,
+            "y": 75,
+            "width": 24,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/3_8"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "kind": "Grid",
+      "spec": {
+        "display": {
+          "title": "Does every mongot pod hold the same data?",
+          "collapse": {
+            "open": true
+          }
+        },
+        "items": [
+          {
+            "x": 0,
+            "y": 84,
+            "width": 24,
+            "height": 5,
+            "content": {
+              "$ref": "#/spec/panels/4_0"
+            }
+          },
+          {
+            "x": 0,
+            "y": 89,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/4_1"
+            }
+          },
+          {
+            "x": 12,
+            "y": 89,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/4_2"
+            }
+          },
+          {
+            "x": 0,
+            "y": 97,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/4_3"
+            }
+          },
+          {
+            "x": 12,
+            "y": 97,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/4_4"
+            }
+          },
+          {
+            "x": 0,
+            "y": 105,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/4_5"
+            }
+          },
+          {
+            "x": 12,
+            "y": 105,
+            "width": 12,
+            "height": 8,
+            "content": {
+              "$ref": "#/spec/panels/4_6"
+            }
+          }
+        ]
+      }
+    }
+  ],
+  "duration": "1h"
+}
