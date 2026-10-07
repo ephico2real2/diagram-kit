@@ -10,9 +10,13 @@ inlined as a data: URL, so no test reaches the network and none depends on Googl
 from __future__ import annotations
 
 import base64
+import importlib.util
 import pathlib
 import subprocess
 import sys
+
+import pytest
+from playwright.sync_api import sync_playwright
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 RENDER = ROOT / "diagram_kit" / "render.py"
@@ -92,6 +96,24 @@ def test_a_name_count_that_does_not_match_the_figures_fails(tmp_path):
     result = render(tmp_path, page(figures=2), names="only-one")
     assert result.returncode == 1
     assert "2 .fig-scroll figures but 1 names given" in result.stderr
+
+
+def test_text_is_as_wide_on_linux_as_on_macos(tmp_path):
+    # Forty "i" in Inter at 10.5 px: 101.7 px on macOS, and on Linux 77.3 px with Chromium's default hinting and
+    # 101.7 px without it (measured 2026-10-07). A page checked in CI must be the page a person rendered.
+    spec = importlib.util.spec_from_file_location("diagram_render", RENDER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    source = tmp_path / "page.html"
+    source.write_text(page(label="i" * 40).replace('font-size="13"', 'font-size="10.5"'))
+    with sync_playwright() as p:
+        browser = p.chromium.launch(args=module.CHROMIUM_ARGS)
+        tab = browser.new_page(viewport={"width": 1180, "height": 900}, device_scale_factor=2)
+        tab.goto(source.as_uri(), wait_until="networkidle")
+        width = tab.evaluate("document.fonts.ready.then(() => document.querySelector('svg text')"
+                             ".getComputedTextLength())")
+        browser.close()
+    assert width == pytest.approx(101.7, abs=0.5)
 
 
 def check(tmp_path: pathlib.Path, **pages: str) -> subprocess.CompletedProcess:

@@ -151,6 +151,13 @@ LOW_CONTRAST = """() => [...document.querySelectorAll(".fig-scroll")].flatMap((f
 })"""
 
 
+# Chromium on Linux hints glyphs to whole pixels unless told not to, and then draws text at other widths than on
+# macOS: IBM Plex Mono at 10.5 px advanced 6.99 px a character where a Mac advances 6.30, and a label that fits its
+# box on the Mac it was drawn on crossed it in CI (measured 2026-10-07). Without hinting the two agree to 0.1 px. On
+# macOS the flag changes nothing. It is Chromium's own switch for this difference (crrev.com/536535).
+CHROMIUM_ARGS = ["--font-render-hinting=none"]
+
+
 def render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str] | None) -> int:
     """Check one page and write its figures under the names given. With no names (--check) the same checks run and
     nothing is written."""
@@ -180,7 +187,7 @@ def render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str]
           sync_playwright() as p):
         doc = pathlib.Path(tmp) / "page.html"
         doc.write_text(text)
-        browser = p.chromium.launch()
+        browser = p.chromium.launch(args=CHROMIUM_ARGS)
         for theme in ("light", "dark"):
             page = browser.new_page(viewport={"width": 1180, "height": 900}, device_scale_factor=2)
             watch(page, theme)
