@@ -37,6 +37,7 @@ import pathlib
 import signal
 import sys
 import tempfile
+import threading
 
 try:
     from playwright.sync_api import Error as PlaywrightError, sync_playwright
@@ -169,13 +170,14 @@ PAGE_SECONDS = 120
 
 
 def _alarm(seconds: int) -> None:
-    """Have TimeoutError raised in the main thread when the seconds are up; 0 calls it off. Where the platform has
-    no alarm (Windows) there is no limit."""
-    if not hasattr(signal, "SIGALRM"):
+    """Have TimeoutError raised in the main thread when the seconds are up; 0 calls it off. Where there is no alarm
+    to set (Windows, or a caller that is not the main thread) there is no limit."""
+    if not hasattr(signal, "SIGALRM") or threading.current_thread() is not threading.main_thread():
         return
 
     def late(signum, frame):
         raise TimeoutError(f"not checked in {PAGE_SECONDS} s: a script on the page that never ends?")
+    signal.alarm(0)                             # first: an alarm must never go off with no handler to take it
     signal.signal(signal.SIGALRM, late if seconds else signal.SIG_DFL)
     signal.alarm(seconds)
 
