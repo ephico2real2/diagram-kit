@@ -131,13 +131,20 @@ a percentage when the share is the question, and keep each series' own value one
   of its 15 rate panels; whether
   `$__rate_interval` works in Perses 0.54.0 was not measured. [Lab]
 - **One query per line when the dashboard ships to Perses.** Perses 0.54.0 fixes a colour per query, not
-  per series, in a time series chart. For pods with stable names, one query per pod and one for any further pod:
-  `(<expr>) and on (pod) up{...,pod="<name>-0"}` … `(<expr>) unless on (pod) up{...,pod=~"<name>-[0-2]"}`,
-  each coloured by an override on its `refId`. Cost measured: 97 queries a refresh instead of 27,
-  0.45 s in all through Thanos Querier. [Lab]
+  per series, in a time series chart. For pods with stable names, one query per pod and one for any further pod,
+  each choosing its pod by name: `(<expr>) and on (pod) label_replace(vector(1), "pod", "<name>-0", "", "")` …
+  `(<expr>) unless on (pod) (label_replace(vector(1), "pod", "<name>-0", "", "") or …)`, each coloured by an
+  override on its `refId`. Do not choose a pod through its `up` series: while a pod is replaced its `up` is gone
+  and its last minutes are still in the rates, so it fell into the query for any further pod and was drawn in that
+  colour, in seven charts. Cost measured: 97 queries a refresh instead of 27, 0.45 s in all through Thanos
+  Querier. [Lab]
 - **A Perses pie has no colour per query.** Its `colorPalette` is taken by position (PieChart 0.13.1 and
   0.14.0): give each pie query exactly one series, sum the open-ended rest into one, and return nothing
   when the whole is zero, or the colours leave their owners and zeros are drawn as equal slices. [Lab]
+- **A pie of "now" is read at the end of its range.** A pie draws the last value of each query; read over the
+  whole range it kept showing searches that had stopped, for as long as the range reached back to them, in
+  Grafana 12.3.1 and in Perses 0.54.0. Put `@ end()` on every selector of the pie, and check the drawn panel a
+  few minutes after the traffic stops, not only the queries. [Lab]
 - **Generated names** (a Deployment's pods) have no stable name to match: rank them by
   `kube_pod_start_time` with `topk(1|2|3, …)`. Ordering by the process's own uptime flipped between
   steps. [Lab]
@@ -219,8 +226,9 @@ takes the full colour and an area takes the same colour much lighter.
 - **Where every series reads the same by design** (index size on every replica, uptime), three shades
   are one brown block: keep one, the first colour at 15%, and put a table of the latest readings beside
   such panels, so that "the same" reads as equal rows. [Lab] [Owner]
-- **Axes**: from 0 for a count and for anything stacked; 0 to 1 for a share of a fixed whole, so that
-  a tenth of a percent is not drawn as a cliff. [Lab]
+- **Axes**: from 0 for a count, a per-second rate, uptime and anything stacked; 0 to 1 for a share of a fixed
+  whole, so that a tenth of a percent is not drawn as a cliff. Left to itself, Grafana 12.3.1 drew a steady rate
+  on an axis from 0.725 to 0.85, its shade starting there. [Lab]
 
 ## 6. Layout, legends, numbers
 
