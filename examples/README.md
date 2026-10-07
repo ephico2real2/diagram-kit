@@ -8,7 +8,7 @@ Each row names where the files came from; the copies here are frozen at that com
 | [`fan-out/`](fan-out/) | The connector kinds of `STANDARD.md` §3 on one page: a curved fan-out, labelled dashed arrows | Written for the kit |
 | [`perses-converter/`](perses-converter/) | A diagram page started from the kit's template and rendered by it: how a browser reaches the page that converts a Grafana dashboard to Perses | [openshift-coo-helm](https://github.com/ephico2real2/openshift-coo-helm), `docs/diagrams/converter/`, commit `68c0deb` |
 | [`dashboard-mongodb-search/`](dashboard-mongodb-search/) | The worked example of the dashboard standard: a Grafana dashboard and its Perses form, 29 panels, with pictures of both and the inventory of the 1,024 metrics it was chosen from. The kit reproduces its Perses file | [mongodb-poc](https://github.com/ephico2real2/mongodb-poc), `chart/mongodb-search-helm/files/` and `docs/screenshots/`, release `mongodb-search-helm-0.3.2` |
-| [`dashboard-ipsec-nas/`](dashboard-ipsec-nas/) | A Grafana dashboard and its Perses form, 23 panels fed by an exporter of the repository's own, with a picture of each | [openshift-ipsec-nas](https://github.com/ephico2real2/openshift-ipsec-nas), `charts/ipsec-nas-option-c-metrics/files/` and `docs/images/crc/`, commit `80c8041` |
+| [`dashboard-ipsec-nas/`](dashboard-ipsec-nas/) | A Grafana dashboard and its Perses form, 24 panels fed by an exporter of the repository's own, with a picture of each; the kit reproduces the Perses file | [openshift-ipsec-nas](https://github.com/ephico2real2/openshift-ipsec-nas), `charts/ipsec-nas-option-c-metrics/files/` and `docs/images/crc/`, commit `e6ec027` |
 
 Not copied, and worth opening where they live:
 
