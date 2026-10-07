@@ -281,9 +281,10 @@ Markdown panel only where the Grafana panel was not a text panel.
 - It refuses: a panel that became a placeholder; a panel, section or query that differs from the source, taken
   in order; a stat that shows its series' name and whose legend is neither one label (`{{node}}`) nor two as
   `{{who}}: {{what}}`, the same on every query (a fixed text, `__auto`, three labels: Perses shows one label); a
-  stat on a table query whose `reduceOptions.fields` is a pattern of several fields (`/.*/`) and not one
-  (`/^version$/`); a pie with a colour for some of its queries only; a colour Perses cannot take. It warns when a Grafana unit became
-  a plain number.
+  stat on a table query whose `reduceOptions.fields` is not one field (`version` or `/^version$/`) but a pattern
+  (`/.*/`, or `/version/`, which Grafana searches every field's name for), the time, or the value of one query among
+  several; a stat that shows its series' name with no legend to take it from; a pie with a colour for some of its queries only; a colour Perses cannot take. It warns when a Grafana unit became
+  a plain number, and when a table's default unit was dropped (`percli` carries a table's units column by column).
 - **Write the source so that it converts** (measured on a second dashboard, `examples/dashboard-ipsec-nas/`):
   a stat that shows a label takes the legend `{{what}}`, or `{{who}}: {{what}}`, which becomes the series name
   and the label shown; a count of days takes the unit `suffix: days`, which becomes the Perses unit `days`

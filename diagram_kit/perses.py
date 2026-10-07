@@ -13,8 +13,9 @@ adds what the migration leaves out and refuses what it gets wrong:
   - a stat that shows a label takes it from its legend: one label, "{{node}}", is that label; two,
     "{{who}}: {{what}}", shows the second and is named by the first; a legend of more labels, of none, or of another
     shape, is refused: Perses shows one label;
-  - a stat on a table query takes its label from the field it names ("/^version$/"); a pattern of several fields
-    ("/.*/") is refused, and the field that holds the value is no label;
+  - a stat on a table query takes its label from the field it names ("version" or "/^version$/"); a pattern of
+    several fields ("/.*/", or "/version/", which Grafana searches every field's name for) is refused, the field that
+    holds the value is no label, and the value of one query among several, or the time of the sample, is refused;
   - a Grafana unit "suffix: days" (or another unit of time Perses has a word for) becomes that unit, whether or not
     the panel sets decimals;
   - a panel, section or query that differs from the Grafana source, taken in order;
@@ -25,7 +26,8 @@ adds what the migration leaves out and refuses what it gets wrong:
     coloured cell;
   - an open-ended range mapping loses its null bound, which Perses refuses.
 
-It warns, and still writes, when a Grafana unit became a plain number it has no word for. <out.json> is the dashboard's spec, the value of a PersesDashboard's `spec.config`; --whole keeps percli's
+It warns, and still writes, when a Grafana unit became a plain number it has no word for, and when percli dropped
+the unit of a table's defaults. <out.json> is the dashboard's spec, the value of a PersesDashboard's `spec.config`; --whole keeps percli's
 `kind` and `metadata` around it. Nothing is written when a check fails. skill/dashboard/SKILL.md, section 8.
 """
 
@@ -156,11 +158,21 @@ TIME_UNITS = {"milliseconds", "seconds", "minutes", "hours", "days", "weeks", "m
 UNIT_AT = {"StatChart": ("format",), "BarChart": ("format",), "GaugeChart": ("format",), "PieChart": ("format",),
            "TimeSeriesChart": ("yAxis", "format")}
 # A legend of one label, "{{node}}" or "{{ node }}", and of exactly two, "{{node}}: {{version}}": who it is, then
-# what is shown.
-ONE_LABEL = re.compile(r"\{\{\s*([^{}\s](?:[^{}]*[^{}\s])?)\s*\}\}")
-TWO_LABELS = re.compile(r"\{\{\s*(\w+)\s*\}\}[^{}]*\{\{\s*(\w+)\s*\}\}")
+# what is shown. A name is read the same way in both: "{{node}}: {{k8s.version}}" is two labels as "{{k8s.version}}"
+# is one.
+LABEL = r"\{\{\s*([^{}\s](?:[^{}]*[^{}\s])?)\s*\}\}"
+ONE_LABEL = re.compile(LABEL)
+TWO_LABELS = re.compile(LABEL + r"[^{}]*" + LABEL)
 # What makes reduceOptions.fields a pattern and not the name of one field. A dot is left out: a label may hold one.
 PATTERN_CHARS = set("\\^$|?*+()[]{}")
+# One field is named "version", which Grafana anchors itself, or "/^version$/". Anything else between slashes Grafana
+# SEARCHES every field's name for: "/version/" is kernel_version and kubelet_version, "/^pod/" is pod and pod_ip
+# (Grafana 12.3.1, 2026-10-07). percli trims every one of them to the same label, which Perses reads anchored.
+ONE_FIELD = re.compile(r"[^/].*|/\^.*\$/|")
+# Grafana's own Fields picker writes the name it is given escaped, "/^Value \#A$/" and "/^k8s\.version$/" (Grafana
+# 12.3.1, escapeStringForRegex): a backslash before a character that is no letter and no digit is that character.
+# Perses reads the label as a pattern too and finds "k8s.version" by "k8s\.version", so the label stays as it is.
+ESCAPED = re.compile(r"\\([^A-Za-z0-9])")
 # The field of a table query that holds the sample: "Value", or "Value #A" when the panel has several queries.
 VALUE_FIELD = re.compile(r"Value( #\w+)?")
 
@@ -173,23 +185,26 @@ def _repair_what_percli_wrote(name: str, panel: dict, source: dict, warnings: li
     # off its two ends: "{{node}}" becomes the label "node", but "{{ node }}" becomes " node ",
     # "{{node}}: {{version}}" becomes "node}}: {{version", and a fixed text or Grafana's "__auto" stays as it is.
     # No series has such a label, and the stat shows the metric's value, 1. Seen on a real dashboard, 2026-10-07.
+    # An empty legend becomes the label "", and no legend at all no label: the stat shows the value there too, where
+    # Grafana shows the series' own name (Grafana 12.3.1 and Perses 0.54.0, 2026-10-07).
     # So a label that came from the legend is read from the legends again. One label is that label. Exactly two are
     # not in doubt either: the first names the series and the second is what is shown. Any other legend is the
     # author's to decide, in the Grafana source.
     label = spec.get("metricLabel", "")
     legends = [t.get("legendFormat", "") for t in source.get("targets", [])]
     several = "{{" in label or "}}" in label
-    from_legend = (source.get("options", {}).get("textMode") == "name" and bool(legends)
-                   and label == legends[0].strip("{}"))
-    if label and (several or from_legend):
+    from_legend = (chart["kind"] == "StatChart" and source.get("options", {}).get("textMode") == "name"
+                   and bool(legends) and label == legends[0].strip("{}"))
+    if (label and several) or from_legend:
         for shape in (ONE_LABEL, TWO_LABELS):
             found = [shape.fullmatch(legend.strip()) for legend in legends]
             if legends and None not in found and len({match.groups() for match in found}) == 1:
                 break
         else:
             wrong = "names several labels" if several else "is not one label, the same for every query"
+            wrote = f"metricLabel {label!r}" if "metricLabel" in spec else "no metricLabel"
             raise ConversionError(f"the legend {legends} of {name!r} {wrong}, and a Perses "
-                                  f"{chart['kind']} shows one (percli wrote metricLabel {label!r}): give it one "
+                                  f"{chart['kind']} shows one (percli wrote {wrote}): give it one "
                                   "label, or two as '{{who}}: {{what}}', in the Grafana source")
         *who, what = found[0].groups()
         spec["metricLabel"] = what
@@ -201,16 +216,27 @@ def _repair_what_percli_wrote(name: str, panel: dict, source: dict, warnings: li
     # "Value", is no label: without one a Perses stat shows the value, which is what Grafana shows. And a pattern
     # ("/.*/", every field) stays a pattern: Perses matches it against the names of the labels and shows the first
     # that fits, the metric's own name. Measured with percli 0.54.0, 2026-10-07.
+    # Two more are refused. "Value #A" is the value of ONE query of several, and without a label Perses shows every
+    # query's. "Time" is the time of the sample, which no series has as a label: Perses shows the value.
     options, targets = source.get("options", {}), source.get("targets", [])
     fields = options.get("reduceOptions", {}).get("fields")
     if (options.get("textMode") == "auto" and targets and targets[0].get("format") == "table"
             and fields is not None and spec.get("metricLabel") == fields.strip("/^$")):
-        if not fields or VALUE_FIELD.fullmatch(spec["metricLabel"]):
+        field = ESCAPED.sub(r"\1", spec["metricLabel"])           # the field's name, as it is read
+        value = VALUE_FIELD.fullmatch(field)
+        if value and value.group(1) and len(targets) > 1:
+            raise ConversionError(f"the stat {name!r} shows {field!r}, the value of one query of its {len(targets)}, "
+                                  f"and a Perses {chart['kind']} shows the value of every query: leave the stat the "
+                                  "one query it shows, in the Grafana source")
+        if not fields or value:
             del spec["metricLabel"]
-        elif set(spec["metricLabel"]) & PATTERN_CHARS:
+        elif set(ESCAPED.sub("", spec["metricLabel"])) & PATTERN_CHARS or not ONE_FIELD.fullmatch(fields):
             raise ConversionError(f"the stat {name!r} shows the fields matching {fields!r}, a pattern and not one "
                                   f"field, and a Perses {chart['kind']} shows one label (percli wrote metricLabel "
                                   f"{spec['metricLabel']!r}): name the field, as '/^version$/', in the Grafana source")
+        elif field == "Time":
+            raise ConversionError(f"the stat {name!r} shows the field 'Time', the time of the sample, which is no "
+                                  f"label: a Perses {chart['kind']} would show the value")
     # percli has no word for a Grafana unit like "suffix: days". When the panel sets decimals it writes "decimal";
     # when it does not, it writes no format at all. It says nothing either way.
     asked = source.get("fieldConfig", {}).get("defaults", {}).get("unit")
@@ -227,6 +253,12 @@ def _repair_what_percli_wrote(name: str, panel: dict, source: dict, warnings: li
             form["unit"] = suffix.group(1)
         else:
             warnings.append(f"{name!r}: the Grafana unit {asked!r} became a plain number in Perses")
+    elif asked not in PLAIN_UNITS and chart["kind"] == "Table":
+        # percli carries a table's units column by column, from the overrides: the unit of the defaults is dropped.
+        values = [c for c in spec.get("columnSettings", []) if _is_value_column(c["name"]) and not c.get("hide")]
+        if not values or any("format" not in c for c in values):
+            warnings.append(f"{name!r}: the Grafana unit {asked!r} of the table's defaults is not carried over: "
+                            "give each column its unit, in the Grafana source")
 
 
 def _place(key: str) -> tuple[int, ...]:
@@ -378,9 +410,12 @@ def main(argv: list[str] | None = None) -> int:
         # A temporary file is its owner's alone (0600); the result is an ordinary file of a repository.
         os.chmod(temporary, 0o666 & ~umask)
         os.replace(temporary, args.out)
-    except OSError as error:
+    except BaseException as error:
+        # Ctrl-C included: whatever stopped the write, nothing temporary stays beside the target.
         if temporary:
             pathlib.Path(temporary).unlink(missing_ok=True)
+        if not isinstance(error, OSError):
+            raise
         print(f"perses-dashboard: {error}", file=sys.stderr)
         return 1
     print(f"wrote {args.out} ({len(spec['panels'])} panels)")

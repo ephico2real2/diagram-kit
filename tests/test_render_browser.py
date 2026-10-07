@@ -151,6 +151,21 @@ def test_check_fails_a_page_that_holds_no_figure(tmp_path):
     assert "FAIL: empty.html: no .fig-scroll figure on the page" in result.stderr
 
 
+def test_check_goes_on_past_a_page_it_cannot_read(tmp_path):
+    # A page that is missing, or is not UTF-8, raised: a traceback, no line for any page, and the pages after it
+    # never checked. It is a page that fails, named like the others.
+    (tmp_path / "latin1.html").write_bytes(page(label="caf\u00e9").encode("latin-1"))
+    (tmp_path / "good.html").write_text(page())
+    result = subprocess.run([sys.executable, str(RENDER), "--check", "gone.html", "latin1.html", "good.html"],
+                            capture_output=True, text=True, timeout=180, cwd=tmp_path)
+    assert result.returncode == 1
+    assert result.stdout.splitlines() == ["FAIL  gone.html", "FAIL  latin1.html", "ok    good.html (1 figures)",
+                                          "1 of 3 pages pass"]
+    assert "FAIL: gone.html: FileNotFoundError" in result.stderr
+    assert "FAIL: latin1.html: UnicodeDecodeError" in result.stderr
+    assert "Traceback" not in result.stderr
+
+
 def test_a_page_that_scrolls_sideways_at_375_px_fails(tmp_path):
     # Without overflow-x: auto on .fig-scroll, the 760 px figure widens the page instead of scrolling inside it.
     result = render(tmp_path, page(scroller="overflow: visible"))

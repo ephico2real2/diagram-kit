@@ -20,9 +20,9 @@ on:
         type: string
         required: true
       pages:
-        description: A git pathspec for the pages to check.
+        description: A git pathspec for the pages to check. The default is every file named source.html.
         type: string
-        default: "*source.html"
+        default: ":(glob)**/source.html"
 permissions:
   contents: read
 jobs:

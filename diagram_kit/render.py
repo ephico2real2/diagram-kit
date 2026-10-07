@@ -24,7 +24,8 @@ the defects a code review of the SVG text does not see:
   - horizontal page scroll at 375 px.
 
 With --check every page given is put through the same checks and nothing is written: the figures are counted, not
-named, and a page with none fails. The exit status is non-zero when any page fails.
+named, and a page with none fails. So does a page that cannot be read or loaded, and the pages after it are still
+checked. The exit status is non-zero when any page fails.
 """
 
 from __future__ import annotations
@@ -35,7 +36,7 @@ import sys
 import tempfile
 
 try:
-    from playwright.sync_api import sync_playwright
+    from playwright.sync_api import Error as PlaywrightError, sync_playwright
 except ImportError:
     sys.exit("playwright is not installed: python3 -m pip install playwright && python3 -m playwright install chromium")
 
@@ -248,7 +249,18 @@ def main() -> int:
     if len(sys.argv) >= 3 and sys.argv[1] == "--check":
         pages = [pathlib.Path(page).resolve() for page in sys.argv[2:]]
         with tempfile.TemporaryDirectory() as nowhere:  # the figures are drawn, to prove they can be, and dropped
-            failed = sum(render_page(page, pathlib.Path(nowhere), None) for page in pages)
+            failed = 0
+            for page in pages:
+                try:
+                    failed += render_page(page, pathlib.Path(nowhere), None)
+                except (OSError, UnicodeError, PlaywrightError) as error:
+                    # A page that cannot be read (missing, not UTF-8) or loaded (a stylesheet that never answers) is
+                    # a page that fails: it is named like the others, and the pages after it are still checked.
+                    shown = os.path.relpath(page)
+                    print(f"FAIL  {shown}")
+                    said = (str(error).splitlines() or [""])[0]
+                    print(f"FAIL: {shown}: {type(error).__name__}: {said}", file=sys.stderr)
+                    failed += 1
         print(f"{len(pages) - failed} of {len(pages)} pages pass")
         return 1 if failed else 0
     if len(sys.argv) != 4:

@@ -55,7 +55,8 @@ jobs:
       kit: v0.2.3
 ```
 
-It checks every tracked `source.html` (the input `pages` takes another git pathspec) and fails when none is found.
+It checks every tracked file named `source.html` (the input `pages` takes another git pathspec) and fails when none is
+found. A page that cannot be read or loaded fails like any other, and the pages after it are still checked.
 The tag is given twice because a called workflow cannot learn the ref it was called at.
 
 ## Dashboards
