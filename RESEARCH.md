@@ -323,12 +323,25 @@ Search dashboard of mongodb-poc: 29 panels, on OpenShift Local 4.22.7.
 - **Two panels may share a title** (*Claims on the NAS*, a number and a table). The command first matched panels by
   title and refused the dashboard; it now pairs them by place, `<section>_<place>` being how `percli` keys them.
 - **A legend of two labels breaks a stat.** For `{{node}}: {{version}}`, `percli` writes `metricLabel: "node}}:
-  {{version"`, a label no series has. The command refuses the panel and says so; that repository's own fixer
-  rewrites it by hand.
-- **A unit `percli` has no word for becomes `decimal`** (`suffix: days`), silently. The command warns.
+  {{version"`, a label no series has, and the stat shows the metric's value, `1`. Since 0.2.1 the command reads
+  a legend of exactly two labels as the series name and the label shown (`seriesNameFormat: "{{node}}"`,
+  `metricLabel: "version"`), which is what that repository's fixer wrote by hand; any other legend that breaks the
+  label is refused by name.
+- **A unit `percli` has no word for becomes `decimal`** (`suffix: days`), silently. Since 0.2.1 `suffix:` followed
+  by a unit of time Perses has had since 0.51 (`milliseconds` to `years`) becomes that unit; for any other the
+  command warns.
 - **A variable that asks Prometheus** (`PrometheusLabelValuesVariable`) comes over without a datasource. The command
   names it, as it does for queries.
-- That repository's Perses file is not reproduced: its fixer also splits one table in two, which is its own.
+- **A table of several queries joins rows by all their labels.** That dashboard's per-node table had eleven
+  queries, nine labelled `node`, one `node, pod` and one `node, peer_id`: Grafana's merge gave one row per node,
+  Perses three. Its fixer moved the two into a second table after `percli`. That is a decision about the
+  dashboard, so it now lives in the Grafana source (two tables, in both forms), and the repository converts with
+  the kit alone (kit 0.2.1, 2026-10-07): the Perses file differs from the fixer's only by black text on its
+  coloured cells (in the dark theme it was white on `#73bf69`, 2.2 to 1) and a description.
+- **A missing value in a Perses table is an empty cell** (Table 0.11.2, measured with a query matching no
+  series); Grafana's `special: null` mapping, which wrote "–" there, is not carried over.
+- **The file the command wrote was readable by its owner only** (0600, a temporary file's mode). Since 0.2.1 it
+  has the mode of any new file.
 
 **The inventory**, through a Thanos Querier 0.41 over Prometheus 3.9.1:
 

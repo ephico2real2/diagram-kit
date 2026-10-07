@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import copy
 import json
+import os
 import pathlib
 import stat
 
@@ -177,20 +178,38 @@ def test_a_tenth_panel_of_a_section_comes_after_the_ninth():
     assert sorted(["2_10", "2_9", "10_0", "2_0"], key=perses._place) == ["2_0", "2_9", "2_10", "10_0"]
 
 
-def test_a_stat_whose_legend_names_two_labels_is_refused(grafana, migrated):
-    # What percli 0.54.0 wrote for the legend "{{node}}: {{version}}" on a real dashboard, 2026-10-07.
+def test_a_stat_whose_legend_names_two_labels_shows_the_second_and_is_named_by_the_first(grafana, migrated):
+    # What percli 0.54.0 wrote for the legend "{{node}}: {{version}}" on a real dashboard, 2026-10-07: a label no
+    # series has, so the stat showed the info metric's value, 1.
     source(grafana, "Pods up")["targets"][0]["legendFormat"] = "{{node}}: {{version}}"
     panel(migrated["spec"], "Pods up")["plugin"]["spec"]["metricLabel"] = "node}}: {{version"
+    stat = panel(perses.finish(grafana, migrated, "app-thanos"), "Pods up")
+    assert stat["plugin"]["spec"]["metricLabel"] == "version"
+    assert [q["spec"]["plugin"]["spec"]["seriesNameFormat"] for q in stat["queries"]] == ["{{node}}"]
+
+
+@pytest.mark.parametrize("legend", ["{{a}} {{b}} {{c}}", "node {{a}} runs {{b}}", "{{a}}: {{b}} now", ""])
+def test_a_broken_label_from_any_other_legend_is_refused(grafana, migrated, legend):
+    source(grafana, "Pods up")["targets"][0]["legendFormat"] = legend
+    panel(migrated["spec"], "Pods up")["plugin"]["spec"]["metricLabel"] = "a}} {{b"
     with pytest.raises(perses.ConversionError, match=r"names several labels, and a Perses StatChart shows one"):
         perses.finish(grafana, migrated, "app-thanos")
 
 
-def test_a_unit_perses_has_no_word_for_is_a_warning_and_not_a_refusal(grafana, migrated):
+def test_a_suffix_unit_perses_has_a_word_for_becomes_that_unit(grafana, migrated):
     source(grafana, "Pods up")["fieldConfig"]["defaults"]["unit"] = "suffix: days"
     assert panel(migrated["spec"], "Pods up")["plugin"]["spec"]["format"]["unit"] == "decimal"
     warnings: list[str] = []
-    perses.finish(grafana, migrated, "app-thanos", warnings)
-    assert warnings == ["'Pods up': the Grafana unit 'suffix: days' became a plain number in Perses"]
+    stat = panel(perses.finish(grafana, migrated, "app-thanos", warnings), "Pods up")
+    assert stat["plugin"]["spec"]["format"]["unit"] == "days" and warnings == []
+
+
+def test_a_unit_perses_has_no_word_for_is_a_warning_and_not_a_refusal(grafana, migrated):
+    source(grafana, "Pods up")["fieldConfig"]["defaults"]["unit"] = "suffix: widgets"
+    warnings: list[str] = []
+    stat = panel(perses.finish(grafana, migrated, "app-thanos", warnings), "Pods up")
+    assert stat["plugin"]["spec"]["format"]["unit"] == "decimal"
+    assert warnings == ["'Pods up': the Grafana unit 'suffix: widgets' became a plain number in Perses"]
 
 
 def test_a_dashboard_that_lost_nothing_has_no_warning(grafana, migrated):
@@ -238,6 +257,10 @@ def test_the_command_writes_the_spec_and_says_how_many_panels(tmp_path, capsys):
     assert set(written) == set(load("kinds.percli.json")["spec"])                 # the spec, with no kind or metadata
     assert "panels" in written and "kind" not in written
     assert sorted(p.name for p in out.parent.iterdir()) == ["dashboard.perses.json"]
+    # An ordinary file, as a redirect would have made it: not the 0600 of the temporary file it was written to.
+    umask = os.umask(0)
+    os.umask(umask)
+    assert stat.S_IMODE(out.stat().st_mode) == 0o666 & ~umask
 
 
 def test_whole_keeps_the_kind_and_metadata(tmp_path):

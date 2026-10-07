@@ -279,8 +279,15 @@ Markdown panel only where the Grafana panel was not a text panel.
   docker, or a `--percli` binary with its unpacked `--plugins`. It writes the dashboard's spec, the value of a
   `PersesDashboard`'s `spec.config`, and writes nothing when a check fails. Both files are committed together.
 - It refuses: a panel that became a placeholder; a panel, section or query that differs from the source, taken
-  in order; a stat or bar whose legend names several labels, of which Perses shows one; a pie with a colour for
-  some of its queries only; a colour Perses cannot take. It warns when a Grafana unit became a plain number.
+  in order; a stat or bar whose legend names three labels or more, or two in another shape than
+  `{{who}}: {{what}}` (Perses shows one label); a pie with a colour for some of its queries only; a colour Perses
+  cannot take. It warns when a Grafana unit became a plain number.
+- **Write the source so that it converts** (measured on a second dashboard, `examples/dashboard-ipsec-nas/`):
+  a stat that shows a label takes the legend `{{who}}: {{what}}`, which becomes the series name and the label
+  shown; a count of days takes the unit `suffix: days`, which becomes the Perses unit `days` (likewise the other
+  units of time); and a table of several queries gives every query the **same labels** (`max by (node) (...)`):
+  a Perses table joins rows by all their labels, so one query labelled `node, pod` splits each node into two
+  rows. What carries other labels goes in a table of its own.
 - The command reproduces the worked example's committed Perses file from its Grafana file, key for key
   (2026-10-07).
 - `percli` 0.54.0 carries over, measured by running it alone: each query's fixed colour, fill opacity
@@ -289,8 +296,9 @@ Markdown panel only where the Grafana panel was not a text panel.
 - The command adds: the datasource name on every query and on every variable that asks Prometheus; from the
   Grafana source, a pie's `colorPalette` in the
   order of its queries, its labels off, and a table's mappings by pattern; a table's text colour, and its label
-  columns before its value columns; and it drops the `null` bound of an open-ended range. (`percli` hides the
-  time column itself.)
+  columns before its value columns; a stat's label and series name from a legend of two labels; a unit of time
+  from `suffix: <unit>`; and it drops the `null` bound of an open-ended range. (`percli` hides the time column
+  itself.)
 
 ## 9. Prove it, then show it
 
