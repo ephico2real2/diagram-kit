@@ -8,6 +8,8 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-latest
+    # It takes under two minutes. On 2026-10-07 the install step hung for an hour and would have run for six.
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
@@ -29,3 +31,4 @@ jobs:
           diagram-render out/template.html out template
           diagram-render examples/fan-out/source.html out/fan-out envoy-fan-out
           diagram-render examples/perses-converter/source.html out/perses-converter converter-architecture
+          diagram-render --check out/template.html examples/fan-out/source.html examples/perses-converter/source.html

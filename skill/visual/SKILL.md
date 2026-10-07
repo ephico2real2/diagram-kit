@@ -77,7 +77,7 @@ Install the kit once, in its own venv (a pinned tag, so every machine renders wi
 
 ```sh
 python3 -m venv ~/.local/share/diagram-kit/.venv
-~/.local/share/diagram-kit/.venv/bin/pip install -q "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.2"
+~/.local/share/diagram-kit/.venv/bin/pip install -q "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.3"
 ~/.local/share/diagram-kit/.venv/bin/playwright install chromium
 ```
 
@@ -93,6 +93,10 @@ request that did not load, figure text in a fallback face, a label past its box,
 contrast in either theme, a dashed arrow with no label, a name/figure count mismatch, and sideways
 scroll at 375 px. **Open the PNGs and read them**: a line crossing a label and an arrow into the wrong
 box are only visible there.
+
+`diagram-render --check <page.html>...` runs the same checks on several pages and writes no PNG. It is
+what a repository's CI runs, through the kit's `check-diagrams` job (README, "In a repository's CI"), so
+that a page edited without being rendered again cannot be merged broken.
 
 ## 5. Deliver
 

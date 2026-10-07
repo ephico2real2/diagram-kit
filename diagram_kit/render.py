@@ -6,6 +6,7 @@
 
     diagram-render <page.html> <out-dir> <name-1>,<name-2>,...      (installed)
     python diagram_kit/render.py <page.html> <out-dir> <name-1>,<name-2>,...
+    diagram-render --check <page.html>...                            (every check, no PNG: what a CI job runs)
 
 One name per .fig-scroll, in document order; each becomes <out-dir>/<name>.light.png and
 <name>.dark.png at 2x pixel density. The page may be a fragment (an Artifact page starts at
@@ -21,16 +22,21 @@ the defects a code review of the SVG text does not see:
   - figure text under 4.5:1 contrast with the box it sits in, in either theme (WCAG 1.4.3);
   - a name/figure count mismatch;
   - horizontal page scroll at 375 px.
+
+With --check every page given is put through the same checks and nothing is written: the figures are counted, not
+named, and a page with none fails. So does a page that cannot be read or loaded, and the pages after it are still
+checked. The exit status is non-zero when any page fails.
 """
 
 from __future__ import annotations
 
+import os
 import pathlib
 import sys
 import tempfile
 
 try:
-    from playwright.sync_api import sync_playwright
+    from playwright.sync_api import Error as PlaywrightError, sync_playwright
 except ImportError:
     sys.exit("playwright is not installed: python3 -m pip install playwright && python3 -m playwright install chromium")
 
@@ -146,13 +152,18 @@ LOW_CONTRAST = """() => [...document.querySelectorAll(".fig-scroll")].flatMap((f
 })"""
 
 
-def main() -> int:
-    if len(sys.argv) != 4:
-        print(__doc__)
-        return 2
-    page_path, out_dir = pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]).resolve()
-    names = [n.strip() for n in sys.argv[3].split(",") if n.strip()]
+# Chromium on Linux hints glyphs to whole pixels unless told not to, and then draws text at other widths than on
+# macOS: IBM Plex Mono at 10.5 px advanced 6.99 px a character where a Mac advances 6.30, and a label that fits its
+# box on the Mac it was drawn on crossed it in CI (measured 2026-10-07). Without hinting the two agree to 0.1 px. On
+# macOS the flag changes nothing. It is Chromium's own switch for this difference (crrev.com/536535).
+CHROMIUM_ARGS = ["--font-render-hinting=none"]
+
+
+def render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str] | None) -> int:
+    """Check one page and write its figures under the names given. With no names (--check) the same checks run and
+    nothing is written."""
     out_dir.mkdir(parents=True, exist_ok=True)
+    count = 0
 
     text = page_path.read_text()
     if "<html" not in text.lower():
@@ -177,7 +188,7 @@ def main() -> int:
           sync_playwright() as p):
         doc = pathlib.Path(tmp) / "page.html"
         doc.write_text(text)
-        browser = p.chromium.launch()
+        browser = p.chromium.launch(args=CHROMIUM_ARGS)
         for theme in ("light", "dark"):
             page = browser.new_page(viewport={"width": 1180, "height": 900}, device_scale_factor=2)
             watch(page, theme)
@@ -193,10 +204,14 @@ def main() -> int:
             if failures:
                 break
             figures = page.locator(".fig-scroll")
-            if figures.count() != len(names):
-                failures.append(f"{figures.count()} .fig-scroll figures but {len(names)} names given")
+            count = figures.count()
+            if names is None and count == 0:
+                failures.append("no .fig-scroll figure on the page")
                 break
-            for i, name in enumerate(names):
+            if names is not None and count != len(names):
+                failures.append(f"{count} .fig-scroll figures but {len(names)} names given")
+                break
+            for i, name in enumerate(names if names is not None else map(str, range(count))):
                 png = pathlib.Path(stage) / f"{i}.{theme}.png"
                 figures.nth(i).screenshot(path=str(png))
                 staged.append((png, out_dir / f"{name}.{theme}.png"))
@@ -208,7 +223,7 @@ def main() -> int:
         if width > 375:
             failures.append(f"the page scrolls sideways at 375 px (scrollWidth {width})")
         browser.close()
-        if not failures:
+        if not failures and names is not None:
             # A name may carry a subdirectory, which the screenshot used to make: make each one before the first
             # move, so a missing directory cannot stop the moves half way.
             for _, target in staged:
@@ -216,10 +231,43 @@ def main() -> int:
             for png, target in staged:
                 png.replace(target)
                 print(f"wrote {target} ({target.stat().st_size} bytes)")
+    if names is None:
+        # Several pages share one output: each line names its page.
+        shown = os.path.relpath(page_path)
+        # A page that failed a check before its figures were counted has no count to show.
+        print(f"FAIL  {shown}" if failures else f"ok    {shown} ({count} figures)")
+        for f in failures:
+            print(f"FAIL: {shown}: {f}", file=sys.stderr)
+        return 1 if failures else 0
     print(f"375 px viewport: scrollWidth {width}")
     for f in failures:
         print(f"FAIL: {f}", file=sys.stderr)
     return 1 if failures else 0
+
+
+def main() -> int:
+    if len(sys.argv) >= 3 and sys.argv[1] == "--check":
+        pages = [pathlib.Path(page).resolve() for page in sys.argv[2:]]
+        with tempfile.TemporaryDirectory() as nowhere:  # the figures are drawn, to prove they can be, and dropped
+            failed = 0
+            for page in pages:
+                try:
+                    failed += render_page(page, pathlib.Path(nowhere), None)
+                except (OSError, UnicodeError, PlaywrightError) as error:
+                    # A page that cannot be read (missing, not UTF-8) or loaded (a stylesheet that never answers) is
+                    # a page that fails: it is named like the others, and the pages after it are still checked.
+                    shown = os.path.relpath(page)
+                    print(f"FAIL  {shown}")
+                    said = (str(error).splitlines() or [""])[0]
+                    print(f"FAIL: {shown}: {type(error).__name__}: {said}", file=sys.stderr)
+                    failed += 1
+        print(f"{len(pages) - failed} of {len(pages)} pages pass")
+        return 1 if failed else 0
+    if len(sys.argv) != 4:
+        print(__doc__)
+        return 2
+    names = [n.strip() for n in sys.argv[3].split(",") if n.strip()]
+    return render_page(pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]).resolve(), names)
 
 
 if __name__ == "__main__":

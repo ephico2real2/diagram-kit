@@ -1,0 +1,56 @@
+# The job other repositories call, so that each of them checks its diagram pages the same way and none copies the
+# steps. In the calling repository's workflow:
+#
+#   jobs:
+#     diagrams:
+#       uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.3
+#       with:
+#         kit: v0.2.3
+#
+# It installs the kit at the tag given and runs `diagram-render --check` on every tracked page: a font that did not
+# load, a label past its box, text under 4.5:1 in either theme, a dashed arrow with no label, sideways scroll at
+# 375 px. It writes no PNG: the committed ones are a person's to render and look at. A called workflow cannot learn
+# the ref it was called at, so the tag is given twice; keep the two the same.
+name: check-diagrams
+on:
+  workflow_call:
+    inputs:
+      kit:
+        description: The diagram-kit tag to install, the same as the tag this workflow is called at.
+        type: string
+        required: true
+      pages:
+        description: A git pathspec for the pages to check. The default is every file named source.html.
+        type: string
+        default: ":(glob)**/source.html"
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    # Twenty-three pages take about two minutes; a hung download must not hold a runner for six hours.
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: "3.12"
+      # Playwright is pinned in the kit's pyproject.toml, and that pin chooses the Chromium build.
+      - name: Install diagram-kit and Chromium
+        env:
+          KIT: ${{ inputs.kit }}
+        run: |
+          python -m pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@${KIT}"
+          python -m playwright install --with-deps chromium
+      - name: Check every diagram page
+        env:
+          PAGES: ${{ inputs.pages }}
+        run: |
+          set -euo pipefail
+          count=$(git ls-files -- "${PAGES}" | wc -l)
+          # No page found is a broken pathspec, not a clean run.
+          if [ "${count}" -eq 0 ]; then
+            echo "::error::no tracked file matches '${PAGES}'"
+            exit 1
+          fi
+          git ls-files -z -- "${PAGES}" | xargs -0 diagram-render --check

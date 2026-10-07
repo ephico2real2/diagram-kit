@@ -90,6 +90,9 @@ def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, 
             pass
 
     class Browser:
+        def __init__(self, *, args):
+            assert args == render.CHROMIUM_ARGS       # the same text widths on Linux as on macOS
+
         def new_page(self, *, viewport, **kwargs):
             return Page(viewport["width"] == 375)
 

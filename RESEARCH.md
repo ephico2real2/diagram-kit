@@ -351,9 +351,27 @@ Search dashboard of mongodb-poc: 29 panels, on OpenShift Local 4.22.7.
   has the mode of any new file.
 - **A failed write left its temporary file** beside the target and ended in a traceback (an output path that is a
   directory). Since 0.2.2 the temporary file is removed and the error is one line.
-- **Not handled: a label taken from `reduceOptions.fields`.** For a stat on a table query, `percli` takes the label
-  from that setting and the command passes it on as it is. The review measured `/.*/` coming over as `.*`, and the
-  Perses 0.54.0 UI then showing the metric's name.
+- **A label taken from `reduceOptions.fields`.** For a stat on a table query (`textMode: auto`), `percli` makes the
+  label from that setting, trimmed of `/`, `^` and `$` at its two ends (the StatChart plugin's `migrate.cue`).
+  Measured with `percli` 0.54.0: `/^pod$/`, `/pod/` and `pod` give `pod`; `/.*/` gives `.*`; `/^(pod|node)$/` gives
+  `(pod|node)`; `Value` gives `Value`; nothing chosen (`""`) gives the label `""`. The review saw the Perses 0.54.0
+  UI show the metric's name for `.*`: Perses matches the label's whole name against it
+  (`ui/core/src/utils/regexp.ts`, `^${input}$`) and shows the first that fits. 0.2.2 passed all of these on. Since
+  0.2.3 a pattern is refused by name, and `""` and the value's own field give no label, which shows the value as
+  Grafana does.
+- **What Grafana means by `reduceOptions.fields`, and what its own editor writes there.** Measured in Grafana
+  12.3.1 and the Perses 0.54.0 UI on one series with the labels `pod`, `pod_ip`, `kernel_version` and
+  `kubelet_version`, by a review of 0.2.3 before its release (2026-10-07). A bare name is that field alone, and so
+  is `/^name$/`. Anything else between slashes is searched for in every field's name: `/pod/` and `/^pod/` showed
+  `pod` and `pod_ip` in Grafana and `pod` alone in Perses; `/version/` showed the two versions in Grafana and, no
+  label being called `version`, the sample's value in Perses. The editor's own Fields list writes the name it is
+  given escaped (`escapeStringForRegex`): `/^Value \#A$/`, `/^k8s\.version$/`; Perses finds the label
+  `k8s.version` by `k8s\.version`. `Value #A` is a field only when the panel has several queries, and is then that
+  query alone (42), where Perses with no label showed every query's (42 and 7). `Time` is the time of the sample,
+  which Perses has no label for. And a stat that shows its series' name (`textMode: name`) with an empty legend,
+  or none, showed the series' own name in Grafana and the value in Perses. So only a bare name and `/^name$/` are
+  one field, an escaped character is that character, and the value of one query among several, the time, and a
+  stat that shows a name with no legend to take it from are refused.
 
 The label without a brace, the unit without decimals and the failed write were found by a review after 0.2.1 was
 released, which ran the real `percli` on 21 legends and 31 units where the kit's own tests had injected `percli`'s
