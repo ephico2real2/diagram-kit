@@ -25,6 +25,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |
 | `examples/fan-out/` | the connector kinds of `STANDARD.md` §3 on one page (curved fan-out, labelled dashed arrows), with its PNGs |
+| `examples/` | real pages and dashboards copied from the repositories they were made in, each with where it came from (`examples/README.md`): a rendered diagram page, and a Grafana dashboard with its Perses form |
 | `tests/` | one test per check, offline: a stand-in browser for the exit paths, real Chromium on local pages |
 
 ## Install and render

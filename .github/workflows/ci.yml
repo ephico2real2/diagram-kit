@@ -28,3 +28,4 @@ jobs:
           diagram-template out/template.html
           diagram-render out/template.html out template
           diagram-render examples/fan-out/source.html out/fan-out envoy-fan-out
+          diagram-render examples/perses-converter/source.html out/perses-converter converter-architecture
