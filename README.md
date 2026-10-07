@@ -1,6 +1,7 @@
 # diagram-kit
 
-One renderer, one template and one standard for the figures in our repositories.
+One renderer, one template and one standard for the figures in our repositories; and, since 0.2.0, one standard and
+two commands for their dashboards, the figures that move.
 
 Each diagram has a `source.html` page, started by `diagram-template` from the template the kit ships. `diagram-render`
 turns every figure on it into a light and a dark PNG, and refuses the defects a review of the SVG text does not see:
@@ -16,6 +17,10 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `diagram_kit/render.py` | the renderer (`diagram-render` once installed): PNGs plus the checks in `STANDARD.md` §5 |
 | `diagram_kit/template.html` | the page every `source.html` starts from (`diagram-template <path>` writes it, never over an existing page): the palette, `.fig-scroll`, solid and dashed |
 | `skill/visual/SKILL.md` | the `/visual` Claude Code skill that designs the pages; link `~/.claude/skills/visual` to this directory |
+| `skill/dashboard/SKILL.md` | the `/dashboard` Claude Code skill: the dashboard standard, every rule with its source; link `~/.claude/skills/dashboard` to this directory |
+| `skill/dashboard/COLLECTION.md` | how a workload's metrics get collected before any panel: an exporter of its own, ServiceMonitor or PodMonitor, a scrape over TLS |
+| `diagram_kit/metrics.py` | `metrics-inventory`: every metric a workload emits, with the kind of data each is |
+| `diagram_kit/perses.py` | `perses-dashboard`: the Perses form of a Grafana dashboard, and the checks the conversion needs |
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |
@@ -26,7 +31,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 
 ```sh
 python3 -m venv .venv
-.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.1.1"
+.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.0"
 .venv/bin/playwright install chromium
 .venv/bin/diagram-template docs/diagrams/<slug>/source.html
 .venv/bin/diagram-render docs/diagrams/<slug>/source.html docs/diagrams/<slug> <name-1>,<name-2>
@@ -35,6 +40,25 @@ python3 -m venv .venv
 The repository is not published yet. Until it is, install from a local clone in place of the second line:
 `.venv/bin/pip install <path-to-clone>`.
 `TUTORIAL.md` walks the whole path.
+
+## Dashboards
+
+A dashboard is a figure that moves, and it goes wrong the same way: built from memory, coloured by a palette nobody
+chose, never looked at. `skill/dashboard/SKILL.md` is the standard, and two commands do the parts a person should not
+do by hand:
+
+```sh
+# every metric a workload emits, with the kind of data each is: the list a dashboard is chosen from
+.venv/bin/metrics-inventory --prometheus <url> --match '{namespace="app",job="app"}' > docs/metrics-inventory-app.md
+
+# the Perses form of a Grafana dashboard, the Grafana JSON staying the only file edited (needs podman or docker)
+.venv/bin/perses-dashboard dashboards/app.json dashboards/app.perses.json --datasource app-thanos
+```
+
+`metrics-inventory` reads a Prometheus-compatible API (a bearer token from the environment variable
+`PROMETHEUS_TOKEN`, never from the command line) or a saved `/metrics` page (`--text`). `perses-dashboard` runs
+`percli migrate` from the Perses image and refuses a panel that became a placeholder or a query that differs from
+the source; it writes nothing when a check fails. `RESEARCH.md` §7 has what both were measured on.
 
 ## Why a kit
 
@@ -50,7 +74,8 @@ did not reach the others, and one vendored copy still lacks it
 ```
 
 No test reaches the network. The browser tests inline a font from `tests/fixtures/fonts/` (Inter, SIL Open Font
-License 1.1, `tests/fixtures/fonts/OFL.txt`).
+License 1.1, `tests/fixtures/fonts/OFL.txt`). The dashboard tests run no container and ask no Prometheus: they use a
+saved `percli` result (`tests/fixtures/dashboard/`) and an API answered from a table.
 
 ## Prior art
 

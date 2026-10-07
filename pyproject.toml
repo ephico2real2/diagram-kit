@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "diagram-kit"
-version = "0.1.1"
-description = "Render each figure of a diagram source.html to light and dark PNGs, and refuse the defects a review of the SVG does not see."
+version = "0.2.0"
+description = "Render each figure of a diagram source.html to light and dark PNGs, and refuse the defects a review of the SVG does not see; list a workload's metrics and generate the Perses form of a Grafana dashboard."
 readme = "README.md"
 license = "MPL-2.0 AND MIT-0"
 license-files = ["LICENSE", "LICENSES/*", "NOTICE"]
@@ -18,6 +18,8 @@ test = ["pytest==9.1.1"]
 [project.scripts]
 diagram-render = "diagram_kit.render:main"
 diagram-template = "diagram_kit.template:main"
+metrics-inventory = "diagram_kit.metrics:main"
+perses-dashboard = "diagram_kit.perses:main"
 
 [tool.setuptools]
 packages = ["diagram_kit"]
