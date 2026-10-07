@@ -327,21 +327,34 @@ Search dashboard of mongodb-poc: 29 panels, on OpenShift Local 4.22.7.
   a legend of exactly two labels as the series name and the label shown (`seriesNameFormat: "{{node}}"`,
   `metricLabel: "version"`), which is what that repository's fixer wrote by hand; any other legend that breaks the
   label is refused by name.
+- **A broken label need not hold a brace.** For a stat that shows its series' name, `percli` 0.54.0 takes the first
+  query's legend and trims the braces off its two ends (`strings.Trim(legendFormat, "{}")` in the StatChart plugin's
+  `migrate.cue`): `{{ node }}` becomes the label `" node "`, and a fixed text or `__auto` becomes itself. No series
+  has such a label and the stat shows `1`. 0.2.1 wrote these out. Since 0.2.2 a label that came from the legend is
+  read from the legends again: one label is that label, two are read as before, anything else is refused.
 - **A unit `percli` has no word for becomes `decimal`** (`suffix: days`), silently. Since 0.2.1 `suffix:` followed
   by a unit of time Perses has had since 0.51 (`milliseconds` to `years`) becomes that unit; for any other the
-  command warns.
+  command warns. `percli` writes `decimal` only when the panel sets decimals; without them it writes no format at
+  all, and 0.2.1 then neither turned the unit nor warned. Since 0.2.2 it does both in that case too.
 - **A variable that asks Prometheus** (`PrometheusLabelValuesVariable`) comes over without a datasource. The command
   names it, as it does for queries.
 - **A table of several queries joins rows by all their labels.** That dashboard's per-node table had eleven
   queries, nine labelled `node`, one `node, pod` and one `node, peer_id`: Grafana's merge gave one row per node,
   Perses three. Its fixer moved the two into a second table after `percli`. That is a decision about the
   dashboard, so it now lives in the Grafana source (two tables, in both forms), and the repository converts with
-  the kit alone (kit 0.2.1, 2026-10-07): the Perses file differs from the fixer's only by black text on its
-  coloured cells (in the dark theme it was white on `#73bf69`, 2.2 to 1) and a description.
+  the kit alone (kit 0.2.1, 2026-10-07): the Perses file differs from the fixer's by black text on its
+  coloured cells (in the dark theme it was white on `#73bf69`, 2.2 to 1), two descriptions, and an `or` clause
+  that repository added to the identity query.
 - **A missing value in a Perses table is an empty cell** (Table 0.11.2, measured with a query matching no
   series); Grafana's `special: null` mapping, which wrote "–" there, is not carried over.
 - **The file the command wrote was readable by its owner only** (0600, a temporary file's mode). Since 0.2.1 it
   has the mode of any new file.
+- **A failed write left its temporary file** beside the target and ended in a traceback (an output path that is a
+  directory). Since 0.2.2 the temporary file is removed and the error is one line.
+
+The label without a brace, the unit without decimals and the failed write were found by a review after 0.2.1 was
+released, which ran the real `percli` on 21 legends and 31 units where the kit's own tests had injected `percli`'s
+output by hand.
 
 **The inventory**, through a Thanos Querier 0.41 over Prometheus 3.9.1:
 

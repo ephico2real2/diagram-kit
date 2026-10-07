@@ -10,9 +10,11 @@
 It runs `percli migrate` (from --percli with its unpacked --plugins, or from --image with podman or docker), then
 adds what the migration leaves out and refuses what it gets wrong:
   - a panel that became a placeholder (a kind Perses does not convert, or percli's plugins not unpacked);
-  - a stat or bar whose legend names two labels, "{{who}}: {{what}}", shows the second and is named by the first;
-    a legend of more labels, or of another shape, is refused: Perses shows one label;
-  - a Grafana unit "suffix: days" (or another unit of time Perses has a word for) becomes that unit;
+  - a stat that shows a label takes it from its legend: one label, "{{node}}", is that label; two,
+    "{{who}}: {{what}}", shows the second and is named by the first; a legend of more labels, of none, or of another
+    shape, is refused: Perses shows one label;
+  - a Grafana unit "suffix: days" (or another unit of time Perses has a word for) becomes that unit, whether or not
+    the panel sets decimals;
   - a panel, section or query that differs from the Grafana source, taken in order;
   - every query, a variable's included, names the datasource given (a namespace may hold several, and its default
     need not be ours);
@@ -131,7 +133,10 @@ def _finish_table(chart: dict, source: dict) -> None:
     # Perses keeps the theme's text colour on a coloured cell, white on yellow in the dark theme.
     for cell in [*chart["spec"].get("cellSettings", []), *(c for col in columns for c in col.get("cellSettings", []))]:
         if "backgroundColor" in cell and "textColor" not in cell:
-            cell["textColor"] = _readable_on(cell["backgroundColor"])
+            try:
+                cell["textColor"] = _readable_on(cell["backgroundColor"])
+            except ConversionError as error:
+                raise ConversionError(f"the table {source['title']!r}: {error}") from None
 
 
 def _finish_status_history(chart: dict) -> None:
@@ -142,40 +147,61 @@ def _finish_status_history(chart: dict) -> None:
 
 # Grafana units that mean a plain number: for these, Perses's "decimal" is the same thing and no unit was lost.
 PLAIN_UNITS = {None, "", "none", "short", "decimal", "locale"}
-# The units of time Perses has had a word for since 0.51 (ui/core/src/model/units/time.ts). 0.54 adds nanoseconds
+# The units of time Perses has had a word for since 0.51 (ui/core/src/model/units/time.ts). 0.53 adds nanoseconds
 # and microseconds, which an older console plugin does not know. Grafana's "suffix: days" says the number counts days.
 TIME_UNITS = {"milliseconds", "seconds", "minutes", "hours", "days", "weeks", "months", "years"}
-# A legend of exactly two labels, "{{node}}: {{version}}": who it is, then what is shown.
+# Where each kind keeps the unit of its values (the plugins' migrate.cue, Perses 0.54.0). A table has one per column.
+UNIT_AT = {"StatChart": ("format",), "BarChart": ("format",), "GaugeChart": ("format",), "PieChart": ("format",),
+           "TimeSeriesChart": ("yAxis", "format")}
+# A legend of one label, "{{node}}" or "{{ node }}", and of exactly two, "{{node}}: {{version}}": who it is, then
+# what is shown.
+ONE_LABEL = re.compile(r"\{\{\s*([^{}\s](?:[^{}]*[^{}\s])?)\s*\}\}")
 TWO_LABELS = re.compile(r"\{\{\s*(\w+)\s*\}\}[^{}]*\{\{\s*(\w+)\s*\}\}")
 
 
 def _repair_what_percli_wrote(name: str, panel: dict, source: dict, warnings: list[str]) -> None:
     chart = panel["plugin"]
     spec = chart["spec"]
-    # A Perses stat or bar shows ONE label of each series (metricLabel) and names the series by its format. From a
-    # legend of two labels, percli 0.54.0 takes everything between the first "{{" and the last "}}":
-    # "{{node}}: {{version}}" becomes the label "node}}: {{version", which no series has, and the stat shows the
-    # metric's value, 1. Seen on a real dashboard, 2026-10-07. For a legend of exactly two labels the reading is
-    # not in doubt: the first names the series and the second is what is shown. Any other legend is the author's
-    # to decide, in the Grafana source.
+    # A Perses stat shows ONE label of each series (metricLabel) and names the series by its format. For a stat that
+    # shows its series' name (textMode "name"), percli 0.54.0 takes the first query's legend and trims the braces
+    # off its two ends: "{{node}}" becomes the label "node", but "{{ node }}" becomes " node ",
+    # "{{node}}: {{version}}" becomes "node}}: {{version", and a fixed text or Grafana's "__auto" stays as it is.
+    # No series has such a label, and the stat shows the metric's value, 1. Seen on a real dashboard, 2026-10-07.
+    # So a label that came from the legend is read from the legends again. One label is that label. Exactly two are
+    # not in doubt either: the first names the series and the second is what is shown. Any other legend is the
+    # author's to decide, in the Grafana source. A label that came from reduceOptions.fields is left as it is.
     label = spec.get("metricLabel", "")
-    if "{{" in label or "}}" in label:
-        legends = [t.get("legendFormat", "") for t in source.get("targets", [])]
-        found = [TWO_LABELS.fullmatch(legend.strip()) for legend in legends]
-        if not legends or None in found or len({match.groups() for match in found}) != 1:
-            raise ConversionError(f"the legend {legends} of {name!r} names several labels, and a Perses "
+    legends = [t.get("legendFormat", "") for t in source.get("targets", [])]
+    several = "{{" in label or "}}" in label
+    from_legend = (source.get("options", {}).get("textMode") == "name" and bool(legends)
+                   and label == legends[0].strip("{}"))
+    if label and (several or from_legend):
+        for shape in (ONE_LABEL, TWO_LABELS):
+            found = [shape.fullmatch(legend.strip()) for legend in legends]
+            if legends and None not in found and len({match.groups() for match in found}) == 1:
+                break
+        else:
+            wrong = "names several labels" if several else "is not one label, the same for every query"
+            raise ConversionError(f"the legend {legends} of {name!r} {wrong}, and a Perses "
                                   f"{chart['kind']} shows one (percli wrote metricLabel {label!r}): give it one "
                                   "label, or two as '{{who}}: {{what}}', in the Grafana source")
-        who, what = found[0].groups()
+        *who, what = found[0].groups()
         spec["metricLabel"] = what
-        for query in panel.get("queries", []):
-            query["spec"]["plugin"]["spec"]["seriesNameFormat"] = "{{" + who + "}}"
-    # percli writes "decimal" for a Grafana unit it has no word for, and says nothing.
+        for query in panel.get("queries", []) if who else []:
+            query["spec"]["plugin"]["spec"]["seriesNameFormat"] = "{{" + who[0] + "}}"
+    # percli has no word for a Grafana unit like "suffix: days". When the panel sets decimals it writes "decimal";
+    # when it does not, it writes no format at all. It says nothing either way.
     asked = source.get("fieldConfig", {}).get("defaults", {}).get("unit")
     form = spec.get("format") or spec.get("yAxis", {}).get("format") or {}
-    if asked not in PLAIN_UNITS and form.get("unit") == "decimal":
+    at = UNIT_AT.get(chart["kind"])
+    if asked not in PLAIN_UNITS and (form.get("unit") == "decimal" or (at and not form)):
         suffix = re.fullmatch(r"suffix:\s*(\w+)", asked)
         if suffix and suffix.group(1) in TIME_UNITS:
+            if not form:
+                holder = spec
+                for key in at[:-1]:
+                    holder = holder.setdefault(key, {})
+                form = holder.setdefault(at[-1], {})
             form["unit"] = suffix.group(1)
         else:
             warnings.append(f"{name!r}: the Grafana unit {asked!r} became a plain number in Perses")
@@ -316,16 +342,25 @@ def main(argv: list[str] | None = None) -> int:
     for warning in warnings:
         print(f"perses-dashboard: warning: {warning}", file=sys.stderr)
     result = dict(migrated, spec=spec) if args.whole else spec
-    # Written beside the target and moved into place: a failed run leaves no half-written file for a chart to ship.
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    with tempfile.NamedTemporaryFile("w", dir=args.out.parent, suffix=".tmp", delete=False) as stream:
-        json.dump(result, stream, indent=2)
-        stream.write("\n")
-    # A temporary file is its owner's alone (0600); the result is an ordinary file of a repository.
+    # Written beside the target and moved into place: a failed run leaves no half-written file for a chart to ship,
+    # and no temporary file beside it either.
     umask = os.umask(0)
     os.umask(umask)
-    os.chmod(stream.name, 0o666 & ~umask)
-    os.replace(stream.name, args.out)
+    temporary = None
+    try:
+        args.out.parent.mkdir(parents=True, exist_ok=True)
+        with tempfile.NamedTemporaryFile("w", dir=args.out.parent, suffix=".tmp", delete=False) as stream:
+            temporary = stream.name
+            json.dump(result, stream, indent=2)
+            stream.write("\n")
+        # A temporary file is its owner's alone (0600); the result is an ordinary file of a repository.
+        os.chmod(temporary, 0o666 & ~umask)
+        os.replace(temporary, args.out)
+    except OSError as error:
+        if temporary:
+            pathlib.Path(temporary).unlink(missing_ok=True)
+        print(f"perses-dashboard: {error}", file=sys.stderr)
+        return 1
     print(f"wrote {args.out} ({len(spec['panels'])} panels)")
     return 0
 
