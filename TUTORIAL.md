@@ -13,7 +13,7 @@ The kit installs from a pinned tag, with Chromium beside it:
 ```sh
 mkdir my-docs && cd my-docs && git init -q
 python3 -m venv .venv
-.venv/bin/pip install -q "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.1.1"
+.venv/bin/pip install -q "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.0"
 .venv/bin/playwright install chromium
 ```
 

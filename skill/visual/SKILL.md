@@ -77,7 +77,7 @@ Install the kit once, in its own venv (a pinned tag, so every machine renders wi
 
 ```sh
 python3 -m venv ~/.local/share/diagram-kit/.venv
-~/.local/share/diagram-kit/.venv/bin/pip install -q "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.1.1"
+~/.local/share/diagram-kit/.venv/bin/pip install -q "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.0"
 ~/.local/share/diagram-kit/.venv/bin/playwright install chromium
 ```
 

@@ -293,6 +293,46 @@ arrows for a linkage. Measured before the rules in `STANDARD.md` §3 were writte
   still the arrow's end box, so its own text never labels it (OB1-lite's review: an arrow drawn from inside its start
   box passed otherwise). Four browser tests; on the 158 pages, the rule changes exactly this one arrow.
 
+## 7. Dashboards: what the two commands rest on (2026-10-07)
+
+Added in 0.2.0. The standard is `skill/dashboard/SKILL.md`, which names the source of every rule; this section is
+only what `diagram_kit/perses.py` and `diagram_kit/metrics.py` were measured on. The worked example is the MongoDB
+Search dashboard of mongodb-poc: 29 panels, on OpenShift Local 4.22.7.
+
+**`percli migrate` 0.54.0**, run alone from `docker.io/persesdev/perses:v0.54.0` on the fixture
+`tests/fixtures/dashboard/kinds.grafana.json` and on the worked example:
+
+- **It exits 0 with placeholders.** A Grafana `heatmap` becomes a Markdown panel whose text is "**Migration from
+  Grafana not supported !**"; so do `barchart`, `histogram` and `state-timeline`. A Grafana text panel also becomes
+  a Markdown panel, with its own text. `perses-dashboard` refuses the first and keeps the second by the Grafana
+  panel's type.
+- **The image unpacks its plugins when its server starts.** The first `migrate`, a second after the start, returned
+  0 converted panels of 5, the next returned 5. The command asks until the count stops rising, for at most 60 s.
+- **It carries over** each query's fixed colour, fill opacity and line style (`querySettings`), stacking, an axis
+  minimum and maximum, units, value mappings on a table column, and it hides a table's time column.
+- **It leaves out or gets wrong**: the datasource name on a query; a pie's colours (a Perses pie takes a list, by
+  position: PieChart 0.13.1 and 0.14.0); `showLabels: true` for an empty `displayLabels`; a table's renamed column,
+  put after the value columns; a mapping by pattern on a table column; the text colour of a coloured cell (white
+  on yellow in the dark theme); and `"to": null` on an open-ended range, which Perses refuses.
+- **The command reproduces the worked example.** `perses-dashboard mongodb-search.json out.json --datasource
+  __SEARCH__-thanos` gives that repository's committed Perses file, key for key, with none of its names in the
+  kit.
+
+**The inventory**, through a Thanos Querier 0.41 over Prometheus 3.9.1:
+
+- **`changes()` on a bare selector fails**: "vector cannot contain metrics with the same labelset", because the
+  function drops the metric name. The name is copied to a label first, over a subquery:
+  `changes(label_replace(<selector>, "metric", "$1", "__name__", "(.+)")[1h:1m])`.
+- **Cost**: four queries and one series request; 0.5 s for mongot's 1,024 names and 5,489 series.
+- **What it found**: mongot, 1,024 names in 828 families (465 gauges, 209 counters, 141 summaries, 5 histograms, 8
+  undeclared), 743 names unchanged in an hour; Envoy, 487 names, 374 unchanged. The worked example draws 22 and 6
+  of them.
+- **Not measured**: a selector of tens of thousands of series; `--no-labels` drops the largest request for that
+  case. The window's one-minute resolution can miss a value that changes and returns within a minute.
+
+**Not in the kit yet**: the capture of a dashboard in the OpenShift console and in a Grafana fed by its sidecar,
+which the worked example does with its own scripts.
+
 ## Appendix: every page
 
 Repository, page, and the two renders. "Identical PNGs" counts the re-rendered PNGs byte-identical to a committed PNG beside the page.
