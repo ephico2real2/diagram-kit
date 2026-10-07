@@ -318,6 +318,18 @@ Search dashboard of mongodb-poc: 29 panels, on OpenShift Local 4.22.7.
   __SEARCH__-thanos` gives that repository's committed Perses file, key for key, with none of its names in the
   kit.
 
+**A second dashboard**, openshift-ipsec-nas's (`examples/dashboard-ipsec-nas/`), found what the first did not:
+
+- **Two panels may share a title** (*Claims on the NAS*, a number and a table). The command first matched panels by
+  title and refused the dashboard; it now pairs them by place, `<section>_<place>` being how `percli` keys them.
+- **A legend of two labels breaks a stat.** For `{{node}}: {{version}}`, `percli` writes `metricLabel: "node}}:
+  {{version"`, a label no series has. The command refuses the panel and says so; that repository's own fixer
+  rewrites it by hand.
+- **A unit `percli` has no word for becomes `decimal`** (`suffix: days`), silently. The command warns.
+- **A variable that asks Prometheus** (`PrometheusLabelValuesVariable`) comes over without a datasource. The command
+  names it, as it does for queries.
+- That repository's Perses file is not reproduced: its fixer also splits one table in two, which is its own.
+
 **The inventory**, through a Thanos Querier 0.41 over Prometheus 3.9.1:
 
 - **`changes()` on a bare selector fails**: "vector cannot contain metrics with the same labelset", because the

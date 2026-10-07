@@ -10,14 +10,16 @@
 It runs `percli migrate` (from --percli with its unpacked --plugins, or from --image with podman or docker), then
 adds what the migration leaves out and refuses what it gets wrong:
   - a panel that became a placeholder (a kind Perses does not convert, or percli's plugins not unpacked);
-  - a panel, section or query that differs from the Grafana source;
-  - every query names the datasource given (a namespace may hold several, and its default need not be ours);
+  - a stat or bar whose legend names several labels, of which Perses shows one;
+  - a panel, section or query that differs from the Grafana source, taken in order;
+  - every query, a variable's included, names the datasource given (a namespace may hold several, and its default
+    need not be ours);
   - a pie takes its colours by position: the list follows the order of the queries;
   - a table shows its label columns first, colours a cell matched by pattern, and gets readable text on a
     coloured cell;
   - an open-ended range mapping loses its null bound, which Perses refuses.
 
-<out.json> is the dashboard's spec, the value of a PersesDashboard's `spec.config`; --whole keeps percli's
+It warns, and still writes, when a Grafana unit became a plain number. <out.json> is the dashboard's spec, the value of a PersesDashboard's `spec.config`; --whole keeps percli's
 `kind` and `metadata` around it. Nothing is written when a check fails. skill/dashboard/SKILL.md, section 8.
 """
 
@@ -136,30 +138,60 @@ def _finish_status_history(chart: dict) -> None:
         mapping["spec"] = {k: v for k, v in mapping["spec"].items() if v is not None}
 
 
-def finish(grafana: dict, migrated: dict, datasource: str) -> dict:
-    """Check percli's result against the Grafana source and return the dashboard spec, completed."""
+# Grafana units that mean a plain number: for these, Perses's "decimal" is the same thing and no unit was lost.
+PLAIN_UNITS = {None, "", "none", "short", "decimal", "locale"}
+
+
+def _check_what_percli_wrote(name: str, chart: dict, source: dict, warnings: list[str]) -> None:
+    spec = chart["spec"]
+    # A Perses stat or bar names each value by ONE label. From a legend of two, percli 0.54.0 takes everything
+    # between the first "{{" and the last "}}": "{{node}}: {{version}}" becomes the label "node}}: {{version",
+    # which no series has, and the panel draws no name. Seen on a real dashboard, 2026-10-07.
+    label = spec.get("metricLabel", "")
+    if "{{" in label or "}}" in label:
+        legends = [t.get("legendFormat", "") for t in source.get("targets", [])]
+        raise ConversionError(f"the legend {legends} of {name!r} names several labels, and a Perses "
+                              f"{chart['kind']} shows one (percli wrote metricLabel {label!r}): give it one label "
+                              "in the Grafana source")
+    # percli writes "decimal" for a Grafana unit it has no word for, and says nothing.
+    asked = source.get("fieldConfig", {}).get("defaults", {}).get("unit")
+    written = (spec.get("format") or spec.get("yAxis", {}).get("format") or {}).get("unit")
+    if asked not in PLAIN_UNITS and written == "decimal":
+        warnings.append(f"{name!r}: the Grafana unit {asked!r} became a plain number in Perses")
+
+
+def _place(key: str) -> tuple[int, ...]:
+    """A panel key as its section and its place in it: "2_10" comes after "2_9"."""
+    return tuple(int(part) for part in key.split("_")) if re.fullmatch(r"\d+(_\d+)*", key) else (10**9,)
+
+
+def finish(grafana: dict, migrated: dict, datasource: str, warnings: list[str] | None = None) -> dict:
+    """Check percli's result against the Grafana source and return the dashboard spec, completed.
+
+    What is lost without being wrong (a unit Perses has no word for) is added to `warnings`, one line each.
+    """
+    warnings = [] if warnings is None else warnings
     spec = migrated["spec"]
     sources = grafana_panels(grafana)
     titles = [p.get("title", "") for p in sources]
-    repeated = sorted({t for t in titles if titles.count(t) > 1})
-    if repeated:
-        raise ConversionError(f"panels share a title, and panels are matched by title: {repeated}")
-    by_title = dict(zip(titles, sources))
-    panels = list(spec["panels"].values())
+    # Panels are paired by place, not by title: two panels may share a title (a number and the table under it).
+    # percli keys each panel "<section>_<place>", in the order of the Grafana file.
+    panels = [spec["panels"][key] for key in sorted(spec["panels"], key=_place)]
     names = [p["spec"]["display"]["name"] for p in panels]
-    if sorted(names) != sorted(titles):
-        raise ConversionError(f"the converted panels differ from the Grafana ones: {sorted(set(names) ^ set(titles))}")
+    if names != titles:
+        differing = next((f"{t!r} became {n!r}" for t, n in zip(titles, names) if t != n),
+                         f"{len(titles)} panels became {len(names)}")
+        raise ConversionError(f"the converted panels differ from the Grafana ones, in order: {differing}")
 
     # percli exits 0 even when it converted nothing: a kind Perses does not draw, or plugins not unpacked.
-    lost = [n for n, p in zip(names, panels)
-            if p["spec"]["plugin"]["kind"] == "Markdown" and by_title[n].get("type") != "text"]
+    lost = [(n, s["type"]) for n, p, s in zip(names, panels, sources)
+            if p["spec"]["plugin"]["kind"] == "Markdown" and s.get("type") != "text"]
     if lost:
-        kinds = sorted({by_title[n]["type"] for n in lost})
-        raise ConversionError(f"panels {lost} became placeholders: Perses does not convert the kind {kinds}, "
-                              "or percli ran without its plugins unpacked")
+        raise ConversionError(f"panels {[n for n, _ in lost]} became placeholders: Perses does not convert the kind "
+                              f"{sorted({k for _, k in lost})}, or percli ran without its plugins unpacked")
 
-    for name, panel in zip(names, panels):
-        want = [t["expr"] for t in by_title[name].get("targets", [])]
+    for name, panel, source in zip(names, panels, sources):
+        want = [t["expr"] for t in source.get("targets", [])]
         got = [q["spec"]["plugin"]["spec"]["query"] for q in panel["spec"].get("queries", [])]
         if got != want:
             raise ConversionError(f"the queries of {name!r} differ from the Grafana ones")
@@ -168,20 +200,26 @@ def finish(grafana: dict, migrated: dict, datasource: str) -> dict:
     if rows and [s for s in sections if s] != rows:
         raise ConversionError(f"the sections {sections} differ from the Grafana rows {rows}")
 
-    for name, panel in zip(names, panels):
+    for panel, source in zip(panels, sources):
         for query in panel["spec"].get("queries", []):
             if query["spec"]["plugin"]["kind"].startswith("Prometheus"):
                 query["spec"]["plugin"]["spec"]["datasource"] = {"kind": "PrometheusDatasource", "name": datasource}
-        chart, source = panel["spec"]["plugin"], by_title[name]
+        chart = panel["spec"]["plugin"]
+        _check_what_percli_wrote(panel["spec"]["display"]["name"], chart, source, warnings)
         if chart["kind"] == "PieChart":
             _finish_pie(chart, source)
         elif chart["kind"] == "Table":
             _finish_table(chart, source)
         elif chart["kind"] == "StatusHistoryChart":
             _finish_status_history(chart)
-    # Grafana's datasource picker chooses nothing once every query names its datasource.
+    # Grafana's datasource picker chooses nothing once every query names its datasource. A variable that asks
+    # Prometheus for its values (the nodes, the namespaces) is a query too, and percli leaves it without one.
     spec["variables"] = [v for v in spec.get("variables", [])
                          if v["spec"].get("plugin", {}).get("kind") != "DatasourceVariable"]
+    for variable in spec["variables"]:
+        plugin = variable["spec"].get("plugin", {})
+        if plugin.get("kind", "").startswith("Prometheus"):
+            plugin.setdefault("spec", {})["datasource"] = {"kind": "PrometheusDatasource", "name": datasource}
     return spec
 
 
@@ -246,13 +284,16 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--percli", help="a percli binary to use in place of the image, with --plugins")
     parser.add_argument("--plugins", type=pathlib.Path, help="the directory of unpacked plugins for --percli")
     args = parser.parse_args(argv)
+    warnings: list[str] = []
     try:
         grafana = json.loads(args.grafana.read_text())
         migrated = migrate(args.grafana, args.image, args.percli, args.plugins)
-        spec = finish(grafana, migrated, args.datasource)
+        spec = finish(grafana, migrated, args.datasource, warnings)
     except (ConversionError, OSError, ValueError) as error:
         print(f"perses-dashboard: {error}", file=sys.stderr)
         return 1
+    for warning in warnings:
+        print(f"perses-dashboard: warning: {warning}", file=sys.stderr)
     result = dict(migrated, spec=spec) if args.whole else spec
     # Written beside the target and moved into place: a failed run leaves no half-written file for a chart to ship.
     args.out.parent.mkdir(parents=True, exist_ok=True)

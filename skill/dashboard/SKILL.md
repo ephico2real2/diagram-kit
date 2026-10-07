@@ -270,14 +270,16 @@ Markdown panel only where the Grafana panel was not a text panel.
   `docker.io/persesdev/perses:v0.54.0`; use the Perses version inside the cluster's operator) with podman or
   docker, or a `--percli` binary with its unpacked `--plugins`. It writes the dashboard's spec, the value of a
   `PersesDashboard`'s `spec.config`, and writes nothing when a check fails. Both files are committed together.
-- It refuses: a panel that became a placeholder; a panel, section or query that differs from the source; two
-  panels with one title; a pie with a colour for some of its queries only; a colour Perses cannot take.
+- It refuses: a panel that became a placeholder; a panel, section or query that differs from the source, taken
+  in order; a stat or bar whose legend names several labels, of which Perses shows one; a pie with a colour for
+  some of its queries only; a colour Perses cannot take. It warns when a Grafana unit became a plain number.
 - The command reproduces the worked example's committed Perses file from its Grafana file, key for key
   (2026-10-07).
 - `percli` 0.54.0 carries over, measured by running it alone: each query's fixed colour, fill opacity
   and line style (as `querySettings`), stacking, an axis minimum and maximum, units, and value mappings
   on a table column.
-- The command adds: the datasource name on every query; from the Grafana source, a pie's `colorPalette` in the
+- The command adds: the datasource name on every query and on every variable that asks Prometheus; from the
+  Grafana source, a pie's `colorPalette` in the
   order of its queries, its labels off, and a table's mappings by pattern; a table's text colour, and its label
   columns before its value columns; and it drops the `null` bound of an open-ended range. (`percli` hides the
   time column itself.)

@@ -55,6 +55,16 @@ def test_every_query_names_the_datasource_and_the_picker_is_gone(grafana, migrat
     assert spec["variables"] == []
 
 
+def test_a_variable_that_asks_prometheus_names_the_datasource_too(grafana, migrated):
+    # As percli 0.54.0 wrote a label_values variable on a real dashboard: no datasource.
+    migrated["spec"]["variables"].append({"kind": "ListVariable", "spec": {"name": "node", "plugin": {
+        "kind": "PrometheusLabelValuesVariable", "spec": {"labelName": "node", "matchers": ["app_up"]}}}})
+    spec = perses.finish(grafana, migrated, "app-thanos")
+    assert [v["spec"]["name"] for v in spec["variables"]] == ["node"]
+    assert spec["variables"][0]["spec"]["plugin"]["spec"]["datasource"] == {
+        "kind": "PrometheusDatasource", "name": "app-thanos"}
+
+
 def test_a_text_panel_is_a_markdown_panel_and_not_a_placeholder(grafana, migrated):
     spec = perses.finish(grafana, migrated, "app-thanos")
     assert panel(spec, "How to read this page")["plugin"] == {
@@ -144,10 +154,49 @@ def test_a_query_that_differs_from_the_source_is_refused(grafana, migrated):
         perses.finish(grafana, migrated, "app-thanos")
 
 
-def test_two_panels_with_one_title_are_refused(grafana, migrated):
+def test_two_panels_with_one_title_are_paired_by_their_place(grafana, migrated):
+    # A number and the table under it may share a title: seen on a real dashboard, 2026-10-07.
     source(grafana, "Pods up")["title"] = "Each pod, now"
-    with pytest.raises(perses.ConversionError, match=r"share a title.*Each pod, now"):
+    panel(migrated["spec"], "Pods up")["display"]["name"] = "Each pod, now"
+    spec = perses.finish(grafana, migrated, "app-thanos")
+    kinds = [p["spec"]["plugin"]["kind"] for p in spec["panels"].values() if p["spec"]["display"]["name"] == "Each pod, now"]
+    assert kinds == ["StatChart", "Table"]
+    table = next(p["spec"]["plugin"]["spec"] for p in spec["panels"].values() if p["spec"]["plugin"]["kind"] == "Table")
+    assert [c["name"] for c in table["columnSettings"]] == ["timestamp", "pod", "value #1", "value #2"]
+
+
+def test_panels_out_of_the_sources_order_are_refused(grafana, migrated):
+    drawn = [p for p in grafana["panels"] if p["type"] != "row"]
+    first, second = grafana["panels"].index(drawn[2]), grafana["panels"].index(drawn[3])
+    grafana["panels"][first], grafana["panels"][second] = grafana["panels"][second], grafana["panels"][first]
+    with pytest.raises(perses.ConversionError, match=r"differ from the Grafana ones, in order: 'Share of requests now"):
         perses.finish(grafana, migrated, "app-thanos")
+
+
+def test_a_tenth_panel_of_a_section_comes_after_the_ninth():
+    assert sorted(["2_10", "2_9", "10_0", "2_0"], key=perses._place) == ["2_0", "2_9", "2_10", "10_0"]
+
+
+def test_a_stat_whose_legend_names_two_labels_is_refused(grafana, migrated):
+    # What percli 0.54.0 wrote for the legend "{{node}}: {{version}}" on a real dashboard, 2026-10-07.
+    source(grafana, "Pods up")["targets"][0]["legendFormat"] = "{{node}}: {{version}}"
+    panel(migrated["spec"], "Pods up")["plugin"]["spec"]["metricLabel"] = "node}}: {{version"
+    with pytest.raises(perses.ConversionError, match=r"names several labels, and a Perses StatChart shows one"):
+        perses.finish(grafana, migrated, "app-thanos")
+
+
+def test_a_unit_perses_has_no_word_for_is_a_warning_and_not_a_refusal(grafana, migrated):
+    source(grafana, "Pods up")["fieldConfig"]["defaults"]["unit"] = "suffix: days"
+    assert panel(migrated["spec"], "Pods up")["plugin"]["spec"]["format"]["unit"] == "decimal"
+    warnings: list[str] = []
+    perses.finish(grafana, migrated, "app-thanos", warnings)
+    assert warnings == ["'Pods up': the Grafana unit 'suffix: days' became a plain number in Perses"]
+
+
+def test_a_dashboard_that_lost_nothing_has_no_warning(grafana, migrated):
+    warnings: list[str] = []
+    perses.finish(grafana, migrated, "app-thanos", warnings)
+    assert warnings == []
 
 
 def test_a_section_that_differs_from_the_rows_is_refused(grafana, migrated):
