@@ -101,9 +101,7 @@ def test_a_name_count_that_does_not_match_the_figures_fails(tmp_path):
 def test_text_is_as_wide_on_linux_as_on_macos(tmp_path):
     # Forty "i" in Inter at 10.5 px: 101.7 px on macOS, and on Linux 77.3 px with Chromium's default hinting and
     # 101.7 px without it (measured 2026-10-07). A page checked in CI must be the page a person rendered.
-    spec = importlib.util.spec_from_file_location("diagram_render", RENDER)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_renderer()
     source = tmp_path / "page.html"
     source.write_text(page(label="i" * 40).replace('font-size="13"', 'font-size="10.5"'))
     with sync_playwright() as p:
@@ -164,6 +162,41 @@ def test_check_goes_on_past_a_page_it_cannot_read(tmp_path):
     assert "FAIL: gone.html: FileNotFoundError" in result.stderr
     assert "FAIL: latin1.html: UnicodeDecodeError" in result.stderr
     assert "Traceback" not in result.stderr
+
+
+def load_renderer():
+    spec = importlib.util.spec_from_file_location("diagram_render", RENDER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+NEVER_ENDS = "<script>addEventListener('load', () => setTimeout(() => { while (true) {} }, 50))</script>"
+
+
+def test_check_fails_a_page_whose_script_never_ends_and_checks_the_next(tmp_path, monkeypatch, capsys):
+    # Playwright has no limit on an evaluation: without ours this waited for ever (still waiting at 330 s).
+    module = load_renderer()
+    monkeypatch.setattr(module, "PAGE_SECONDS", 6)
+    (tmp_path / "loop.html").write_text(page(body=NEVER_ENDS))
+    (tmp_path / "good.html").write_text(page())
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(module.sys, "argv", ["render.py", "--check", "loop.html", "good.html"])
+    assert module.main() == 1
+    said = capsys.readouterr()
+    assert said.out.splitlines() == ["FAIL  loop.html", "ok    good.html (1 figures)", "1 of 2 pages pass"]
+    assert "FAIL: loop.html: TimeoutError: not checked in 6 s: a script on the page that never ends?" in said.err
+    assert sorted(p.name for p in tmp_path.rglob("*")) == ["good.html", "loop.html"]
+
+
+def test_a_page_whose_script_never_ends_fails_the_render_and_writes_nothing(tmp_path, monkeypatch, capsys):
+    module = load_renderer()
+    monkeypatch.setattr(module, "PAGE_SECONDS", 6)
+    (tmp_path / "loop.html").write_text(page(body=NEVER_ENDS))
+    monkeypatch.setattr(module.sys, "argv", ["render.py", str(tmp_path / "loop.html"), str(tmp_path / "out"), "fig"])
+    assert module.main() == 1
+    assert "FAIL: not checked in 6 s: a script on the page that never ends?" in capsys.readouterr().err
+    assert list((tmp_path / "out").iterdir()) == []                          # no PNG, and no staging directory left
 
 
 def test_a_page_that_scrolls_sideways_at_375_px_fails(tmp_path):

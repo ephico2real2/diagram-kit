@@ -32,7 +32,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 
 ```sh
 python3 -m venv .venv
-.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.3"
+.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.4"
 .venv/bin/playwright install chromium
 .venv/bin/diagram-template docs/diagrams/<slug>/source.html
 .venv/bin/diagram-render docs/diagrams/<slug>/source.html docs/diagrams/<slug> <name-1>,<name-2>
@@ -50,13 +50,22 @@ calls the kit's job, and copies no steps:
 ```yaml
 jobs:
   diagrams:
-    uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.3
+    uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.4
     with:
-      kit: v0.2.3
+      kit: v0.2.4
 ```
 
 It checks every tracked file named `source.html` (the input `pages` takes another git pathspec) and fails when none is
-found. A page that cannot be read or loaded fails like any other, and the pages after it are still checked.
+found. A page that cannot be read or loaded fails like any other, and so does one that is not done in two minutes
+(a script on it that never ends); the pages after it are still checked.
+
+Chromium on Linux and on macOS draw text at the same widths since 0.2.3. For the day a page passes on a Mac and fails
+in CI all the same, the `Containerfile` builds a Linux with the kit and its Chromium:
+
+```sh
+podman build --build-arg KIT_REF=v0.2.4 -t diagram-kit-linux .
+podman run --rm -v "$PWD":/repo:ro diagram-kit-linux --check docs/diagrams/<slug>/source.html
+```
 The tag is given twice because a called workflow cannot learn the ref it was called at.
 
 ## Dashboards

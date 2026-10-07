@@ -21,7 +21,8 @@ the defects a code review of the SVG text does not see:
   - a dashed arrow with no label beside it (a dashed arrow is a relationship, and names it);
   - figure text under 4.5:1 contrast with the box it sits in, in either theme (WCAG 1.4.3);
   - a name/figure count mismatch;
-  - horizontal page scroll at 375 px.
+  - horizontal page scroll at 375 px;
+  - a page that is not done in two minutes (a script on it that never ends).
 
 With --check every page given is put through the same checks and nothing is written: the figures are counted, not
 named, and a page with none fails. So does a page that cannot be read or loaded, and the pages after it are still
@@ -30,8 +31,10 @@ checked. The exit status is non-zero when any page fails.
 
 from __future__ import annotations
 
+import logging
 import os
 import pathlib
+import signal
 import sys
 import tempfile
 
@@ -159,9 +162,41 @@ LOW_CONTRAST = """() => [...document.querySelectorAll(".fig-scroll")].flatMap((f
 CHROMIUM_ARGS = ["--font-render-hinting=none"]
 
 
+# The longest a page may take, from its browser starting to its last check; ten figures take about ten seconds.
+# Playwright gives up by itself on a page that does not load, after 30 s, but waits for ever on one whose script
+# never ends: an evaluation has no limit (measured 2026-10-07: `while (true) {}` on a page, still waiting at 330 s).
+PAGE_SECONDS = 120
+
+
+def _alarm(seconds: int) -> None:
+    """Have TimeoutError raised in the main thread when the seconds are up; 0 calls it off. Where the platform has
+    no alarm (Windows) there is no limit."""
+    if not hasattr(signal, "SIGALRM"):
+        return
+
+    def late(signum, frame):
+        raise TimeoutError(f"not checked in {PAGE_SECONDS} s: a script on the page that never ends?")
+    signal.signal(signal.SIGALRM, late if seconds else signal.SIG_DFL)
+    signal.alarm(seconds)
+
+
 def render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str] | None) -> int:
     """Check one page and write its figures under the names given. With no names (--check) the same checks run and
-    nothing is written."""
+    nothing is written. A page that is not done in PAGE_SECONDS fails."""
+    try:
+        return _render_page(page_path, out_dir, names)
+    except TimeoutError as error:
+        # The browser went with its page. What it left pending would be reported by asyncio at exit, line after line.
+        logging.getLogger("asyncio").setLevel(logging.CRITICAL)
+        if names is None:
+            raise                               # --check names the page and goes on to the next
+        print(f"FAIL: {error}", file=sys.stderr)
+        return 1
+    finally:
+        _alarm(0)
+
+
+def _render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str] | None) -> int:
     out_dir.mkdir(parents=True, exist_ok=True)
     count = 0
 
@@ -183,6 +218,7 @@ def render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str]
     # PNGs are staged beside their targets (one filesystem, so the move is a rename) and moved only when every check,
     # the 375 px one included, has passed: a failed render leaves the last good PNGs as they were.
     staged: list[tuple[pathlib.Path, pathlib.Path]] = []
+    _alarm(PAGE_SECONDS)
     with (tempfile.TemporaryDirectory() as tmp,
           tempfile.TemporaryDirectory(dir=out_dir, prefix=".diagram-render-") as stage,
           sync_playwright() as p):
@@ -223,6 +259,7 @@ def render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str]
         if width > 375:
             failures.append(f"the page scrolls sideways at 375 px (scrollWidth {width})")
         browser.close()
+        _alarm(0)                               # the checks are done: the moves below are never cut short
         if not failures and names is not None:
             # A name may carry a subdirectory, which the screenshot used to make: make each one before the first
             # move, so a missing directory cannot stop the moves half way.

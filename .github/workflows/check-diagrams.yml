@@ -3,9 +3,9 @@
 #
 #   jobs:
 #     diagrams:
-#       uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.3
+#       uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.4
 #       with:
-#         kit: v0.2.3
+#         kit: v0.2.4
 #
 # It installs the kit at the tag given and runs `diagram-render --check` on every tracked page: a font that did not
 # load, a label past its box, text under 4.5:1 in either theme, a dashed arrow with no label, sideways scroll at

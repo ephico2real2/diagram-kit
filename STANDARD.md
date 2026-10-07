@@ -154,6 +154,7 @@ label past its box, and the light `--none` of the 30 pages made before this temp
 | figure text under 4.5:1 against the box under it, in either theme | WCAG 2.2 SC 1.4.3; one committed dark render ships black text on the dark ground |
 | a name/figure count mismatch | a PNG named for the wrong figure |
 | sideways page scroll at 375 px | a figure that widens the page on a phone |
+| a page not done in two minutes | a script on the page that never ends: the browser would wait for ever (0.2.4) |
 
 What the checks do not see, and review must:
 
