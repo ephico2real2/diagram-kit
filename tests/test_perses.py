@@ -260,6 +260,47 @@ def test_two_labels_on_one_query_and_another_legend_on_the_next_is_refused(grafa
         perses.finish(grafana, migrated, "app-thanos")
 
 
+def stat_on_a_table_query(grafana: dict, migrated: dict, fields: str) -> dict:
+    """The stat as percli 0.54.0 writes it for a table query whose fields are named (textMode "auto"): the label is
+    reduceOptions.fields with "/", "^" and "$" trimmed off its ends (StatChart 0.13.0, schemas/migrate/migrate.cue;
+    each case here was run through the real percli on 2026-10-07)."""
+    wanted, stat = source(grafana, "Pods up"), panel(migrated["spec"], "Pods up")
+    wanted["options"]["textMode"] = "auto"
+    wanted["options"]["reduceOptions"]["fields"] = fields
+    wanted["targets"][0]["format"] = "table"
+    stat["plugin"]["spec"]["metricLabel"] = fields.strip("/^$")
+    return stat
+
+
+@pytest.mark.parametrize(("fields", "label"), [("/^pod$/", "pod"), ("pod", "pod"), ("/pod/", "pod"),
+                                               ("/^k8s.version$/", "k8s.version")])
+def test_a_stat_on_a_table_query_shows_the_field_it_names(grafana, migrated, fields, label):
+    stat_on_a_table_query(grafana, migrated, fields)
+    assert panel(perses.finish(grafana, migrated, "app-thanos"), "Pods up")["plugin"]["spec"]["metricLabel"] == label
+
+
+@pytest.mark.parametrize("fields", ["/.*/", "/^(pod|node)$/", "/^pod.*/", "/^[a-z]+$/"])
+def test_a_stat_on_a_table_query_that_names_a_pattern_of_fields_is_refused(grafana, migrated, fields):
+    # From "/.*/" percli wrote the label ".*"; Perses 0.54.0 showed the metric's name.
+    stat_on_a_table_query(grafana, migrated, fields)
+    with pytest.raises(perses.ConversionError, match=r"a pattern and not one field, and a Perses StatChart shows one"):
+        perses.finish(grafana, migrated, "app-thanos")
+
+
+@pytest.mark.parametrize("fields", ["", "Value", "/^Value$/", "Value #A"])
+def test_a_stat_on_a_table_query_that_names_no_label_has_no_label(grafana, migrated, fields):
+    # percli wrote the label "" for nothing chosen, and "Value" for the field that holds the sample.
+    assert "metricLabel" in stat_on_a_table_query(grafana, migrated, fields)["plugin"]["spec"]
+    assert "metricLabel" not in panel(perses.finish(grafana, migrated, "app-thanos"), "Pods up")["plugin"]["spec"]
+
+
+def test_a_label_percli_did_not_take_from_the_fields_is_left_alone(grafana, migrated):
+    # Not a table query: percli wrote no label from the fields, so one that reads like a pattern is not ours to judge.
+    stat_on_a_table_query(grafana, migrated, "/.*/")
+    source(grafana, "Pods up")["targets"][0]["format"] = "time_series"
+    assert panel(perses.finish(grafana, migrated, "app-thanos"), "Pods up")["plugin"]["spec"]["metricLabel"] == ".*"
+
+
 def test_a_suffix_unit_perses_has_a_word_for_becomes_that_unit(grafana, migrated):
     source(grafana, "Pods up")["fieldConfig"]["defaults"]["unit"] = "suffix: days"
     assert panel(migrated["spec"], "Pods up")["plugin"]["spec"]["format"]["unit"] == "decimal"

@@ -32,7 +32,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 
 ```sh
 python3 -m venv .venv
-.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.2"
+.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.3"
 .venv/bin/playwright install chromium
 .venv/bin/diagram-template docs/diagrams/<slug>/source.html
 .venv/bin/diagram-render docs/diagrams/<slug>/source.html docs/diagrams/<slug> <name-1>,<name-2>
@@ -41,6 +41,22 @@ python3 -m venv .venv
 The repository is not published yet. Until it is, install from a local clone in place of the second line:
 `.venv/bin/pip install <path-to-clone>`.
 `TUTORIAL.md` walks the whole path.
+
+### In a repository's CI
+
+`diagram-render --check <page.html>...` puts every page through the same checks and writes no PNG. A repository
+calls the kit's job, and copies no steps:
+
+```yaml
+jobs:
+  diagrams:
+    uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.3
+    with:
+      kit: v0.2.3
+```
+
+It checks every tracked `source.html` (the input `pages` takes another git pathspec) and fails when none is found.
+The tag is given twice because a called workflow cannot learn the ref it was called at.
 
 ## Dashboards
 

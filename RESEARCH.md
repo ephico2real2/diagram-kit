@@ -351,9 +351,14 @@ Search dashboard of mongodb-poc: 29 panels, on OpenShift Local 4.22.7.
   has the mode of any new file.
 - **A failed write left its temporary file** beside the target and ended in a traceback (an output path that is a
   directory). Since 0.2.2 the temporary file is removed and the error is one line.
-- **Not handled: a label taken from `reduceOptions.fields`.** For a stat on a table query, `percli` takes the label
-  from that setting and the command passes it on as it is. The review measured `/.*/` coming over as `.*`, and the
-  Perses 0.54.0 UI then showing the metric's name.
+- **A label taken from `reduceOptions.fields`.** For a stat on a table query (`textMode: auto`), `percli` makes the
+  label from that setting, trimmed of `/`, `^` and `$` at its two ends (the StatChart plugin's `migrate.cue`).
+  Measured with `percli` 0.54.0: `/^pod$/`, `/pod/` and `pod` give `pod`; `/.*/` gives `.*`; `/^(pod|node)$/` gives
+  `(pod|node)`; `Value` gives `Value`; nothing chosen (`""`) gives the label `""`. The review saw the Perses 0.54.0
+  UI show the metric's name for `.*`: Perses matches the label's whole name against it
+  (`ui/core/src/utils/regexp.ts`, `^${input}$`) and shows the first that fits. 0.2.2 passed all of these on. Since
+  0.2.3 a pattern is refused by name, and `""` and the value's own field give no label, which shows the value as
+  Grafana does.
 
 The label without a brace, the unit without decimals and the failed write were found by a review after 0.2.1 was
 released, which ran the real `percli` on 21 legends and 31 units where the kit's own tests had injected `percli`'s

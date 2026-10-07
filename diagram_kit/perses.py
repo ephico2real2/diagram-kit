@@ -13,6 +13,8 @@ adds what the migration leaves out and refuses what it gets wrong:
   - a stat that shows a label takes it from its legend: one label, "{{node}}", is that label; two,
     "{{who}}: {{what}}", shows the second and is named by the first; a legend of more labels, of none, or of another
     shape, is refused: Perses shows one label;
+  - a stat on a table query takes its label from the field it names ("/^version$/"); a pattern of several fields
+    ("/.*/") is refused, and the field that holds the value is no label;
   - a Grafana unit "suffix: days" (or another unit of time Perses has a word for) becomes that unit, whether or not
     the panel sets decimals;
   - a panel, section or query that differs from the Grafana source, taken in order;
@@ -157,6 +159,10 @@ UNIT_AT = {"StatChart": ("format",), "BarChart": ("format",), "GaugeChart": ("fo
 # what is shown.
 ONE_LABEL = re.compile(r"\{\{\s*([^{}\s](?:[^{}]*[^{}\s])?)\s*\}\}")
 TWO_LABELS = re.compile(r"\{\{\s*(\w+)\s*\}\}[^{}]*\{\{\s*(\w+)\s*\}\}")
+# What makes reduceOptions.fields a pattern and not the name of one field. A dot is left out: a label may hold one.
+PATTERN_CHARS = set("\\^$|?*+()[]{}")
+# The field of a table query that holds the sample: "Value", or "Value #A" when the panel has several queries.
+VALUE_FIELD = re.compile(r"Value( #\w+)?")
 
 
 def _repair_what_percli_wrote(name: str, panel: dict, source: dict, warnings: list[str]) -> None:
@@ -169,7 +175,7 @@ def _repair_what_percli_wrote(name: str, panel: dict, source: dict, warnings: li
     # No series has such a label, and the stat shows the metric's value, 1. Seen on a real dashboard, 2026-10-07.
     # So a label that came from the legend is read from the legends again. One label is that label. Exactly two are
     # not in doubt either: the first names the series and the second is what is shown. Any other legend is the
-    # author's to decide, in the Grafana source. A label that came from reduceOptions.fields is left as it is.
+    # author's to decide, in the Grafana source.
     label = spec.get("metricLabel", "")
     legends = [t.get("legendFormat", "") for t in source.get("targets", [])]
     several = "{{" in label or "}}" in label
@@ -189,6 +195,22 @@ def _repair_what_percli_wrote(name: str, panel: dict, source: dict, warnings: li
         spec["metricLabel"] = what
         for query in panel.get("queries", []) if who else []:
             query["spec"]["plugin"]["spec"]["seriesNameFormat"] = "{{" + who[0] + "}}"
+    # A stat on a table query (textMode "auto") shows the fields that reduceOptions.fields names, and percli makes
+    # that the label, trimmed of "/", "^" and "$" at its two ends: "/^version$/" is the label "version". Three
+    # things come over that are not a label. Nothing chosen, "", is the label "". The field that holds the sample,
+    # "Value", is no label: without one a Perses stat shows the value, which is what Grafana shows. And a pattern
+    # ("/.*/", every field) stays a pattern: Perses matches it against the names of the labels and shows the first
+    # that fits, the metric's own name. Measured with percli 0.54.0, 2026-10-07.
+    options, targets = source.get("options", {}), source.get("targets", [])
+    fields = options.get("reduceOptions", {}).get("fields")
+    if (options.get("textMode") == "auto" and targets and targets[0].get("format") == "table"
+            and fields is not None and spec.get("metricLabel") == fields.strip("/^$")):
+        if not fields or VALUE_FIELD.fullmatch(spec["metricLabel"]):
+            del spec["metricLabel"]
+        elif set(spec["metricLabel"]) & PATTERN_CHARS:
+            raise ConversionError(f"the stat {name!r} shows the fields matching {fields!r}, a pattern and not one "
+                                  f"field, and a Perses {chart['kind']} shows one label (percli wrote metricLabel "
+                                  f"{spec['metricLabel']!r}): name the field, as '/^version$/', in the Grafana source")
     # percli has no word for a Grafana unit like "suffix: days". When the panel sets decimals it writes "decimal";
     # when it does not, it writes no format at all. It says nothing either way.
     asked = source.get("fieldConfig", {}).get("defaults", {}).get("unit")

@@ -94,6 +94,41 @@ def test_a_name_count_that_does_not_match_the_figures_fails(tmp_path):
     assert "2 .fig-scroll figures but 1 names given" in result.stderr
 
 
+def check(tmp_path: pathlib.Path, **pages: str) -> subprocess.CompletedProcess:
+    """diagram-render --check on the pages given, run from tmp_path so that the pages are named as a job names them."""
+    for name, html in pages.items():
+        (tmp_path / f"{name}.html").write_text(html)
+    return subprocess.run([sys.executable, str(RENDER), "--check", *(f"{name}.html" for name in pages)],
+                          capture_output=True, text=True, timeout=180, cwd=tmp_path)
+
+
+def test_check_runs_every_check_on_every_page_and_writes_nothing(tmp_path):
+    result = check(tmp_path, one=page(), three=page(figures=3))
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.splitlines() == ["ok    one.html (1 figures)", "ok    three.html (3 figures)",
+                                          "2 of 2 pages pass"]
+    assert sorted(p.name for p in tmp_path.rglob("*")) == ["one.html", "three.html"]      # no PNG, nothing staged
+
+
+def test_check_fails_when_one_page_fails_and_names_it(tmp_path):
+    result = check(tmp_path, good=page(), long=page(label="NOT_FOUND → 404, ALREADY_EXISTS → 409"),
+                   wide=page(scroller="overflow: visible"))
+    assert result.returncode == 1
+    assert result.stdout.splitlines() == ["ok    good.html (1 figures)", "FAIL  long.html", "FAIL  wide.html",
+                                          "1 of 3 pages pass"]
+    assert 'FAIL: long.html: text crosses the edge of a box in figure 1: "NOT_FOUND → 404, ALREADY_EXISTS → 409"' \
+        in result.stderr
+    assert "FAIL: wide.html: the page scrolls sideways at 375 px" in result.stderr
+    assert sorted(p.name for p in tmp_path.rglob("*")) == ["good.html", "long.html", "wide.html"]
+
+
+def test_check_fails_a_page_that_holds_no_figure(tmp_path):
+    # A page whose figures lost their class would otherwise pass every check: there would be nothing to check.
+    result = check(tmp_path, empty=page(figures=0))
+    assert result.returncode == 1
+    assert "FAIL: empty.html: no .fig-scroll figure on the page" in result.stderr
+
+
 def test_a_page_that_scrolls_sideways_at_375_px_fails(tmp_path):
     # Without overflow-x: auto on .fig-scroll, the 760 px figure widens the page instead of scrolling inside it.
     result = render(tmp_path, page(scroller="overflow: visible"))

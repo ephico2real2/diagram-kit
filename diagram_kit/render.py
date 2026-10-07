@@ -6,6 +6,7 @@
 
     diagram-render <page.html> <out-dir> <name-1>,<name-2>,...      (installed)
     python diagram_kit/render.py <page.html> <out-dir> <name-1>,<name-2>,...
+    diagram-render --check <page.html>...                            (every check, no PNG: what a CI job runs)
 
 One name per .fig-scroll, in document order; each becomes <out-dir>/<name>.light.png and
 <name>.dark.png at 2x pixel density. The page may be a fragment (an Artifact page starts at
@@ -21,10 +22,14 @@ the defects a code review of the SVG text does not see:
   - figure text under 4.5:1 contrast with the box it sits in, in either theme (WCAG 1.4.3);
   - a name/figure count mismatch;
   - horizontal page scroll at 375 px.
+
+With --check every page given is put through the same checks and nothing is written: the figures are counted, not
+named, and a page with none fails. The exit status is non-zero when any page fails.
 """
 
 from __future__ import annotations
 
+import os
 import pathlib
 import sys
 import tempfile
@@ -146,13 +151,11 @@ LOW_CONTRAST = """() => [...document.querySelectorAll(".fig-scroll")].flatMap((f
 })"""
 
 
-def main() -> int:
-    if len(sys.argv) != 4:
-        print(__doc__)
-        return 2
-    page_path, out_dir = pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]).resolve()
-    names = [n.strip() for n in sys.argv[3].split(",") if n.strip()]
+def render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str] | None) -> int:
+    """Check one page and write its figures under the names given. With no names (--check) the same checks run and
+    nothing is written."""
     out_dir.mkdir(parents=True, exist_ok=True)
+    count = 0
 
     text = page_path.read_text()
     if "<html" not in text.lower():
@@ -193,10 +196,14 @@ def main() -> int:
             if failures:
                 break
             figures = page.locator(".fig-scroll")
-            if figures.count() != len(names):
-                failures.append(f"{figures.count()} .fig-scroll figures but {len(names)} names given")
+            count = figures.count()
+            if names is None and count == 0:
+                failures.append("no .fig-scroll figure on the page")
                 break
-            for i, name in enumerate(names):
+            if names is not None and count != len(names):
+                failures.append(f"{count} .fig-scroll figures but {len(names)} names given")
+                break
+            for i, name in enumerate(names if names is not None else map(str, range(count))):
                 png = pathlib.Path(stage) / f"{i}.{theme}.png"
                 figures.nth(i).screenshot(path=str(png))
                 staged.append((png, out_dir / f"{name}.{theme}.png"))
@@ -208,7 +215,7 @@ def main() -> int:
         if width > 375:
             failures.append(f"the page scrolls sideways at 375 px (scrollWidth {width})")
         browser.close()
-        if not failures:
+        if not failures and names is not None:
             # A name may carry a subdirectory, which the screenshot used to make: make each one before the first
             # move, so a missing directory cannot stop the moves half way.
             for _, target in staged:
@@ -216,10 +223,32 @@ def main() -> int:
             for png, target in staged:
                 png.replace(target)
                 print(f"wrote {target} ({target.stat().st_size} bytes)")
+    if names is None:
+        # Several pages share one output: each line names its page.
+        shown = os.path.relpath(page_path)
+        # A page that failed a check before its figures were counted has no count to show.
+        print(f"FAIL  {shown}" if failures else f"ok    {shown} ({count} figures)")
+        for f in failures:
+            print(f"FAIL: {shown}: {f}", file=sys.stderr)
+        return 1 if failures else 0
     print(f"375 px viewport: scrollWidth {width}")
     for f in failures:
         print(f"FAIL: {f}", file=sys.stderr)
     return 1 if failures else 0
+
+
+def main() -> int:
+    if len(sys.argv) >= 3 and sys.argv[1] == "--check":
+        pages = [pathlib.Path(page).resolve() for page in sys.argv[2:]]
+        with tempfile.TemporaryDirectory() as nowhere:  # the figures are drawn, to prove they can be, and dropped
+            failed = sum(render_page(page, pathlib.Path(nowhere), None) for page in pages)
+        print(f"{len(pages) - failed} of {len(pages)} pages pass")
+        return 1 if failed else 0
+    if len(sys.argv) != 4:
+        print(__doc__)
+        return 2
+    names = [n.strip() for n in sys.argv[3].split(",") if n.strip()]
+    return render_page(pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]).resolve(), names)
 
 
 if __name__ == "__main__":
