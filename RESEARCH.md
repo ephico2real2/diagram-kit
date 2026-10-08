@@ -308,6 +308,17 @@ pages, on a Linux runner. Two things showed only there:
   at 330 s (the second review of 0.2.3), and a CI job would have held its runner until its own limit. Since 0.2.4 a
   page that is not done in two minutes fails by name and the pages after it are checked; the largest page measured
   takes about ten seconds.
+- **The limit is kept by ending a process, not by an alarm.** The first form of it raised TimeoutError from a
+  SIGALRM handler into the browser's event loop. A third review defeated that two ways. Playwright catches whatever
+  is raised around each event listener it calls, prints it and goes on waiting: on a page whose own thread stops
+  inside a check while a worker sends a request every millisecond, 1 run of 6 never ended. And on macOS a SIGALRM
+  can be delivered after the call that cancels it has returned: with the default handler back in place by then,
+  the process ended with status 142 in every one of 20 runs of a harness that raced the two. So the browser's part
+  of each page runs in a child process (`render.py --stage`), which the parent ends at the limit: nothing is
+  raised into Playwright, and no PNG is being moved when the limit falls, because the parent moves them. The
+  review's page is a test; it was stopped in 8 runs of 8. The same change makes every way a page can fail to be
+  checked (missing, not UTF-8, a link to itself, a check its own script breaks, a browser that dies) one `FAIL`
+  line in both modes, where the normal mode had let a traceback out.
 
 The `Containerfile` builds that Linux with the kit, to see a page from a Mac as the job sees it.
 

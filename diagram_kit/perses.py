@@ -173,8 +173,10 @@ ONE_FIELD = re.compile(r"[^/].*|/\^.*\$/|")
 # 12.3.1, escapeStringForRegex): a backslash before a character that is no letter and no digit is that character.
 # Perses reads the label as a pattern too and finds "k8s.version" by "k8s\.version", so the label stays as it is.
 ESCAPED = re.compile(r"\\([^A-Za-z0-9])")
-# The field of a table query that holds the sample: "Value", or "Value #A" when the panel has several queries.
-VALUE_FIELD = re.compile(r"Value( #\w+)?")
+# The field of a table query that holds the sample: "Value", or "Value #A" when the panel has several queries. What
+# follows the "#" is the query's name, and that is whatever its author typed, "error-rate" or "my query": Grafana
+# 12.3.1 asks only that it is not empty and not another query's (QueryEditorRowHeader.tsx, result_transformer.ts).
+VALUE_FIELD = re.compile(r"Value( #.+)?")
 
 
 def _repair_what_percli_wrote(name: str, panel: dict, source: dict, warnings: list[str]) -> None:
@@ -219,7 +221,7 @@ def _repair_what_percli_wrote(name: str, panel: dict, source: dict, warnings: li
     # Two more are refused. "Value #A" is the value of ONE query of several, and without a label Perses shows every
     # query's. "Time" is the time of the sample, which no series has as a label: Perses shows the value.
     options, targets = source.get("options", {}), source.get("targets", [])
-    fields = options.get("reduceOptions", {}).get("fields")
+    fields = (options.get("reduceOptions") or {}).get("fields")         # "reduceOptions": null is no fields
     if (options.get("textMode") == "auto" and targets and targets[0].get("format") == "table"
             and fields is not None and spec.get("metricLabel") == fields.strip("/^$")):
         field = ESCAPED.sub(r"\1", spec["metricLabel"])           # the field's name, as it is read
@@ -234,6 +236,11 @@ def _repair_what_percli_wrote(name: str, panel: dict, source: dict, warnings: li
             raise ConversionError(f"the stat {name!r} shows the fields matching {fields!r}, a pattern and not one "
                                   f"field, and a Perses {chart['kind']} shows one label (percli wrote metricLabel "
                                   f"{spec['metricLabel']!r}): name the field, as '/^version$/', in the Grafana source")
+        elif (fields[1:-1] if fields.startswith("/") else fields).strip("^$") != spec["metricLabel"]:
+            # percli trims "/" as it trims the anchors: of a field named "path/" it kept "path", another label.
+            raise ConversionError(f"the stat {name!r} shows the field {fields!r}, whose name begins or ends with '/', "
+                                  f"and percli trimmed it to {spec['metricLabel']!r}: a Perses {chart['kind']} would "
+                                  "show that label, which is another one")
         elif field == "Time":
             raise ConversionError(f"the stat {name!r} shows the field 'Time', the time of the sample, which is no "
                                   f"label: a Perses {chart['kind']} would show the value")
@@ -255,8 +262,12 @@ def _repair_what_percli_wrote(name: str, panel: dict, source: dict, warnings: li
             warnings.append(f"{name!r}: the Grafana unit {asked!r} became a plain number in Perses")
     elif asked not in PLAIN_UNITS and chart["kind"] == "Table":
         # percli carries a table's units column by column, from the overrides: the unit of the defaults is dropped.
-        values = [c for c in spec.get("columnSettings", []) if _is_value_column(c["name"]) and not c.get("hide")]
-        if not values or any("format" not in c for c in values):
+        # The value columns are the queries': "value" for one, "value #1", "value #2" for several (Table 0.13.0,
+        # migrate.cue). One percli wrote nothing for is shown all the same, with no unit; a hidden one loses nothing.
+        count = len(panel.get("queries", []))
+        settings = {c["name"]: c for c in spec.get("columnSettings", [])}
+        values = [settings.get(n, {}) for n in (["value"] if count == 1 else [f"value #{i + 1}" for i in range(count)])]
+        if any(not c.get("hide") and "format" not in c for c in values):
             warnings.append(f"{name!r}: the Grafana unit {asked!r} of the table's defaults is not carried over: "
                             "give each column its unit, in the Grafana source")
 

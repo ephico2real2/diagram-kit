@@ -24,6 +24,8 @@ the defects a code review of the SVG text does not see:
   - horizontal page scroll at 375 px;
   - a page that is not done in two minutes (a script on it that never ends).
 
+The browser runs in a process of its own for each page, which is ended at that limit.
+
 With --check every page given is put through the same checks and nothing is written: the figures are counted, not
 named, and a page with none fails. So does a page that cannot be read or loaded, and the pages after it are still
 checked. The exit status is non-zero when any page fails.
@@ -31,13 +33,13 @@ checked. The exit status is non-zero when any page fails.
 
 from __future__ import annotations
 
-import logging
+import json
 import os
 import pathlib
 import signal
+import subprocess
 import sys
 import tempfile
-import threading
 
 try:
     from playwright.sync_api import Error as PlaywrightError, sync_playwright
@@ -169,39 +171,17 @@ CHROMIUM_ARGS = ["--font-render-hinting=none"]
 PAGE_SECONDS = 120
 
 
-def _alarm(seconds: int) -> None:
-    """Have TimeoutError raised in the main thread when the seconds are up; 0 calls it off. Where there is no alarm
-    to set (Windows, or a caller that is not the main thread) there is no limit."""
-    if not hasattr(signal, "SIGALRM") or threading.current_thread() is not threading.main_thread():
-        return
-
-    def late(signum, frame):
-        raise TimeoutError(f"not checked in {PAGE_SECONDS} s: a script on the page that never ends?")
-    signal.alarm(0)                             # first: an alarm must never go off with no handler to take it
-    signal.signal(signal.SIGALRM, late if seconds else signal.SIG_DFL)
-    signal.alarm(seconds)
+class PageError(Exception):
+    """The browser's part ended without an answer: what it said last is the reason."""
 
 
-def render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str] | None) -> int:
-    """Check one page and write its figures under the names given. With no names (--check) the same checks run and
-    nothing is written. A page that is not done in PAGE_SECONDS fails."""
-    try:
-        return _render_page(page_path, out_dir, names)
-    except TimeoutError as error:
-        # The browser went with its page. What it left pending would be reported by asyncio at exit, line after line.
-        logging.getLogger("asyncio").setLevel(logging.CRITICAL)
-        if names is None:
-            raise                               # --check names the page and goes on to the next
-        print(f"FAIL: {error}", file=sys.stderr)
-        return 1
-    finally:
-        _alarm(0)
+def _stage(page_path: pathlib.Path, stage: pathlib.Path, wanted: int | None) -> dict:
+    """The browser's part: check the page and draw its figures into `stage` as <number>.<theme>.png.
 
-
-def _render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str] | None) -> int:
-    out_dir.mkdir(parents=True, exist_ok=True)
+    `wanted` is the number of names given, or None when the figures are only counted (--check). The answer is
+    {"failures": [...], "count": figures, "width": scrollWidth at 375 px}.
+    """
     count = 0
-
     text = page_path.read_text()
     if "<html" not in text.lower():
         text = ('<!doctype html><html><head><meta charset="utf-8">'
@@ -217,13 +197,7 @@ def _render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str
         page.on("requestfailed", lambda r: failures.append(f"{label}: did not load: {r.url}"))
         page.on("response", lambda r: failures.append(f"{label}: did not load: {r.url} ({r.status})")
                 if r.status >= 400 else None)
-    # PNGs are staged beside their targets (one filesystem, so the move is a rename) and moved only when every check,
-    # the 375 px one included, has passed: a failed render leaves the last good PNGs as they were.
-    staged: list[tuple[pathlib.Path, pathlib.Path]] = []
-    _alarm(PAGE_SECONDS)
-    with (tempfile.TemporaryDirectory() as tmp,
-          tempfile.TemporaryDirectory(dir=out_dir, prefix=".diagram-render-") as stage,
-          sync_playwright() as p):
+    with tempfile.TemporaryDirectory() as tmp, sync_playwright() as p:
         doc = pathlib.Path(tmp) / "page.html"
         doc.write_text(text)
         browser = p.chromium.launch(args=CHROMIUM_ARGS)
@@ -243,16 +217,14 @@ def _render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str
                 break
             figures = page.locator(".fig-scroll")
             count = figures.count()
-            if names is None and count == 0:
+            if wanted is None and count == 0:
                 failures.append("no .fig-scroll figure on the page")
                 break
-            if names is not None and count != len(names):
-                failures.append(f"{count} .fig-scroll figures but {len(names)} names given")
+            if wanted is not None and count != wanted:
+                failures.append(f"{count} .fig-scroll figures but {wanted} names given")
                 break
-            for i, name in enumerate(names if names is not None else map(str, range(count))):
-                png = pathlib.Path(stage) / f"{i}.{theme}.png"
-                figures.nth(i).screenshot(path=str(png))
-                staged.append((png, out_dir / f"{name}.{theme}.png"))
+            for i in range(count):
+                figures.nth(i).screenshot(path=str(stage / f"{i}.{theme}.png"))
             page.close()
         phone = browser.new_page(viewport={"width": 375, "height": 800})
         watch(phone, "375 px")
@@ -261,52 +233,106 @@ def _render_page(page_path: pathlib.Path, out_dir: pathlib.Path, names: list[str
         if width > 375:
             failures.append(f"the page scrolls sideways at 375 px (scrollWidth {width})")
         browser.close()
-        _alarm(0)                               # the checks are done: the moves below are never cut short
-        if not failures and names is not None:
-            # A name may carry a subdirectory, which the screenshot used to make: make each one before the first
-            # move, so a missing directory cannot stop the moves half way.
-            for _, target in staged:
-                target.parent.mkdir(parents=True, exist_ok=True)
-            for png, target in staged:
-                png.replace(target)
-                print(f"wrote {target} ({target.stat().st_size} bytes)")
+    return {"failures": failures, "count": count, "width": width}
+
+
+def _stop(child: subprocess.Popen) -> None:
+    """End the child and what it started; its browser ends when the pipe to it closes."""
+    try:
+        os.killpg(child.pid, signal.SIGKILL) if hasattr(os, "killpg") else child.kill()
+    except ProcessLookupError:
+        pass
+    child.communicate()
+
+
+def _stage_in_child(page_path: pathlib.Path, stage: pathlib.Path, wanted: int | None) -> dict:
+    """_stage in a process of its own, stopped at PAGE_SECONDS.
+
+    The limit is the parent's and is kept by ending the child: nothing has to be raised into the browser's event
+    loop, which can swallow what is raised there, and no file of the result is being moved when it falls.
+    """
+    command = [sys.executable, str(pathlib.Path(__file__).resolve()), "--stage", str(page_path), str(stage),
+               "" if wanted is None else str(wanted)]
+    child = subprocess.Popen(command, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
+                             start_new_session=True)
+    try:
+        answer, said = child.communicate(timeout=PAGE_SECONDS)
+    except subprocess.TimeoutExpired:
+        _stop(child)
+        raise PageError(f"not checked in {PAGE_SECONDS} s: a script on the page that never ends?") from None
+    except BaseException:
+        _stop(child)                            # Ctrl-C: the child and its browser go with us
+        raise
+    if child.returncode != 0:
+        raise PageError((said.strip().splitlines() or [f"the browser's part ended with status {child.returncode}"])[-1])
+    return json.loads(answer)
+
+
+def render_page(page: str | pathlib.Path, out_dir: pathlib.Path, names: list[str] | None) -> int:
+    """Check one page and write its figures under the names given. With no names (--check) the same checks run and
+    nothing is written. Whatever stops a page from being checked is that page's failure, in one line."""
+    shown, failures, count, width = os.path.relpath(page), [], 0, None
+    try:
+        page_path = pathlib.Path(page).resolve()
+        out_dir.mkdir(parents=True, exist_ok=True)
+        # PNGs are staged beside their targets (one filesystem, so the move is a rename) and moved only when every
+        # check, the 375 px one included, has passed: a failed render leaves the last good PNGs as they were.
+        with tempfile.TemporaryDirectory(dir=out_dir, prefix=".diagram-render-") as stage:
+            answer = _stage_in_child(page_path, pathlib.Path(stage), None if names is None else len(names))
+            if "error" in answer:
+                failures.append(answer["error"])
+            else:
+                failures, count, width = answer["failures"], answer["count"], answer["width"]
+            if not failures and names is not None:
+                staged = [(pathlib.Path(stage) / f"{i}.{theme}.png", out_dir / f"{name}.{theme}.png")
+                          for theme in ("light", "dark") for i, name in enumerate(names)]
+                # A name may carry a subdirectory: make each one before the first move, so a missing directory
+                # cannot stop the moves half way.
+                for _, target in staged:
+                    target.parent.mkdir(parents=True, exist_ok=True)
+                for png, target in staged:
+                    png.replace(target)
+                    print(f"wrote {target} ({target.stat().st_size} bytes)")
+    except PageError as error:
+        failures.append(str(error))
+    except (OSError, RuntimeError, ValueError) as error:
+        # A path that cannot be resolved (a link to itself), a directory that cannot be made, an answer that is not one.
+        failures.append(f"{type(error).__name__}: {(str(error).splitlines() or [''])[0]}")
     if names is None:
-        # Several pages share one output: each line names its page.
-        shown = os.path.relpath(page_path)
-        # A page that failed a check before its figures were counted has no count to show.
+        # Several pages share one output: each line names its page. A page that failed before its figures were
+        # counted has no count to show.
         print(f"FAIL  {shown}" if failures else f"ok    {shown} ({count} figures)")
         for f in failures:
             print(f"FAIL: {shown}: {f}", file=sys.stderr)
         return 1 if failures else 0
-    print(f"375 px viewport: scrollWidth {width}")
+    if width is not None:
+        print(f"375 px viewport: scrollWidth {width}")
     for f in failures:
         print(f"FAIL: {f}", file=sys.stderr)
     return 1 if failures else 0
 
 
 def main() -> int:
+    if len(sys.argv) == 5 and sys.argv[1] == "--stage":
+        # The browser's part, run by _stage_in_child. A page that cannot be read (missing, not UTF-8) or loaded
+        # (a stylesheet that never answers) is an answer like any other; anything else ends here with its traceback,
+        # whose last line the parent reports.
+        try:
+            answer = _stage(pathlib.Path(sys.argv[2]), pathlib.Path(sys.argv[3]), int(sys.argv[4]) if sys.argv[4] else None)
+        except (OSError, UnicodeError, PlaywrightError) as error:
+            answer = {"error": f"{type(error).__name__}: {(str(error).splitlines() or [''])[0]}"}
+        json.dump(answer, sys.stdout)
+        return 0
     if len(sys.argv) >= 3 and sys.argv[1] == "--check":
-        pages = [pathlib.Path(page).resolve() for page in sys.argv[2:]]
         with tempfile.TemporaryDirectory() as nowhere:  # the figures are drawn, to prove they can be, and dropped
-            failed = 0
-            for page in pages:
-                try:
-                    failed += render_page(page, pathlib.Path(nowhere), None)
-                except (OSError, UnicodeError, PlaywrightError) as error:
-                    # A page that cannot be read (missing, not UTF-8) or loaded (a stylesheet that never answers) is
-                    # a page that fails: it is named like the others, and the pages after it are still checked.
-                    shown = os.path.relpath(page)
-                    print(f"FAIL  {shown}")
-                    said = (str(error).splitlines() or [""])[0]
-                    print(f"FAIL: {shown}: {type(error).__name__}: {said}", file=sys.stderr)
-                    failed += 1
-        print(f"{len(pages) - failed} of {len(pages)} pages pass")
+            failed = sum(render_page(page, pathlib.Path(nowhere), None) for page in sys.argv[2:])
+        print(f"{len(sys.argv) - 2 - failed} of {len(sys.argv) - 2} pages pass")
         return 1 if failed else 0
     if len(sys.argv) != 4:
         print(__doc__)
         return 2
     names = [n.strip() for n in sys.argv[3].split(",") if n.strip()]
-    return render_page(pathlib.Path(sys.argv[1]).resolve(), pathlib.Path(sys.argv[2]).resolve(), names)
+    return render_page(sys.argv[1], pathlib.Path(sys.argv[2]).resolve(), names)
 
 
 if __name__ == "__main__":
