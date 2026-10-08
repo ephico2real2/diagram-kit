@@ -10,10 +10,13 @@ inlined as a data: URL, so no test reaches the network and none depends on Googl
 from __future__ import annotations
 
 import base64
+import http.server
 import importlib.util
 import pathlib
 import subprocess
 import sys
+import threading
+import time
 
 import pytest
 from playwright.sync_api import sync_playwright
@@ -101,9 +104,7 @@ def test_a_name_count_that_does_not_match_the_figures_fails(tmp_path):
 def test_text_is_as_wide_on_linux_as_on_macos(tmp_path):
     # Forty "i" in Inter at 10.5 px: 101.7 px on macOS, and on Linux 77.3 px with Chromium's default hinting and
     # 101.7 px without it (measured 2026-10-07). A page checked in CI must be the page a person rendered.
-    spec = importlib.util.spec_from_file_location("diagram_render", RENDER)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    module = load_renderer()
     source = tmp_path / "page.html"
     source.write_text(page(label="i" * 40).replace('font-size="13"', 'font-size="10.5"'))
     with sync_playwright() as p:
@@ -164,6 +165,135 @@ def test_check_goes_on_past_a_page_it_cannot_read(tmp_path):
     assert "FAIL: gone.html: FileNotFoundError" in result.stderr
     assert "FAIL: latin1.html: UnicodeDecodeError" in result.stderr
     assert "Traceback" not in result.stderr
+
+
+def load_renderer():
+    spec = importlib.util.spec_from_file_location("diagram_render", RENDER)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+NEVER_ENDS = "<script>addEventListener('load', () => setTimeout(() => { while (true) {} }, 50))</script>"
+
+
+def limited(directory: pathlib.Path, seconds: int, *arguments: str) -> subprocess.CompletedProcess:
+    """The renderer in a process of its own, run from the directory, with PAGE_SECONDS lowered to the seconds given.
+
+    A test of a limit needs a limit of its own, and this one is subprocess's: a renderer that has lost its limit
+    fails these tests, where inside pytest's own process it hung them. And everything the process says is seen
+    here, to the last line as it ends."""
+    launch = ("import importlib.util, sys\n"
+              f"spec = importlib.util.spec_from_file_location('diagram_render', {str(RENDER)!r})\n"
+              "module = importlib.util.module_from_spec(spec)\n"
+              "spec.loader.exec_module(module)\n"
+              f"module.PAGE_SECONDS = {seconds}\n"
+              "sys.argv = ['render.py', *sys.argv[1:]]\n"
+              "sys.exit(module.main())\n")
+    return subprocess.run([sys.executable, "-c", launch, *arguments], capture_output=True, text=True, timeout=90,
+                          cwd=directory)
+
+
+def browsers() -> int:
+    """The headless browsers running on this machine, by any name Playwright gives its Chromium."""
+    found = subprocess.run(["pgrep", "-f", "chrome-headless-shell|headless_shell"], capture_output=True, text=True)
+    return len(found.stdout.split())
+
+
+def test_check_fails_a_page_whose_script_never_ends_and_checks_the_next(tmp_path):
+    # Playwright has no limit on an evaluation: without ours this waited for ever (still waiting at 330 s).
+    (tmp_path / "loop.html").write_text(page(body=NEVER_ENDS))
+    (tmp_path / "head.html").write_text(page(head="<script>while (true) {}</script>"))
+    (tmp_path / "good.html").write_text(page())
+    before = browsers()
+    result = limited(tmp_path, 6, "--check", "loop.html", "head.html", "good.html")
+    assert result.returncode == 1
+    assert result.stdout.splitlines() == ["FAIL  loop.html", "FAIL  head.html", "ok    good.html (1 figures)",
+                                          "1 of 3 pages pass"]
+    # Those lines and no other: no traceback, and nothing about what the browser left pending.
+    assert result.stderr == ("FAIL: loop.html: not checked in 6 s: a script on the page that never ends?\n"
+                             "FAIL: head.html: not checked in 6 s: a script on the page that never ends?\n")
+    assert sorted(p.name for p in tmp_path.rglob("*")) == ["good.html", "head.html", "loop.html"]
+    for _ in range(20):                                   # the browsers of the pages that were stopped are gone
+        if browsers() <= before:
+            break
+        time.sleep(0.5)
+    assert browsers() <= before
+
+
+def test_a_page_whose_script_never_ends_fails_the_render_and_writes_nothing(tmp_path):
+    (tmp_path / "loop.html").write_text(page(body=NEVER_ENDS))
+    result = limited(tmp_path, 6, "loop.html", "out", "fig")
+    assert result.returncode == 1
+    assert result.stderr == "FAIL: not checked in 6 s: a script on the page that never ends?\n"
+    assert list((tmp_path / "out").iterdir()) == []                          # no PNG, and no staging directory left
+
+
+def test_a_page_that_stops_inside_a_check_while_its_worker_keeps_the_browser_busy_is_stopped(tmp_path):
+    # The page a review wrote to defeat a limit kept by an alarm (2026-10-07): its own thread stops inside one of
+    # the renderer's checks while a worker sends a request every millisecond, so that the renderer is busy taking
+    # events when the limit falls. An exception raised into that was swallowed once in six runs and the page was
+    # waited for without end. The limit is kept by ending the browser's process, which nothing can swallow.
+    class Quiet(http.server.BaseHTTPRequestHandler):
+        def do_GET(self):
+            self.send_response(404)
+            self.send_header("Access-Control-Allow-Origin", "*")
+            self.end_headers()
+
+        def log_message(self, *args):
+            pass
+    server = http.server.ThreadingHTTPServer(("127.0.0.1", 0), Quiet)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    flood = ("<script>const w = new Worker(URL.createObjectURL(new Blob([`onmessage = (e) => { let n = 0; "
+             "setInterval(() => { for (let i = 0; i < 20; i++) fetch(e.data + (n++)).catch(() => 0) }, 1) }`])));"
+             "addEventListener('load', () => Object.defineProperty(document.fonts, 'ready', {get() { "
+             f"w.postMessage('http://127.0.0.1:{server.server_address[1]}/x'); while (true) {{}} }}}}))</script>")
+    (tmp_path / "flood.html").write_text(page(body=flood))
+    (tmp_path / "good.html").write_text(page())
+    try:
+        result = limited(tmp_path, 8, "--check", "flood.html", "good.html")
+    finally:
+        server.shutdown()
+    assert result.returncode == 1
+    assert result.stdout.splitlines() == ["FAIL  flood.html", "ok    good.html (1 figures)", "1 of 2 pages pass"]
+    assert result.stderr == "FAIL: flood.html: not checked in 8 s: a script on the page that never ends?\n"
+
+
+def test_a_check_the_page_breaks_fails_the_render_with_a_line_and_no_traceback(tmp_path):
+    # The page's own script breaks a check (document.fonts.ready throws) and Playwright raises.
+    breaks = "<script>Object.defineProperty(document.fonts, 'ready', {get() { throw new Error('boom') }})</script>"
+    result = render(tmp_path, page(head=breaks))
+    assert result.returncode == 1
+    assert result.stderr.startswith("FAIL: Error: Page.evaluate: Error: boom") and result.stderr.count("\n") == 1
+    assert list((tmp_path / "out").iterdir()) == []
+
+
+def test_check_names_a_page_that_is_a_link_to_itself_and_goes_on(tmp_path):
+    # On Python 3.12 resolving such a path raises RuntimeError, which ended the run before any page was checked.
+    (tmp_path / "loop.html").symlink_to("loop.html")
+    (tmp_path / "good.html").write_text(page())
+    result = subprocess.run([sys.executable, str(RENDER), "--check", "loop.html", "good.html"],
+                            capture_output=True, text=True, timeout=180, cwd=tmp_path)
+    assert result.returncode == 1
+    assert result.stdout.splitlines() == ["FAIL  loop.html", "ok    good.html (1 figures)", "1 of 2 pages pass"]
+    assert result.stderr.startswith("FAIL: loop.html: ") and "Traceback" not in result.stderr
+
+
+def test_a_browser_part_that_ends_without_an_answer_is_the_pages_failure(tmp_path, monkeypatch, capsys):
+    # The driver killed, memory gone: the child ends with a traceback. Its last line is the reason, in one line.
+    module = load_renderer()
+    stand_in = tmp_path / "python"
+    stand_in.write_text("#!/bin/sh\necho 'Traceback (most recent call last):' >&2\n"
+                        "echo 'Exception: Connection closed while reading from the driver' >&2\nexit 1\n")
+    stand_in.chmod(0o755)
+    monkeypatch.setattr(module.sys, "executable", str(stand_in))
+    (tmp_path / "page.html").write_text(page())
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.setattr(module.sys, "argv", ["render.py", "--check", "page.html"])
+    assert module.main() == 1
+    said = capsys.readouterr()
+    assert said.out.splitlines() == ["FAIL  page.html", "0 of 1 pages pass"]
+    assert said.err == "FAIL: page.html: Exception: Connection closed while reading from the driver\n"
 
 
 def test_a_page_that_scrolls_sideways_at_375_px_fails(tmp_path):

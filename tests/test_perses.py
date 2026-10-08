@@ -267,6 +267,21 @@ def test_two_labels_are_read_as_one_label_is(grafana, migrated):
     assert stat["plugin"]["spec"]["metricLabel"] == "k8s.version" and names(stat) == ["{{node}}"]
 
 
+def test_the_first_of_two_labels_is_read_as_one_label_is_too(grafana, migrated):
+    # 0.2.2 refused "{{k8s.node}}: {{version}}" as it refused "{{node}}: {{k8s.version}}": either name had to be \w+.
+    stat_showing_its_name(grafana, migrated, ["{{ k8s.node }}: {{version}}"])
+    stat = panel(perses.finish(grafana, migrated, "app-thanos"), "Pods up")
+    assert stat["plugin"]["spec"]["metricLabel"] == "version" and names(stat) == ["{{k8s.node}}"]
+
+
+@pytest.mark.parametrize("legend", ["{{}}", "{}"])
+def test_a_legend_of_braces_alone_is_no_label(grafana, migrated, legend):
+    # percli 0.54.0 wrote the label "" from it, as from an empty legend (2026-10-07); 0.2.2 let that through.
+    assert stat_showing_its_name(grafana, migrated, [legend])["plugin"]["spec"]["metricLabel"] == ""
+    with pytest.raises(perses.ConversionError, match=r"is not one label, the same for every query, and a Perses"):
+        perses.finish(grafana, migrated, "app-thanos")
+
+
 def test_every_query_of_a_stat_with_two_labels_is_named_by_the_first(grafana, migrated):
     stat_showing_its_name(grafana, migrated, ["{{node}}: {{version}}", "{{ node }} - {{ version }}"])
     stat = panel(perses.finish(grafana, migrated, "app-thanos"), "Pods up")
@@ -294,7 +309,10 @@ def stat_on_a_table_query(grafana: dict, migrated: dict, fields: str) -> dict:
 
 @pytest.mark.parametrize(("fields", "label"), [("/^pod$/", "pod"), ("pod", "pod"), ("^pod$", "pod"),
                                                ("/^k8s.version$/", "k8s.version"), ("k8s.version", "k8s.version"),
-                                               (r"/^k8s\.version$/", r"k8s\.version")])
+                                               (r"/^k8s\.version$/", r"k8s\.version"),
+                                               ("/^a/b$/", "a/b"), ("a/b", "a/b"), ("/^a:b$/", "a:b"), ("a b", "a b"),
+                                               (r"/^kubelet\-version$/", r"kubelet\-version"), ("/^versión$/", "versión"),
+                                               (r"/^\$cost$/", r"\$cost")])
 def test_a_stat_on_a_table_query_shows_the_field_it_names(grafana, migrated, fields, label):
     # A bare name is one field (Grafana anchors it itself), and so is "/^name$/". The last is a dotted name as
     # Grafana 12.3.1's own Fields picker writes it, escaped: Perses 0.54.0 showed that label's value by it.
@@ -315,6 +333,25 @@ def test_a_stat_on_a_table_query_that_names_a_pattern_of_fields_is_refused(grafa
         perses.finish(grafana, migrated, "app-thanos")
 
 
+@pytest.mark.parametrize("fields", ["/^path/$/", "/^/path$/", "path/"])
+def test_a_field_whose_name_begins_or_ends_with_a_slash_is_refused(grafana, migrated, fields):
+    # percli trims "/" as it trims the anchors: from each of these it wrote the label "path" (percli 0.54.0,
+    # 2026-10-07), where Grafana 12.3.1's own pattern (stringToJsRegex) is the field "path/", "/path", "path/".
+    # Perses would show the label "path": another one. A "/" inside a name is not trimmed, and is kept (above).
+    stat_on_a_table_query(grafana, migrated, fields)
+    with pytest.raises(perses.ConversionError, match=r"whose name begins or ends with '/'"):
+        perses.finish(grafana, migrated, "app-thanos")
+
+
+def test_a_stat_whose_reduce_options_are_null_is_converted(grafana, migrated):
+    # "reduceOptions": null. percli 0.54.0 converts the panel and writes no label (2026-10-07); 0.2.2 converted it,
+    # and 0.2.3 ended in AttributeError: 'NoneType' object has no attribute 'get'.
+    wanted = source(grafana, "Pods up")
+    wanted["options"].update(textMode="auto", reduceOptions=None)
+    wanted["targets"][0]["format"] = "table"
+    assert "metricLabel" not in panel(perses.finish(grafana, migrated, "app-thanos"), "Pods up")["plugin"]["spec"]
+
+
 @pytest.mark.parametrize("fields", ["", "Value", "/^Value$/", "Value #A", r"/^Value \#A$/", "/Value/"])
 def test_a_stat_on_a_table_query_that_names_no_label_has_no_label(grafana, migrated, fields):
     # percli wrote the label "" for nothing chosen, and "Value" for the field that holds the sample.
@@ -323,11 +360,16 @@ def test_a_stat_on_a_table_query_that_names_no_label_has_no_label(grafana, migra
     assert "metricLabel" not in panel(perses.finish(grafana, migrated, "app-thanos"), "Pods up")["plugin"]["spec"]
 
 
-@pytest.mark.parametrize("fields", ["Value #A", "/^Value #A$/", "/^Value #B$/", r"/^Value \#A$/"])
+@pytest.mark.parametrize("fields", ["Value #A", "/^Value #A$/", "/^Value #B$/", r"/^Value \#A$/",
+                                    "Value #error-rate", r"/^Value \#error\-rate$/", "/^Value #my query$/",
+                                    r"/^Value \#A\.1$/"])
 def test_the_value_of_one_query_among_several_is_refused(grafana, migrated, fields):
     # "Value #A" is a field only when the panel has several queries, and Grafana 12.3.1 then showed that query alone
     # (42). With no label Perses 0.54.0 showed every query's value (42 and 7). Measured 2026-10-07.
-    # The last is the one Grafana's own Fields picker writes: it was refused as "a pattern and not one field".
+    # The fourth is the one Grafana's own Fields picker writes: it was refused as "a pattern and not one field".
+    # The last four are queries their author named: Grafana takes any name that is not empty and not another
+    # query's, and calls the field "Value #<name>". Read as "#" and \w+ alone, "Value #error-rate" was taken for a
+    # label and kept (percli 0.54.0 wrote it as the label, 2026-10-07): Perses would have shown every query's value.
     stat = stat_on_a_table_query(grafana, migrated, fields)
     wanted = source(grafana, "Pods up")
     wanted["targets"].append(dict(wanted["targets"][0], refId="B", expr='sum(up{job="other"})'))
@@ -456,6 +498,33 @@ def test_a_table_whose_columns_each_have_their_unit_has_no_warning(grafana, migr
     for column in panel(migrated["spec"], "Each pod, now")["plugin"]["spec"]["columnSettings"]:
         if perses._is_value_column(column["name"]):
             column["format"] = {"unit": "bytes"}
+    warnings: list[str] = []
+    perses.finish(grafana, migrated, "app-thanos", warnings)
+    assert warnings == []
+
+
+def test_a_value_column_percli_wrote_nothing_for_is_a_warning_too(grafana, migrated):
+    # Two queries, "bytes" on the defaults and an override for "Value #A" alone: percli 0.54.0 wrote one column,
+    # {"name": "value #1", "format": {"unit": "percent"}}, and nothing for the second query's (2026-10-07). Perses
+    # shows "value #2" all the same, as a plain number: the one column that had lost its unit went unsaid.
+    source(grafana, "Each pod, now")["fieldConfig"]["defaults"]["unit"] = "bytes"
+    table = panel(migrated["spec"], "Each pod, now")["plugin"]["spec"]
+    table["columnSettings"] = [c for c in table["columnSettings"] if c["name"] != "value #2"]
+    assert "format" in next(c for c in table["columnSettings"] if c["name"] == "value #1")
+    warnings: list[str] = []
+    perses.finish(grafana, migrated, "app-thanos", warnings)
+    assert warnings == ["'Each pod, now': the Grafana unit 'bytes' of the table's defaults is not carried over: "
+                        "give each column its unit, in the Grafana source"]
+
+
+def test_a_table_that_hides_its_value_columns_has_no_warning(grafana, migrated):
+    # A table of labels: the values left out by organize. percli 0.54.0 wrote {"name": "value", "hide": true}, and
+    # for two queries one such column each (2026-10-07). No value is shown, so no unit is lost.
+    source(grafana, "Each pod, now")["fieldConfig"]["defaults"]["unit"] = "bytes"
+    for column in panel(migrated["spec"], "Each pod, now")["plugin"]["spec"]["columnSettings"]:
+        if perses._is_value_column(column["name"]):
+            column.pop("format")
+            column["hide"] = True
     warnings: list[str] = []
     perses.finish(grafana, migrated, "app-thanos", warnings)
     assert warnings == []

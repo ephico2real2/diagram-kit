@@ -293,6 +293,35 @@ arrows for a linkage. Measured before the rules in `STANDARD.md` §3 were writte
   still the arrow's end box, so its own text never labels it (OB1-lite's review: an arrow drawn from inside its start
   box passed otherwise). Four browser tests; on the 158 pages, the rule changes exactly this one arrow.
 
+**The renderer in CI (2026-10-07).** Five repositories got a CI job that runs `diagram-render --check` on their
+pages, on a Linux runner. Two things showed only there:
+
+- **Chromium on Linux hints glyphs to whole pixels by default, and then draws text at other widths than on macOS.**
+  One label of mongodb-poc's `search-and-sync`, 26 characters of IBM Plex Mono at 10.5 px in a box 190 wide, ends
+  at x 193.8 on macOS (6.300 px a character) and at 211.7 on Linux (6.986), past its box at 206. Forty "i" in Inter
+  at 10.5 px: 101.70 px on macOS, 77.29 on Linux. With `--font-render-hinting=none`, Chromium's own switch for
+  this ([crrev.com/536535](https://crrev.com/536535)), Linux gives 6.297 and 101.69; on macOS the flag changes
+  nothing (the fan-out example renders to the same bytes). Since 0.2.3 the renderer launches Chromium with it, and
+  the 40 pages of the five repositories pass on Linux as on macOS.
+- **A page whose script never ends was waited for without limit.** Playwright gives up on a page that does not
+  load after 30 s, but an evaluation has no limit: with `while (true) {}` on the page the check was still waiting
+  at 330 s (the second review of 0.2.3), and a CI job would have held its runner until its own limit. Since 0.2.4 a
+  page that is not done in two minutes fails by name and the pages after it are checked; the largest page measured
+  takes about ten seconds.
+- **The limit is kept by ending a process, not by an alarm.** The first form of it raised TimeoutError from a
+  SIGALRM handler into the browser's event loop. A third review defeated that two ways. Playwright catches whatever
+  is raised around each event listener it calls, prints it and goes on waiting: on a page whose own thread stops
+  inside a check while a worker sends a request every millisecond, 1 run of 6 never ended. And on macOS a SIGALRM
+  can be delivered after the call that cancels it has returned: with the default handler back in place by then,
+  the process ended with status 142 in every one of 20 runs of a harness that raced the two. So the browser's part
+  of each page runs in a child process (`render.py --stage`), which the parent ends at the limit: nothing is
+  raised into Playwright, and no PNG is being moved when the limit falls, because the parent moves them. The
+  review's page is a test; it was stopped in 8 runs of 8. The same change makes every way a page can fail to be
+  checked (missing, not UTF-8, a link to itself, a check its own script breaks, a browser that dies) one `FAIL`
+  line in both modes, where the normal mode had let a traceback out.
+
+The `Containerfile` builds that Linux with the kit, to see a page from a Mac as the job sees it.
+
 ## 7. Dashboards: what the two commands rest on (2026-10-07)
 
 Added in 0.2.0. The standard is `skill/dashboard/SKILL.md`, which names the source of every rule; this section is

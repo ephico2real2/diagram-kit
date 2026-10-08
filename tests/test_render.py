@@ -109,6 +109,8 @@ def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, 
             return False
 
     monkeypatch.setattr(render, "sync_playwright", Playwright)
+    # The browser's part runs in a process of its own; here it runs in this one, where the stand-in is.
+    monkeypatch.setattr(render, "_stage_in_child", render._stage)
     page = tmp_path / "page.html"
     page.write_text("<html><body>four figures</body></html>")
     out = tmp_path / "png"
