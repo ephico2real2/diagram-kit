@@ -35,7 +35,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 
 ```sh
 python3 -m venv .venv
-.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.4"
+.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.5"
 .venv/bin/playwright install chromium
 .venv/bin/diagram-template docs/diagrams/<slug>/source.html
 .venv/bin/diagram-render docs/diagrams/<slug>/source.html docs/diagrams/<slug> <name-1>,<name-2>
@@ -53,9 +53,9 @@ calls the kit's job, and copies no steps:
 ```yaml
 jobs:
   diagrams:
-    uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.4
+    uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.5
     with:
-      kit: v0.2.4
+      kit: v0.2.5
 ```
 
 It checks every tracked file named `source.html` (the input `pages` takes another git pathspec) and fails when none is
@@ -66,7 +66,7 @@ Chromium on Linux and on macOS draw text at the same widths since 0.2.3. For the
 in CI all the same, the `Containerfile` builds a Linux with the kit and its Chromium:
 
 ```sh
-podman build --build-arg KIT_REF=v0.2.4 -t diagram-kit-linux .
+podman build --build-arg KIT_REF=v0.2.5 -t diagram-kit-linux .
 podman run --rm -v "$PWD":/repo:ro diagram-kit-linux --check docs/diagrams/<slug>/source.html
 ```
 The tag is given twice because a called workflow cannot learn the ref it was called at.
@@ -93,16 +93,18 @@ the source; it writes nothing when a check fails. `RESEARCH.md` §7 has what bot
 ## Documents
 
 A Word document is made from Markdown, never edited by hand, the way a PNG is made from its page.
-`skill/document/SKILL.md` is the standard; `doc-docx` does the build (it needs pandoc: `brew install pandoc`):
+`skill/document/SKILL.md` is the standard; `doc-docx` does the build (it needs pandoc, at the version your CI pins:
+the skill says where to get it):
 
 ```sh
 # the guide, then the checklist, each after a page break, links between them kept inside the document
 .venv/bin/doc-docx docs/ONBOARDING.docx docs/ONBOARDING.md docs/ONBOARDING_CHECKLIST.md --date 2026-10-13
 ```
 
-It refuses a link that would lead nowhere in the document and a link to a `.md` file it was not given. The date is
-stamped on the file, so the same Markdown and the same pandoc give the same bytes on every machine; the kit's CI pins
-pandoc 3.12.1, and a repository that commits the `.docx` and compares it in CI pins the same version.
+It refuses a link that would lead nowhere in the document, a link to a `.md` file it was not given, and an image it
+cannot find. The date is stamped on the file, so the same Markdown and the same pandoc give the same bytes on every
+machine; the kit's CI pins pandoc 3.12.1, and a repository that commits the `.docx` and compares it in CI pins the
+same version.
 
 ## Why a kit
 

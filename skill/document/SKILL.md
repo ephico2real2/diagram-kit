@@ -18,26 +18,36 @@ it produced a defect.
 - **One document can be several files.** A guide and its checklist, joined in the order given, each after a page
   break. Each file needs a level-1 heading: it is where links to that file land.
 - **Links between the files stay inside the document.** `guide.md#a-heading` becomes a link to that heading, and a
-  link whose text is just the file's name takes the file's title (a Word reader never sees `guide.md`). A link to a
-  `.md` file that is not part of the document is refused: in Word it would be a dead link.
-- **Write the Markdown for GitHub first.** The document is read as GitHub-flavoured Markdown, so the anchors in
-  Word are the ones GitHub shows.
+  link whose text is just the file's name takes the file's title (a Word reader never sees `guide.md`). Each file
+  keeps its own headings, as on GitHub: a heading two files share is two targets. A link to a `.md` file that is not
+  part of the document is refused: in Word it would be a dead link. A link in code is code, and is left alone.
+- **Write the Markdown for GitHub first.** Pandoc reads it as GitHub-flavoured Markdown, so a link names a heading by
+  the anchor GitHub shows. The two differ on a heading with two spaces in a row or with an emoji; the command refuses
+  such a link rather than guess.
+- **Images sit beside their file, as PNG or JPEG.** A relative image path is read from the Markdown file's own
+  directory, whatever directory the command runs in. Pandoc converts an SVG with `rsvg-convert`, which nothing pins;
+  where it is missing, the command refuses the image.
 
 ## 2. Build
 
-Install pandoc once (`brew install pandoc` on macOS). Use the version the repository's CI pins, because the bytes of
-the output depend on it; the kit's CI pins **3.12.1**.
+`doc-docx` is in the kit from 0.2.5 (install it as `/visual` §4 says). Install the pandoc version the repository's
+CI pins, because the bytes of the output depend on it; the kit's CI pins **3.12.1**. Take it from pandoc's release page
+(macOS: `pandoc-3.12.1-arm64-macOS.pkg`) and check it against the digest GitHub publishes: `brew install pandoc`
+installs the newest release, which matches the pin only until the next one.
 
 ```sh
 ~/.local/share/diagram-kit/.venv/bin/doc-docx docs/GUIDE.docx docs/GUIDE.md docs/CHECKLIST.md --date 2026-10-13
 ```
 
-- `--date` is required. It is stamped on the file (pandoc's `SOURCE_DATE_EPOCH`), so the same Markdown and the same
-  pandoc give the same bytes on any machine. Change it when the content changes.
-- The look is pandoc's default reference document with the kit's palette (`template.html`): headings in `--remote`,
-  tables ruled in `--rule` with a `--ground` header row. It is built at run time; no template is committed anywhere.
-- The command writes nothing when a check fails: a link that would lead nowhere, a link to a file it was not given,
-  a file without a title, or a pandoc whose default reference changed shape (it says which part).
+- `--date` is required. It is stamped on the file (pandoc's `SOURCE_DATE_EPOCH`), and pandoc reads no user data
+  directory, so the same Markdown and the same pandoc give the same bytes on any machine. Change it when the content
+  changes.
+- The look is pandoc's default reference document with the kit's palette (`template.html`): headings (levels 1 to
+  5) in `--remote`, tables ruled in `--rule` with a `--ground` header row. It is built at run time; no template is
+  committed anywhere.
+- The command writes nothing when a check fails or pandoc fails: a link that would lead nowhere, a link to a file it
+  was not given, a file without a title, a file that is not UTF-8, an image it cannot find, or a pandoc whose default
+  reference changed shape (it says which part).
 
 ## 3. Wire it into the repository
 
