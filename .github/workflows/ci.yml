@@ -21,6 +21,14 @@ jobs:
         run: |
           python -m pip install ".[test]"
           python -m playwright install --with-deps chromium
+      # doc-docx drives pandoc, and a document's bytes depend on pandoc's version: one pinned release, checked
+      # against the digest GitHub publishes for it, so the end-to-end tests run and a byte comparison means something.
+      - name: Install pandoc 3.12.1
+        run: |
+          curl -fsSL -o "$RUNNER_TEMP/pandoc.deb" https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-1-amd64.deb
+          echo "b4217ac7c54067c442f9d4cd38bcd0c184a43f3e7053431a12263a6f92a33ba2  $RUNNER_TEMP/pandoc.deb" | sha256sum -c -
+          sudo dpkg -i "$RUNNER_TEMP/pandoc.deb"
+          pandoc --version | head -1
       - name: Tests (no network)
         run: python -m pytest tests -q
       # The one step that reaches the network: the installed template and every example render, Google Fonts and

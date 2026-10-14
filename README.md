@@ -1,7 +1,8 @@
 # diagram-kit
 
-One renderer, one template and one standard for the figures in our repositories; and, since 0.2.0, one standard and
-two commands for their dashboards, the figures that move.
+One renderer, one template and one standard for the figures in our repositories; since 0.2.0, one standard and
+two commands for their dashboards, the figures that move; and, since 0.2.5, one command for a Word document made from
+Markdown.
 
 Each diagram has a `source.html` page, started by `diagram-template` from the template the kit ships. `diagram-render`
 turns every figure on it into a light and a dark PNG, and refuses the defects a review of the SVG text does not see:
@@ -21,6 +22,8 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/dashboard/COLLECTION.md` | how a workload's metrics get collected before any panel: an exporter of its own, ServiceMonitor or PodMonitor, a scrape over TLS |
 | `diagram_kit/metrics.py` | `metrics-inventory`: every metric a workload emits, with the kind of data each is |
 | `diagram_kit/perses.py` | `perses-dashboard`: the Perses form of a Grafana dashboard, and the checks the conversion needs |
+| `diagram_kit/docx.py` | `doc-docx`: one Word document from Markdown files, with pandoc, the kit's palette, links kept inside the document, byte-reproducible |
+| `skill/document/SKILL.md` | the `/document` Claude Code skill: when a Word file is made, from what, and how it is checked; link `~/.claude/skills/document` to this directory |
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |
@@ -32,7 +35,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 
 ```sh
 python3 -m venv .venv
-.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.4"
+.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.5"
 .venv/bin/playwright install chromium
 .venv/bin/diagram-template docs/diagrams/<slug>/source.html
 .venv/bin/diagram-render docs/diagrams/<slug>/source.html docs/diagrams/<slug> <name-1>,<name-2>
@@ -50,9 +53,9 @@ calls the kit's job, and copies no steps:
 ```yaml
 jobs:
   diagrams:
-    uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.4
+    uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.5
     with:
-      kit: v0.2.4
+      kit: v0.2.5
 ```
 
 It checks every tracked file named `source.html` (the input `pages` takes another git pathspec) and fails when none is
@@ -63,7 +66,7 @@ Chromium on Linux and on macOS draw text at the same widths since 0.2.3. For the
 in CI all the same, the `Containerfile` builds a Linux with the kit and its Chromium:
 
 ```sh
-podman build --build-arg KIT_REF=v0.2.4 -t diagram-kit-linux .
+podman build --build-arg KIT_REF=v0.2.5 -t diagram-kit-linux .
 podman run --rm -v "$PWD":/repo:ro diagram-kit-linux --check docs/diagrams/<slug>/source.html
 ```
 The tag is given twice because a called workflow cannot learn the ref it was called at.
@@ -86,6 +89,22 @@ do by hand:
 `PROMETHEUS_TOKEN`, never from the command line) or a saved `/metrics` page (`--text`). `perses-dashboard` runs
 `percli migrate` from the Perses image and refuses a panel that became a placeholder or a query that differs from
 the source; it writes nothing when a check fails. `RESEARCH.md` §7 has what both were measured on.
+
+## Documents
+
+A Word document is made from Markdown, never edited by hand, the way a PNG is made from its page.
+`skill/document/SKILL.md` is the standard; `doc-docx` does the build (it needs pandoc, at the version your CI pins:
+the skill says where to get it):
+
+```sh
+# the guide, then the checklist, each after a page break, links between them kept inside the document
+.venv/bin/doc-docx docs/ONBOARDING.docx docs/ONBOARDING.md docs/ONBOARDING_CHECKLIST.md --date 2026-10-13
+```
+
+It refuses a link that would lead nowhere in the document, a link to a `.md` file it was not given, and an image it
+cannot find. The date is stamped on the file, so the same Markdown and the same pandoc give the same bytes on every
+machine; the kit's CI pins pandoc 3.12.1, and a repository that commits the `.docx` and compares it in CI pins the
+same version.
 
 ## Why a kit
 

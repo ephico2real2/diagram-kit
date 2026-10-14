@@ -2,7 +2,7 @@
 # sees it, from a Mac. Since 0.2.3 the two draw text at the same widths; this is for the day a page passes on the Mac
 # and fails in CI all the same.
 #
-#   podman build --build-arg KIT_REF=v0.2.4 -t diagram-kit-linux .
+#   podman build --build-arg KIT_REF=v0.2.5 -t diagram-kit-linux .
 #   podman run --rm -v "$PWD":/repo:ro diagram-kit-linux --check docs/diagrams/<slug>/source.html
 #
 # KIT_REF is a tag or a branch of this repository. The entry point is diagram-render; the repository is mounted
