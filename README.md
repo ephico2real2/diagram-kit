@@ -54,7 +54,11 @@ sudo apt-get install -y pandoc                # Markdown to .docx / .pptx
 sudo apt-get install -y libreoffice-impress   # .pptx to PDF, to look at slides before sharing
 sudo apt-get install -y poppler-utils         # pdftoppm: PDF pages to PNG
 sudo apt-get install -y podman                # optional: the Containerfile check
+sudo apt-get install -y gh                    # pull requests to the kit (or GitHub's apt repo for the current release)
 ```
+
+`gh auth login --hostname github.com --git-protocol ssh --web` once; it reuses an SSH key GitHub already knows.
+Changes to the kit go in as pull requests (`CONTRIBUTING.md`): `gh pr create` from a branch.
 
 Fonts need no package: each render loads IBM Plex from Google Fonts, so the machine needs network access.
 `libreoffice-core` alone cannot open a `.pptx` (`source file could not be loaded`); install `libreoffice-impress`.

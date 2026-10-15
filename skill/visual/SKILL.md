@@ -82,8 +82,8 @@ python3 -m venv ~/.local/share/diagram-kit/.venv
 ```
 
 On Linux also: `python3-venv`, Chromium's libraries (`sudo ~/.local/share/diagram-kit/.venv/bin/playwright
-install-deps chromium`), and for decks `pandoc`, `libreoffice-impress` and `poppler-utils` (README, "Linux
-requirements"). Look at every slide of a `.pptx` before it goes out: convert it to PDF
+install-deps chromium`), for decks `pandoc`, `libreoffice-impress` and `poppler-utils`, and `gh` for pull requests to the kit
+(README, "Linux requirements"). Look at every slide of a `.pptx` before it goes out: convert it to PDF
 (`soffice --headless --convert-to pdf`), then either `pdftoppm` it to PNGs and read them, or open the PDF in a
 browser (the kit's Playwright Chromium, or Claude in Chrome on `file://…/deck.pdf`). Text that runs off a slide
 is only visible there.
