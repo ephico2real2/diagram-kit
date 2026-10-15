@@ -42,6 +42,33 @@ The repository is not published yet. Until it is, install from a local clone in 
 `.venv/bin/pip install <path-to-clone>`.
 `TUTORIAL.md` walks the whole path.
 
+### Linux requirements
+
+Ubuntu/Debian packages (tested on Ubuntu 24.04):
+
+```sh
+sudo apt-get install -y python3-venv          # the kit's venv
+sudo .venv/bin/playwright install-deps chromium   # Chromium's system libraries
+# documents built from the figures
+sudo apt-get install -y pandoc                # Markdown to .docx / .pptx
+sudo apt-get install -y libreoffice-impress   # .pptx to PDF, to look at slides before sharing
+sudo apt-get install -y poppler-utils         # pdftoppm: PDF pages to PNG
+sudo apt-get install -y podman                # optional: the Containerfile check
+```
+
+Fonts need no package: each render loads IBM Plex from Google Fonts, so the machine needs network access.
+`libreoffice-core` alone cannot open a `.pptx` (`source file could not be loaded`); install `libreoffice-impress`.
+
+Look at a deck the way a reader will:
+
+```sh
+soffice -env:UserInstallation=file://$PWD/.lo --headless --convert-to pdf deck.pptx
+pdftoppm -r 50 -png deck.pdf slide      # slide-1.png, slide-2.png, …: check nothing runs off a slide
+```
+
+Or open `deck.pdf` in a browser and page through it: the kit's Playwright Chromium, or Claude in Chrome on
+`file://<path>/deck.pdf`.
+
 ### In a repository's CI
 
 `diagram-render --check <page.html>...` puts every page through the same checks and writes no PNG. A repository
