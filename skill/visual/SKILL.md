@@ -85,8 +85,10 @@ On Linux also: `python3-venv`, Chromium's libraries (`sudo ~/.local/share/diagra
 install-deps chromium`), for decks `pandoc`, `libreoffice-impress` and `poppler-utils`, and `gh` for pull requests to the kit
 (README, "Linux requirements"). Look at every slide of a `.pptx` before it goes out: convert it to PDF
 (`soffice --headless --convert-to pdf`), then either `pdftoppm` it to PNGs and read them, or open the PDF in a
-browser (the kit's Playwright Chromium, or Claude in Chrome on `file://…/deck.pdf`). Text that runs off a slide
-is only visible there.
+browser (the kit's Playwright Chromium, or Claude in Chrome). Claude in Chrome cannot open `file://`: copy the
+PDF into a folder of its own and serve it on loopback, `python3 -m http.server 8765 --bind 127.0.0.1 --directory
+<that folder>`, open `http://127.0.0.1:8765/deck.pdf`, and stop the server when done (README). Text that runs off
+a slide is only visible there.
 
 Then:
 

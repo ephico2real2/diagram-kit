@@ -70,8 +70,17 @@ soffice -env:UserInstallation=file://$PWD/.lo --headless --convert-to pdf deck.p
 pdftoppm -r 50 -png deck.pdf slide      # slide-1.png, slide-2.png, …: check nothing runs off a slide
 ```
 
-Or open `deck.pdf` in a browser and page through it: the kit's Playwright Chromium, or Claude in Chrome on
-`file://<path>/deck.pdf`.
+Or open `deck.pdf` in a browser and page through it, with the kit's Playwright Chromium or with Claude in Chrome.
+Claude in Chrome cannot open `file://` pages, so serve a folder holding only the PDF, on loopback only:
+
+```sh
+mkdir -p /tmp/deck-view && cp deck.pdf /tmp/deck-view/
+python3 -m http.server 8765 --bind 127.0.0.1 --directory /tmp/deck-view   # leave running; Ctrl-C to stop
+# open http://127.0.0.1:8765/deck.pdf (add ?v=2 after a rebuild so the browser does not show the cached copy)
+```
+
+`--bind 127.0.0.1` keeps it off the network; `--directory` serves that folder and nothing above it. Copy the
+PDF in again after each rebuild, and stop the server when the review is done.
 
 ### In a repository's CI
 
