@@ -99,6 +99,7 @@ exactly one component in the target, so its props are the dataset plus labels:
 | `heat-grid` | 2-D grid, sticky first column | `rows: HeatRow[], columns: string[]` |
 | `card-grid` | cards with icon tile, status badge, details | `cards: Card[]` |
 | `callout` | warning or tip, often with a `<code>` command | `tone, title, body, command?` |
+| `stat-strip` | one card: a heading figure with its note, and a few labelled numbers beside it | `title, value, note, stats: Stat[]` |
 | `segmented` | button group (theme, range, measure) with `aria-pressed` | `options, value, onChange` |
 
 Each section starts with an eyebrow (small upper-case letter-spaced `accent`) and an `h2`. A new type is added to this
