@@ -24,6 +24,8 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `diagram_kit/perses.py` | `perses-dashboard`: the Perses form of a Grafana dashboard, and the checks the conversion needs |
 | `diagram_kit/docx.py` | `doc-docx`: one Word document from Markdown files, with pandoc, the kit's palette, links kept inside the document, byte-reproducible |
 | `skill/document/SKILL.md` | the `/document` Claude Code skill: when a Word file is made, from what, and how it is checked; link `~/.claude/skills/document` to this directory |
+| `skill/build-mockup/SKILL.md` | the `/build-mockup` Claude Code skill: an app mockup built as the contract for its page (target, tokens, state, typed data, section types, checks); link `~/.claude/skills/build-mockup` to this directory |
+| `skill/mockup-to-page/SKILL.md` | the `/mockup-to-page` Claude Code skill: that mockup translated one-to-one into React or Preact + TypeScript, and proven to match; link `~/.claude/skills/mockup-to-page` to this directory |
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |
@@ -105,6 +107,30 @@ It refuses a link that would lead nowhere in the document, a link to a `.md` fil
 cannot find. The date is stamped on the file, so the same Markdown and the same pandoc give the same bytes on every
 machine; the kit's CI pins pandoc 3.12.1, and a repository that commits the `.docx` and compares it in CI pins the
 same version.
+
+## Mockups
+
+An app mockup is the contract for the page built from it, so it is built to be translated, not interpreted. Two
+skills make one standard and change together:
+
+- **`skill/build-mockup/SKILL.md`** builds the mockup on a design canvas. It declares the target framework first
+  (`react-ts` or `preact-ts`), then holds one interactive app with preview frames, every colour as a named token in one
+  table, shared state declared once with its owner and persistence, sample data as typed datasets with their API
+  source, and every section as one of nine fixed types. Before it is published, every tab, theme and range is
+  rendered and checked at 390, 820 and 1440 px.
+- **`skill/mockup-to-page/SKILL.md`** translates that mockup one-to-one: tokens to `tokens.css`, state to the URL
+  or browser storage, datasets to typed API schemas, and each section type to one component. The page is then proven
+  to match at the same widths in both themes, with an accessibility scan and contract tests in CI.
+
+Link both to install them:
+
+```sh
+ln -s "$PWD/skill/build-mockup" ~/.claude/skills/build-mockup
+ln -s "$PWD/skill/mockup-to-page" ~/.claude/skills/mockup-to-page
+```
+
+The render and check tools they use live in Inkcast's `scripts/mockups/` (`render.js`, `check.py`), where the
+standard was decided (Inkcast ADR-0016); the skills name them and their commands.
 
 ## Why a kit
 
