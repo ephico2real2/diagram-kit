@@ -88,8 +88,9 @@ PatternFly ships its fonts in `assets/fonts`, so the page needs no font CDN.
 | `forbidden` state | `EmptyState` with `LockIcon` and the mockup's words. No retry |
 | `conflict` state | `Alert variant="warning" isInline`, with an `AlertActionLink` "Reload". The old rows stay |
 | `success` state | `Alert variant="success" isInline isLiveRegion`, with the focus moved to it |
-| An action the person cannot do | `Button isAriaDisabled`, with `aria-describedby` on the reason in visible text. A `Tooltip` alone is not enough, because a touch screen does not show it |
+| An action that the person cannot do | `Button isAriaDisabled`, with `aria-describedby` on the reason in visible text. A `Tooltip` alone is not enough, because a touch screen does not show it |
 | A confirm or a reason | `Modal` |
+| A new token, shown one time | `Alert variant="success" isInline` with the focus moved to it, and the token in a `ClipboardCopy isReadOnly`. The token is never in a query key, the URL or a fixture |
 | Layout | `Stack`, `Flex`, `Grid`, `Gallery`, `Split`, `Level`; not hand-written CSS grids |
 
 One `data-component` type, or one inventory section, is one `.tsx` component in `components/`. A section with a state
@@ -120,6 +121,12 @@ of its own keeps it in that component. Keep the mockup's accessible names; Patte
 - Cursor paging: one query per page keyed on its cursor and filters, keeping the previous page while the next loads.
 - Filters, sort and search are server parameters, never filtered only in the browser. Type-ahead debounces and cancels
   the previous call through the signal Query passes in.
+- Permissions come only from the API answer (`canDelete`, `whyNot`). Never calculate them from the `role` preview
+  prop or from a group name in the browser. The server enforces each permission. A contract test sends the request
+  without the permission and gets 403.
+- A secret or a token is never in a fixture, a log, a screenshot or the URL. Show a new token one time, then drop it
+  from memory. Do not keep it in the Query cache.
+- A 401, a 404, a 422 and a 429 get the treatment in `/mockup-to-page` section 4. They get no new state.
 - Mock the API at the network layer in tests and local runs (MSW, or the project's fake). Sample data never reaches the
   production bundle: assert it.
 - Contract tests: the server's real response matches the schema. If there is no server yet, say so in the PR and mark
@@ -158,10 +165,11 @@ page differs from the mockup with the reason, and a link to the mockup.
 
 ## 8. Example: one section on PatternFly
 
-The `row-list` section of `skill/build-mockup/example/workspaces.html`, on PatternFly. The `Result`, `Page` and
-`Workspace` types are the ones in `/mockup-to-page` section 7. They come from the mockup's `// type` and `// states`
-lines. The words and the order of the states are the mockup's. PatternFly gives the look. It compiles with
-`tsc --strict` (React 19.3.1, PatternFly 6.7.0, TanStack Query 5.106.0, TypeScript 7.0.2, on 2026-11-05).
+The example that follows shows the `row-list` section of `skill/build-mockup/example/workspaces.html` on PatternFly.
+The `Result`, `Page` and `Workspace` types are the ones in `/mockup-to-page` section 7. They come from the mockup's
+`// type` and `// states` lines. The words and the order of the states are the mockup's. PatternFly gives the look.
+The code compiles with `tsc --strict` (React 19.3.1, PatternFly 6.7.0, TanStack Query 5.106.0, TypeScript 7.0.2, on
+2026-11-05).
 
 ```tsx
 import { useEffect, useRef } from 'react';
@@ -176,7 +184,8 @@ const TONE = { ready: 'success', pending: 'info', failed: 'danger' } as const;
 // api/workspaces.ts: one query per page, keyed on its filters; a network fault is the `error` state, not `loading`
 export function useWorkspaces(query: URLSearchParams): Result<Page<Workspace>> {
   const { data, isError } = useQuery({
-    queryKey: ['workspaces', query.toString()], queryFn: ({ signal }) => getWorkspaces(query, signal) });
+    queryKey: ['workspaces', query.toString()], queryFn: ({ signal }) => getWorkspaces(query, signal),
+    retry: false }); // the "Try again" button is the retry
   if (isError) return { state: 'error', cause: 'The network did not answer.' };
   return data ?? { state: 'loading' };
 }
@@ -222,4 +231,7 @@ export function WorkspaceList({ result, onReload, onDelete }:
 ```
 
 `useWorkspaces` gives the section its `result`. A network fault makes the fetch reject. Query then holds no data, so
-the hook maps `isError` to `error`. Without that line, the section stays in `loading`.
+the hook maps `isError` to `error`. Without the `if (isError)` line, the section stays in `loading`. Query tries a
+failed request 3 more times by default, with waits of 1, 2 and 4 seconds. During that time the section shows
+`loading`, for about 7 seconds. `retry: false` shows the `error` state at once, and its "Try again" button sends the
+request again.

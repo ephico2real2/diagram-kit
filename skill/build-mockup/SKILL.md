@@ -1,6 +1,6 @@
 ---
 name: build-mockup
-description: Build an app mockup (a design-canvas artboard) as the contract for the real page - the target framework declared first, one interactive app with preview frames, every colour a named token in one table, shared state declared once, sample data as typed datasets with their API source, each UI state shown (loading, empty, error, forbidden, conflict, success), actions that follow permissions, every section one of a fixed set of types, fitting 390/820/1440 px, accessible markup, and rendered and checked before it is published. Use when the user types /build-mockup, or asks for a mockup, a wireframe, a UI design or a screen design of a page or app that will be built later.
+description: Build an app mockup (a design-canvas artboard) as the contract for the real page - the target framework declared first, one interactive app with preview frames, every colour a named token in one table, shared state declared once, sample data as typed datasets with their API source, each UI state shown (loading, empty, error, forbidden, conflict, success), actions that obey permissions, every section one of a fixed set of types, fitting 390/820/1440 px, accessible markup, and rendered and checked before it is published. Use when the user types /build-mockup, or asks for a mockup, a wireframe, a UI design or a screen design of a page or app that will be built later.
 ---
 
 # /build-mockup — a mockup the page can be built from mechanically
@@ -12,10 +12,11 @@ mockup breaks a rule below, fix the mockup, not the translation.
 This skill and `/mockup-to-page-react` are one standard too, for a page built on PatternFly. That skill is in this
 kit, at `skill/mockup-to-page-react/SKILL.md`.
 
-The example `skill/build-mockup/example/workspaces.html` obeys every rule of this skill. It is one HTML file that opens
-from disk. The URL query gives its preview props: `workspaces.html?theme=light&view=conflict&role=viewer`. The kit's
-`tests/test_mockup_example.py` tests it in each UI state, at 390, 820 and 1440 px, in both themes. Each page skill
-shows the same example in React.
+The example `skill/build-mockup/example/workspaces.html` obeys sections 0 and 2 to 8 of this skill. It is one HTML file
+that opens from disk, so two canvas rules do not apply to it: the shape in section 1 and the `{{c.<token>}}` markup in
+section 2. The URL query gives its preview props: `workspaces.html?theme=light&view=conflict&role=viewer`. The kit's
+`tests/test_mockup_example.py` does a test of the example in each UI state, at 390, 820 and 1440 px, in both themes.
+Each page skill shows the same example in React.
 
 This skill and `/mockup-to-page` are one standard: change them together. Proven on Inkcast, where the standard was
 decided (ADR-0016, issue #235) and a copy lives in `docs/tooling/mockup-standard.md`, and on the tokensave dashboard
@@ -103,7 +104,8 @@ For `react-pf-ts`, keep the token table in the mockup. `/mockup-to-page-react` m
 
 ## 5. UI states, permissions and secrets
 
-A page shows more than its data. The mockup shows each other state too, so that the page does not invent it.
+A page shows more than its data. The mockup also shows each of the other states, so that the page does not invent
+them.
 
 | state | when | what the section shows |
 |---|---|---|
@@ -114,17 +116,22 @@ A page shows more than its data. The mockup shows each other state too, so that 
 | `conflict` | The data changed after the person read it: a 409, a 412, or an old version. | That the data changed, and a "Reload" button, in `role="alert"`. Keep the old rows until the person reloads. |
 | `success` | An action completed. | What changed, in one `role="status"` line, and the section with the new data. |
 
-- List each state that the API can cause for a dataset. A section that does not list the `view` state shows its data.
-  A preview frame for one state imports the same app with `view="<state>"`.
-- Actions follow permissions. The API says what the person can do, per row or per page. When the answer is no, the
-  API also gives the reason: `canDelete: boolean; whyNot?: string`. Show an action that the person cannot do with
-  `aria-disabled="true"`, and put the reason in visible text that `aria-describedby` points to. Hide an action only
+- List each state that the API can cause for a dataset. If the dataset of a section does not list the state that
+  `view` selects, the section shows its data. A preview frame for one state imports the same app with
+  `view="<state>"`.
+- Each state that a section lists has its words, and its action if it has one. A "Try again" or a "Reload" button
+  sends the request again. A next action does something in the mockup, even if it only shows the data again.
+- Actions obey permissions. The API says what the person can do, per row or per page. When the answer is no, the
+  API also gives the reason: `canDelete: boolean; whyNot?: string`. Give `aria-disabled="true"` to an action that
+  the person cannot do. Put the reason in visible text. Point `aria-describedby` to that text. Hide an action only
   when the person must not know that it exists. The server enforces each permission. The page only shows it.
-- A destructive action asks first. A dialog names the object and says what is lost. Its first focus is on
-  Cancel.
-- Secrets stay out. Do not show a real secret, token or key, also not in sample data. A sample secret is fake and
-  masked, for example `sk-sample-••••1234`. A new token shows one time, after the person asks for it, with a copy
-  button.
+- In the mockup, the `role` preview prop selects the sample answer of the API. Mark that code as the API's answer.
+  The page gets the permissions from the API and never calculates them from a role.
+- Before a destructive action starts, it opens a dialog. The dialog names the object and says what is lost. Its
+  first focus is on Cancel.
+- Secrets stay out. Do not show a real secret, token or key. This rule also applies to sample data. A sample secret
+  is fake and masked, for example `sk-sample-••••1234`. A new token shows one time, after the person asks for it,
+  with a copy button.
 
 ## 6. Sections: a fixed vocabulary = the component library
 
@@ -160,20 +167,21 @@ table, and to `/mockup-to-page` and `/mockup-to-page-react`, in the same change.
 Real `<button>`, `<a href>`, `<label>` + inputs; `aria-current` on the active tab; `aria-pressed` on segmented buttons;
 `aria-label` on icon-only controls; decorative SVG `aria-hidden`.
 
-- When the keyboard gets to a control, the control shows a focus ring: an outline of 2 px or more in `accent`, at
-  3:1 or more against its background.
+- When the keyboard gets to a control, the control shows a focus ring: an outline of 2 px or more in `accent`, with
+  a contrast ratio of 3:1 or more against its background.
 - The Tab order is the visual order. The keyboard gets to each control and operates it with Enter or Space.
 - Each input has a `<label>`. An input error is text under the input that `aria-describedby` points to. Colour alone
   never shows an error.
-- A change that comes without a click is announced: `role="status"` for `loading` and `success`, `role="alert"` for
-  `error` and `conflict`.
+- A screen reader announces a change that comes without a click. Use `role="status"` for `loading` and `success`,
+  and `role="alert"` for `error` and `conflict`. The live region holds the words of the state: an empty one
+  announces nothing.
 - A dialog keeps the focus in it and gives the focus back to the control that opened it. `<dialog>` with
   `showModal()` does both.
 
 ## 9. Review before publishing (always)
 
 1. Render every tab × both themes × every range preset to static HTML with the converter (sc-for, sc-if, holes,
-   `renderVals` with props). Do this for each `view` state and each `role` too.
+   `renderVals` with props). Do this step for each `view` state and each `role` too.
 2. In headless Chromium at 390, 820 and 1440 px, fail on any leftover `{{`, `sc-`, `undefined`, `NaN`; page width >
    viewport; background shorter than the viewport.
 3. Screenshot a sample per theme and width and look: colours consistent across tabs, categories distinct, nothing cut

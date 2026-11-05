@@ -1,6 +1,6 @@
 ---
 name: mockup-to-page
-description: Translate a /build-mockup mockup into the real page in the framework its $target declares (react-ts or preact-ts) - tokens to tokens.css, declared state to URL or storage, typed datasets to API schemas and fetch hooks, each section type to one component - then prove it matches the mockup at 390/820/1440 px in both themes, with every UI state the mockup shows and its actions that follow permissions, and accessibility and contract tests in CI. Use when the user types /mockup-to-page, or asks to build, implement or code a page, screen or dashboard from an approved mockup.
+description: Translate a /build-mockup mockup into the real page in the framework its $target declares (react-ts or preact-ts) - tokens to tokens.css, declared state to URL or storage, typed datasets to API schemas and fetch hooks, each section type to one component - then prove it matches the mockup at 390/820/1440 px in both themes, with every UI state the mockup shows and its actions that obey permissions, and accessibility and contract tests in CI. Use when the user types /mockup-to-page, or asks to build, implement or code a page, screen or dashboard from an approved mockup.
 ---
 
 # /mockup-to-page — the page, translated from its mockup
@@ -12,7 +12,8 @@ so; don't guess.
 
 This skill and `/build-mockup` are one standard: change them together. Proven on Inkcast, where the standard was
 decided (ADR-0016, issue #235) and a copy lives in `docs/tooling/mockup-standard.md`. Section 7 translates the
-example mockup `skill/build-mockup/example/workspaces.html` to `react-ts`.
+example mockup `skill/build-mockup/example/workspaces.html` to `react-ts`. A mockup whose `$target` is `react-pf-ts`
+goes to `/mockup-to-page-react` instead.
 
 ## 0. Inputs
 
@@ -74,14 +75,23 @@ the mockup's.
 | Mockup state | What causes it on the page | `react-ts` and `preact-ts` |
 |---|---|---|
 | `loading` | The request did not answer yet. | A skeleton with `aria-hidden`, and one `<p role="status">` line |
-| `empty` | A 200 answer with no rows. It is not a request state: test the rows. | The words of the mockup, and its next action |
+| `empty` | A 200 answer with no rows. It is not a request state. Use the number of rows to find it. | The words of the mockup, and its next action |
 | `error` | A 5xx answer, or a network fault. | `role="alert"`, and a "Try again" button that sends the request again |
 | `forbidden` | A 403 answer. | The words of the mockup. No retry, and no data of the section |
 | `conflict` | A 409 or a 412 answer to a change, or a version older than the server's. | `role="alert"`, and a "Reload" button. The old rows stay until the person reloads |
 | `success` | A 2xx answer to an action. | One `role="status"` line, with the focus moved to it, and the new data |
 
+- Other answers do not get a state of their own in the section, because the six states are the whole list:
+  - 401: the session ended. The app shell signs the person in again and then sends the request again. The section
+    does not show it.
+  - 404 to a read of one object: the object is not there. Show it as `empty`, with the words of the mockup.
+  - 422 to a change: the form shows each field error under its input, as `/build-mockup` section 8 says. The section
+    keeps its data.
+  - 429: show it as `error`. The "Try again" button waits for the time that `Retry-After` gives.
+- If the mockup needs words for one of these answers, the mockup's owner adds them, and the mockup shows them.
 - Permissions come from the API answer (`canDelete`, `whyNot`). Do not calculate a permission in the browser from a
-  role name. The server enforces each one, and a contract test sends the request without the permission and gets 403.
+  role name. The server enforces each permission. A contract test sends a request without the permission. The
+  answer is 403.
 - A secret or a token is never in a fixture, a log, a screenshot or the URL. The page shows a new token one time.
 
 ## 5. Prove it matches the mockup
@@ -100,10 +110,10 @@ the mockup.
 
 ## 7. Example: one section in `react-ts`
 
-The `row-list` section of `skill/build-mockup/example/workspaces.html`, translated. The types come from its `// type`
-lines. The `Result` union comes from its `// states` line. The fetch comes from its `// dataset` line. The words, the
-`role` attributes and the disabled action with its reason come from its markup. It compiles with `tsc --strict`
-(React 19.3.1, TypeScript 7.0.2, on 2026-11-05).
+The example that follows translates the `row-list` section of `skill/build-mockup/example/workspaces.html`. The types
+come from its `// type` lines. The `Result` union comes from its `// states` line. The fetch comes from its
+`// dataset` line. The words, the `role` attributes and the disabled action with its reason come from its markup. The
+code compiles with `tsc --strict` (React 19.3.1, TypeScript 7.0.2, on 2026-11-05).
 
 ```tsx
 import { useEffect, useRef } from 'react';
@@ -165,5 +175,6 @@ export function WorkspaceList({ result, onReload, onDelete }:
 }
 ```
 
-For `preact-ts`, import the hooks from `preact/hooks` and set `jsxImportSource: "preact"` (section 1). Nothing else
-changes. It compiles the same way with Preact 11.1.1. `/mockup-to-page-react` translates the same section to PatternFly.
+For `preact-ts`, import the hooks from `preact/hooks`. Then set `jsxImportSource: "preact"` (section 1). Nothing else
+changes. The code compiles the same way with Preact 11.1.1. `/mockup-to-page-react` translates the same section to
+PatternFly.

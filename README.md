@@ -161,11 +161,11 @@ skills make one standard and change together:
 - **`skill/build-mockup/SKILL.md`** builds the mockup on a design canvas. It declares the target framework first:
   `react-ts`, `preact-ts` or `react-pf-ts`. It holds one interactive app with preview frames, and every colour as a
   named token in one table. It declares shared state one time, with its owner and persistence. Sample data is in
-  typed datasets with their API source, and every section is one of ten fixed types. Each section shows its UI
-  states: `loading`, `empty`, `error`, `forbidden`, `conflict` and `success`. Each action follows the permissions that
-  the API gives. Before the mockup is published, the checks open every tab, theme, range and state at 390, 820 and
-  1440 px. Its example, `skill/build-mockup/example/workspaces.html`, opens from disk, and `tests/test_mockup_example.py` tests it
-  in each state, at each width, in both themes.
+  typed datasets with their API source. Every section is one of ten fixed types. Each section shows its UI states:
+  `loading`, `empty`, `error`, `forbidden`, `conflict` and `success`. Each action obeys the permissions that the API
+  gives. Before you publish the mockup, the checks open every tab, theme, range and state at 390, 820 and 1440 px.
+  Its example, `skill/build-mockup/example/workspaces.html`, opens from disk. `tests/test_mockup_example.py` does a
+  test of the example in each state, at each width, in both themes.
 - **`skill/mockup-to-page/SKILL.md`** translates that mockup one-to-one: tokens to `tokens.css`, state to the URL
   or browser storage, datasets to typed API schemas, and each section type to one component. The page is then proven
   to match at the same widths in both themes, with an accessibility scan and contract tests in CI.

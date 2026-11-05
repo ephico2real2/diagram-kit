@@ -103,3 +103,44 @@ def test_the_build_skill_keeps_every_target():
     text = (ROOT / "skill" / "build-mockup" / "SKILL.md").read_text()
     for target in ("`react-ts`", "`preact-ts`", "`react-pf-ts`"):
         assert target in text
+
+
+def test_the_readme_names_every_target_and_the_number_of_section_types():
+    text = (ROOT / "README.md").read_text()
+    for target in ("`react-ts`", "`preact-ts`", "`react-pf-ts`"):
+        assert target in text
+    build = (ROOT / "skill" / "build-mockup" / "SKILL.md").read_text()
+    table = build.split("Sections: a fixed vocabulary", 1)[1].split("\n## ", 1)[0]
+    count = len(re.findall(r"^\| `[a-z-]+` \|", table, re.M))
+    words = {9: "nine", 10: "ten", 11: "eleven", 12: "twelve"}
+    assert f"{words[count]} fixed types" in text
+
+
+def test_the_page_skill_sends_a_patternfly_target_to_its_own_skill():
+    assert "`react-pf-ts`" in (ROOT / "skill" / "mockup-to-page" / "SKILL.md").read_text()
+
+
+@pytest.mark.parametrize("name", ["build-mockup", "mockup-to-page", "mockup-to-page-react"])
+def test_the_mockup_standard_keeps_secrets_out_and_permissions_on_the_server(name):
+    # Each skill says it on its own, because an owner who reads only one skill must not miss it
+    text = " ".join((ROOT / "skill" / name / "SKILL.md").read_text().split())
+    assert "token" in text and ("is never in a fixture" in text or "also applies to sample data" in text), name
+    assert "The server enforces each permission." in text, name
+
+
+def test_the_page_skill_says_what_each_other_http_answer_becomes():
+    text = (ROOT / "skill" / "mockup-to-page" / "SKILL.md").read_text()
+    for status in ("401", "404", "422", "429"):
+        assert re.search(rf"^  - {status}\b", text, re.M), f"no rule for {status}"
+
+
+def test_the_patternfly_example_does_not_hide_a_fault_behind_retries():
+    # Query's default retries keep the section in `loading` for about 7 s before `error`
+    text = (ROOT / "skill" / "mockup-to-page-react" / "SKILL.md").read_text()
+    hook = text.split("export function useWorkspaces", 1)[1].split("\n}\n", 1)[0]
+    assert "retry: false" in hook
+
+
+def test_the_patternfly_skill_maps_a_new_token_to_a_one_time_copy():
+    text = (ROOT / "skill" / "mockup-to-page-react" / "SKILL.md").read_text()
+    assert re.search(r"^\| A new token, shown one time \|.*`ClipboardCopy", text, re.M)
