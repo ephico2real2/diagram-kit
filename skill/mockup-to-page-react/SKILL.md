@@ -1,6 +1,6 @@
 ---
 name: mockup-to-page-react
-description: Translate an app mockup into the real page in React, TypeScript, Vite and PatternFly - the mockup's tabs, state, data and behaviour kept, its look replaced by PatternFly's components and design tokens, typed datasets to API schemas and TanStack Query hooks, each section type to one PatternFly composition - then prove it matches on content, states and behaviour at 390/820/1440 px in both themes, with accessibility and contract tests in CI. Use when the user types /mockup-to-page-react, or asks to build a page, screen or portal from a mockup with React and PatternFly, or for an OpenShift-style console UI.
+description: Translate an app mockup into the real page in React, TypeScript, Vite and PatternFly - the mockup's tabs, state, data and behaviour kept, its look replaced by PatternFly's components and design tokens, typed datasets to API schemas and TanStack Query hooks, each section type to one PatternFly composition, each UI state and permission of the mockup kept - then prove it matches on content, states and behaviour at 390/820/1440 px in both themes, with accessibility and contract tests in CI. Use when the user types /mockup-to-page-react, or asks to build a page, screen or portal from a mockup with React and PatternFly, or for an OpenShift-style console UI.
 ---
 
 # /mockup-to-page-react — the page, translated from its mockup, on PatternFly
@@ -9,7 +9,8 @@ description: Translate an app mockup into the real page in React, TypeScript, Vi
 with Vite, using PatternFly as the component library. Use it when the page should look and behave like the OpenShift
 console and its family. Use `/mockup-to-page` when the page must look like the mockup.
 
-This skill and `/build-mockup` are one standard: change them together.
+This skill and `/build-mockup` are one standard: change them together. Section 8 translates the example mockup
+`skill/build-mockup/example/workspaces.html` to PatternFly.
 
 ## What "matches the mockup" means here
 
@@ -81,6 +82,13 @@ PatternFly ships its fonts in `assets/fonts`, so the page needs no font CDN.
 | A multi-step flow | `Wizard` only when the steps collect input; a read-only stepper is `ProgressStepper` |
 | Code, YAML, a diff | `CodeBlock` |
 | Empty, loading, error | `EmptyState`, `Skeleton` or `Spinner`, `Alert`; each list has all three |
+| `loading` state | `Skeleton` in the shape of the content, and one line with `role="status"` |
+| `empty` state | `EmptyState` with the mockup's words, and its next action as a `Button` |
+| `error` state | `Alert variant="danger" isInline`, with an `AlertActionLink` "Try again" |
+| `forbidden` state | `EmptyState` with `LockIcon` and the mockup's words. No retry |
+| `conflict` state | `Alert variant="warning" isInline`, with an `AlertActionLink` "Reload". The old rows stay |
+| `success` state | `Alert variant="success" isInline isLiveRegion`, with the focus moved to it |
+| An action the person cannot do | `Button isAriaDisabled`, with `aria-describedby` on the reason in visible text. A `Tooltip` alone is not enough, because a touch screen does not show it |
 | A confirm or a reason | `Modal` |
 | Layout | `Stack`, `Flex`, `Grid`, `Gallery`, `Split`, `Level`; not hand-written CSS grids |
 
@@ -101,6 +109,8 @@ of its own keeps it in that component. Keep the mockup's accessible names; Patte
 - Each `url=` key, or each state key a person would share, is read on load and written on change with
   `history.replaceState`; an invalid value falls back to the default.
 - Server data lives in TanStack Query, not in component state. Selection, an open row and a draft stay local.
+- `view` and `role` are preview props of the mockup. The page does not keep them. The query's answer gives the state,
+  and the API gives the permissions (`canDelete`, `whyNot`). Do not calculate a permission from a role name.
 - Lifted state goes in the app component as props. Add no state library for what the URL and Query already hold.
 
 ## 5. Data
@@ -145,3 +155,71 @@ justified in the PR.
 One PR per story in the project's flow: an issue, a branch, failing tests first, the smallest change, the gates,
 `/adversarial-review`. The PR holds the content-parity table per tab, screenshots per tab and theme, every place the
 page differs from the mockup with the reason, and a link to the mockup.
+
+## 8. Example: one section on PatternFly
+
+The `row-list` section of `skill/build-mockup/example/workspaces.html`, on PatternFly. The `Result`, `Page` and
+`Workspace` types are the ones in `/mockup-to-page` section 7. They come from the mockup's `// type` and `// states`
+lines. The words and the order of the states are the mockup's. PatternFly gives the look. It compiles with
+`tsc --strict` (React 19.3.1, PatternFly 6.7.0, TanStack Query 5.106.0, TypeScript 7.0.2, on 2026-11-05).
+
+```tsx
+import { useEffect, useRef } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { Alert, AlertActionLink, Button, EmptyState, EmptyStateBody, Label, Skeleton, Stack } from '@patternfly/react-core';
+import { LockIcon } from '@patternfly/react-icons';
+import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
+import { getWorkspaces, type Page, type Result, type Workspace } from './workspaces'; // the types and fetch of /mockup-to-page section 7
+
+const TONE = { ready: 'success', pending: 'info', failed: 'danger' } as const;
+
+// api/workspaces.ts: one query per page, keyed on its filters; a network fault is the `error` state, not `loading`
+export function useWorkspaces(query: URLSearchParams): Result<Page<Workspace>> {
+  const { data, isError } = useQuery({
+    queryKey: ['workspaces', query.toString()], queryFn: ({ signal }) => getWorkspaces(query, signal) });
+  if (isError) return { state: 'error', cause: 'The network did not answer.' };
+  return data ?? { state: 'loading' };
+}
+
+// components/WorkspaceList.tsx: data-component="row-list" data-dataset="workspaces"
+export function WorkspaceList({ result, onReload, onDelete }:
+  { result: Result<Page<Workspace>>; onReload: () => void; onDelete: (name: string) => void }) {
+  const done = useRef<HTMLDivElement>(null);
+  useEffect(() => { if (result.state === 'success') done.current?.focus(); }, [result.state]);
+  if (result.state === 'loading') return (
+    <Stack hasGutter><span role="status">Loading workspaces…</span><Skeleton /><Skeleton /><Skeleton /></Stack>);
+  if (result.state === 'error') return (
+    <Alert variant="danger" isInline title="The workspaces did not load."
+      actionLinks={<AlertActionLink onClick={onReload}>Try again</AlertActionLink>}>
+      {result.cause}
+    </Alert>);
+  if (result.state === 'forbidden') return (
+    <EmptyState titleText="You do not have permission to see workspaces." headingLevel="h3" icon={LockIcon}>
+      <EmptyStateBody>Ask a workspace admin for the viewer role.</EmptyStateBody>
+    </EmptyState>);
+  if (result.data.items.length === 0) return <EmptyState titleText="There are no workspaces." headingLevel="h3" />;
+  return (<Stack hasGutter>
+    {result.state === 'conflict' && (
+      <Alert variant="warning" isInline title="This list changed after you opened it."
+        actionLinks={<AlertActionLink onClick={onReload}>Reload</AlertActionLink>} />)}
+    {result.state === 'success' && (
+      <div tabIndex={-1} ref={done}><Alert variant="success" isInline isLiveRegion title={`Workspace ${result.done} is deleted.`} /></div>)}
+    <Table aria-label="Workspaces" gridBreakPoint="grid-md">
+      <Thead><Tr><Th>Name</Th><Th>State</Th><Th screenReaderText="Actions" /></Tr></Thead>
+      <Tbody>{result.data.items.map((w) => (
+        <Tr key={w.name}>
+          <Td dataLabel="Name">{w.name}</Td>
+          <Td dataLabel="State"><Label status={TONE[w.state]}>{w.state}</Label></Td>
+          <Td dataLabel="Actions">
+            <Button variant="danger" isAriaDisabled={!w.canDelete} aria-label={`Delete ${w.name}`}
+              aria-describedby={w.canDelete ? undefined : `why-${w.name}`} onClick={() => onDelete(w.name)}>Delete</Button>
+            {!w.canDelete && <div id={`why-${w.name}`}>{w.whyNot}</div>}
+          </Td>
+        </Tr>))}</Tbody>
+    </Table>
+  </Stack>);
+}
+```
+
+`useWorkspaces` gives the section its `result`. A network fault makes the fetch reject. Query then holds no data, so
+the hook maps `isError` to `error`. Without that line, the section stays in `loading`.

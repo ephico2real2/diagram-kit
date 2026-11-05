@@ -1,0 +1,242 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: MPL-2.0 -->
+<!--
+  The example of /build-mockup: one small page that obeys every rule of the skill. It is plain HTML, so it opens from
+  disk with no tools. On a design canvas the same contract lives in Main.dc.html, and the canvas passes the preview
+  props. Here the URL query passes them: workspaces.html?theme=light&view=conflict&role=viewer.
+  Sample data · mockup. The names are generic.
+-->
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Workspaces · sample data · mockup</title>
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background: var(--bg); color: var(--text); }
+  #app { width: 100%; min-height: 100vh; background: var(--bg); }
+  .wrap { max-width: 1440px; margin: 0 auto; padding: 16px clamp(12px, 3vw, 32px) 48px; }
+  header { display: flex; flex-wrap: wrap; gap: 12px; align-items: center; justify-content: space-between; padding: 12px 0 20px; }
+  .brand { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .brand strong { font-size: 18px; }
+  .pill { font-size: 12px; padding: 2px 10px; border-radius: 999px; background: var(--infoBg); color: var(--infoFg); }
+  .seg { display: flex; gap: 4px; padding: 4px; border-radius: 10px; background: var(--track); overflow-x: auto; }
+  button { font: inherit; min-height: 44px; min-width: 44px; padding: 0 14px; border-radius: 8px; cursor: pointer;
+           border: 1px solid var(--border); background: var(--control); color: var(--text); }
+  .seg button { border-color: transparent; background: transparent; }
+  .seg button[aria-pressed="true"] { background: var(--accent); color: var(--accentFg); }
+  button.danger { color: var(--stopFg); background: var(--stopBg); border-color: var(--stopBg); }
+  button[aria-disabled="true"] { cursor: not-allowed; color: var(--muted); background: var(--track); border-color: var(--track); }
+  :focus-visible { outline: 3px solid var(--accent); outline-offset: 2px; }
+  section { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+  .eyebrow { margin: 0; font-size: 12px; letter-spacing: .08em; text-transform: uppercase; color: var(--accent); }
+  h2 { margin: 2px 0 12px; font-size: 18px; }
+  .tiles { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+  .tile { background: var(--raised); border-radius: 10px; padding: 12px; }
+  .tile .label, .muted { color: var(--muted); }
+  .tile .value { font-size: clamp(22px, 3vw, 30px); font-weight: 600; }
+  .skeleton { background: var(--track); border-radius: 6px; height: 1em; margin: 6px 0; }
+  .banner { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between;
+            padding: 12px; border-radius: 10px; margin-bottom: 12px; }
+  .banner p { margin: 0; }
+  .ok { background: var(--okBg); color: var(--okFg); } .warn { background: var(--warnBg); color: var(--warnFg); }
+  .info { background: var(--infoBg); color: var(--infoFg); } .stop { background: var(--stopBg); color: var(--stopFg); }
+  .badge { display: inline-block; font-size: 13px; padding: 1px 8px; border-radius: 999px; }
+  .dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; margin-right: 6px; }
+  table { width: 100%; border-collapse: collapse; }
+  th, td { text-align: left; padding: 10px 8px; border-top: 1px solid var(--border); vertical-align: middle; }
+  th { color: var(--muted); font-weight: 500; font-size: 13px; }
+  .why { display: block; font-size: 13px; color: var(--muted); margin-top: 4px; max-width: 32ch; }
+  dialog { background: var(--raised); color: var(--text); border: 1px solid var(--border); border-radius: 12px; max-width: min(92vw, 420px); }
+  dialog::backdrop { background: rgb(0 0 0 / .5); }
+  dialog form { display: flex; gap: 8px; justify-content: flex-end; flex-wrap: wrap; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @media (max-width: 639px) {
+    thead { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+    table, tbody, tr, td { display: block; }
+    tr { border-top: 1px solid var(--border); padding: 8px 0; }
+    td { border: 0; padding: 4px 0; display: flex; gap: 12px; justify-content: space-between; align-items: center; }
+    td::before { content: attr(data-label); color: var(--muted); font-size: 13px; }
+    td > span { text-align: right; }
+  }
+</style>
+</head>
+<body>
+<div id="app" data-props='{"$target": {"framework": "react-ts", "styling": "tokens.css", "state": "URL query for view, browser storage for theme", "data": "GET /api/workspaces, GET /api/workspaces/summary"}, "theme": ["dark", "light", "auto"], "view": ["ready", "loading", "empty", "error", "forbidden", "conflict", "success"], "role": ["admin", "viewer"]}'></div>
+<dialog id="confirm" aria-labelledby="confirm-title">
+  <h3 id="confirm-title"></h3>
+  <p>The workspace and its data are deleted. You cannot undo this.</p>
+  <form method="dialog"><button value="cancel" autofocus>Cancel</button><button value="delete" class="danger">Delete workspace</button></form>
+</dialog>
+<script>
+// tokens:start
+const TOKENS = {
+  dark: {
+    'bg': '#0f1115', 'surface': '#171a21', 'raised': '#1f232c', 'border': '#353b48', 'track': '#262b35',
+    'control': '#2a2f3a', 'text': '#e7e9ee', 'muted': '#a3a9b6', 'accent': '#7aa2ff', 'accentFg': '#0b1020',
+    'okFg': '#7ee2a8', 'okBg': '#12321f', 'warnFg': '#ffd27a', 'warnBg': '#3a2c0c',
+    'infoFg': '#8cc8ff', 'infoBg': '#0f2a44', 'stopFg': '#ff9a9a', 'stopBg': '#3d1414',
+    'cat.emerald': '#34d399', 'cat.sky': '#38bdf8', 'cat.amber': '#fbbf24', 'cat.violet': '#a78bfa',
+    'cat.coral': '#fb7185', 'cat.pink': '#f472b6', 'cat.teal': '#2dd4bf', 'cat.slate': '#94a3b8',
+  },
+  light: {
+    'bg': '#f6f7f9', 'surface': '#ffffff', 'raised': '#f0f2f5', 'border': '#c9ced8', 'track': '#e6e9ee',
+    'control': '#eef0f4', 'text': '#161a22', 'muted': '#545b69', 'accent': '#2f5bd3', 'accentFg': '#ffffff',
+    'okFg': '#14532d', 'okBg': '#dcfce7', 'warnFg': '#713f12', 'warnBg': '#fef3c7',
+    'infoFg': '#1e3a8a', 'infoBg': '#dbeafe', 'stopFg': '#7f1d1d', 'stopBg': '#fee2e2',
+    'cat.emerald': '#047857', 'cat.sky': '#0369a1', 'cat.amber': '#b45309', 'cat.violet': '#6d28d9',
+    'cat.coral': '#be123c', 'cat.pink': '#be185d', 'cat.teal': '#0f766e', 'cat.slate': '#475569',
+  },
+};
+// tokens:end
+
+// Category colours: one map, looked up on every tab
+const TEAM = { Payments: 'cat.emerald', Data: 'cat.sky', Web: 'cat.violet' };
+const TONE = { ready: 'ok', pending: 'info', failed: 'stop' };
+
+// state theme: owner=App type='dark'|'light'|'auto' default='dark' storage=theme
+// state view: owner=App type='ready'|'loading'|'empty'|'error'|'forbidden'|'conflict'|'success' default='ready' preview
+// state role: owner=App type='admin'|'viewer' default='admin' preview (the page gets canDelete from the API)
+// state deleting: owner=row-list type=string default='none' local (the row whose confirm dialog is open)
+const PROPS = JSON.parse(document.getElementById('app').dataset.props);
+const query = new URLSearchParams(location.search);
+const pick = (key, fallback) => (PROPS[key].includes(query.get(key)) ? query.get(key) : fallback);
+let stored = null;
+try { stored = localStorage.getItem('theme'); } catch (e) { /* storage off: use the default */ }
+const state = {
+  theme: pick('theme', PROPS.theme.includes(stored) ? stored : 'dark'),
+  view: pick('view', 'ready'),
+  role: pick('role', 'admin'),
+  deleted: 'sandbox-3',
+};
+
+// dataset workspaces: GET /api/workspaces?cursor&team → Page<Workspace>
+// type Page<T> = { items: T[]; next?: string }
+// type Workspace = { name: string; team: 'Payments'|'Data'|'Web'; state: 'ready'|'pending'|'failed'; cpuUsed: number; cpuQuota: number; canDelete: boolean; whyNot?: string }
+// states workspaces: loading | empty | error | forbidden | conflict | success
+// dataset tiles: GET /api/workspaces/summary → Tile[]
+// type Tile = { label: string; value: string; note: string }
+// states tiles: loading | error | forbidden
+function renderVals(s) {
+  const all = [
+    { name: 'sandbox-1', team: 'Payments', state: 'ready', cpuUsed: 2.5, cpuQuota: 8 },
+    { name: 'analytics-dev', team: 'Data', state: 'ready', cpuUsed: 6, cpuQuota: 8 },
+    { name: 'web-preview', team: 'Web', state: 'pending', cpuUsed: 0, cpuQuota: 4 },
+    { name: 'sandbox-3', team: 'Payments', state: 'failed', cpuUsed: 0, cpuQuota: 4 },
+  ].map((w) => {
+    if (s.role !== 'admin') return { ...w, canDelete: false, whyNot: 'You need the admin role to delete a workspace.' };
+    if (w.state === 'pending') return { ...w, canDelete: false, whyNot: 'Wait until the request for this workspace ends.' };
+    return { ...w, canDelete: true };
+  });
+  const workspaces = s.view === 'empty' ? [] : s.view === 'success' ? all.filter((w) => w.name !== s.deleted) : all;
+  const used = workspaces.reduce((n, w) => n + w.cpuUsed, 0);
+  const quota = workspaces.reduce((n, w) => n + w.cpuQuota, 0);
+  const pending = workspaces.filter((w) => w.state === 'pending').length;
+  const failed = workspaces.filter((w) => w.state === 'failed').length;
+  const tiles = [
+    { label: 'Workspaces', value: String(workspaces.length), note: `${pending} pending` },
+    { label: 'CPU in use', value: `${used} of ${quota}`, note: quota ? `${Math.round((used / quota) * 100)}% of the quota` : 'No quota assigned' },
+    { label: 'Failed', value: String(failed), note: failed ? 'Delete or retry each one' : 'All workspaces are good' },
+  ];
+  return { T: TOKENS, workspaces, tiles };
+}
+
+function applyTheme(theme) {
+  const dark = theme === 'dark' || (theme === 'auto' && matchMedia('(prefers-color-scheme: dark)').matches);
+  for (const [name, value] of Object.entries(TOKENS[dark ? 'dark' : 'light'])) {
+    document.documentElement.style.setProperty(`--${name.replace('.', '-')}`, value);
+  }
+  document.documentElement.dataset.theme = theme;
+}
+
+const esc = (v) => String(v).replace(/[&<>"']/g, (c) => `&${{ '&': 'amp', '<': 'lt', '>': 'gt', '"': 'quot', "'": 'apos' }[c]};`);
+const sectionState = (dataset, listed) => (listed.includes(state.view) ? state.view : 'ready');
+
+function appHeader() {
+  const option = (value, label) => `<button type="button" data-key="theme-${value}" aria-pressed="${state.theme === value}" data-theme-choice="${value}">${label}</button>`;
+  return `<header data-component="app-header">
+    <div class="brand"><strong>Workspaces</strong><span class="pill">Sample data · mockup</span></div>
+    <div class="seg" role="group" aria-label="Theme" data-component="segmented">${option('light', 'Light')}${option('dark', 'Dark')}${option('auto', 'Auto')}</div>
+  </header>`;
+}
+
+function kpiTiles(tiles) {
+  const s = sectionState('tiles', ['loading', 'error', 'forbidden']);
+  let body;
+  if (s === 'loading') body = `<div class="tiles" aria-busy="true">${tiles.map(() => '<div class="tile"><div class="skeleton"></div><div class="skeleton" style="height:28px"></div></div>').join('')}</div>`;
+  else if (s === 'error') body = '<p class="banner stop">The summary did not load. The list below has a retry.</p>';
+  else if (s === 'forbidden') body = '<p class="banner stop">You do not have permission to see the summary.</p>';
+  else body = `<div class="tiles">${tiles.map((t) => `<div class="tile"><div class="label">${esc(t.label)}</div><div class="value">${esc(t.value)}</div><div class="muted">${esc(t.note)}</div></div>`).join('')}</div>`;
+  return `<section data-component="kpi-tiles" data-dataset="tiles" aria-labelledby="h-tiles">
+    <p class="eyebrow">Overview</p><h2 id="h-tiles">Workspace summary</h2><div data-state="${s}">${body}</div></section>`;
+}
+
+function rowList(rows) {
+  const s = sectionState('workspaces', ['loading', 'empty', 'error', 'forbidden', 'conflict', 'success']);
+  let body = '';
+  if (s === 'loading') {
+    body = '<p role="status">Loading workspaces…</p><div aria-hidden="true">' + '<div class="skeleton"></div>'.repeat(4) + '</div>';
+  } else if (s === 'error') {
+    body = '<div role="alert" class="banner stop"><p>The workspaces did not load. The server sent HTTP 503.</p><button type="button" data-action="retry">Try again</button></div>';
+  } else if (s === 'forbidden') {
+    body = '<div class="banner stop"><p>You do not have permission to see workspaces. Ask a workspace admin for the viewer role.</p></div>';
+  } else if (s === 'empty') {
+    body = state.role === 'admin'
+      ? '<div class="banner info"><p>There are no workspaces.</p><button type="button" data-action="create">Create workspace</button></div>'
+      : '<div class="banner info"><p>There are no workspaces. Ask a workspace admin to create one.</p></div>';
+  } else {
+    if (s === 'conflict') body += '<div role="alert" class="banner warn"><p>This list changed after you opened it. Reload the list to see the current workspaces.</p><button type="button" data-action="reload">Reload</button></div>';
+    if (s === 'success') body += `<p role="status" class="banner ok">Workspace ${esc(state.deleted)} is deleted.</p>`;
+    body += `<table><caption class="sr">Workspaces, sample data</caption>
+      <thead><tr><th scope="col">Name</th><th scope="col">Team</th><th scope="col">State</th><th scope="col">CPU</th><th scope="col"><span class="sr">Actions</span></th></tr></thead>
+      <tbody>${rows.map((w) => `<tr>
+        <td data-label="Name">${esc(w.name)}</td>
+        <td data-label="Team"><span><span class="dot" aria-hidden="true" style="background:var(--${TEAM[w.team].replace('.', '-')})"></span>${esc(w.team)}</span></td>
+        <td data-label="State"><span class="badge ${TONE[w.state]}">${esc(w.state)}</span></td>
+        <td data-label="CPU">${w.cpuUsed} of ${w.cpuQuota}</td>
+        <td data-label="Actions"><span>${w.canDelete
+          ? `<button type="button" class="danger" data-delete="${esc(w.name)}" aria-label="Delete ${esc(w.name)}">Delete</button>`
+          : `<button type="button" aria-disabled="true" aria-label="Delete ${esc(w.name)}" aria-describedby="why-${esc(w.name)}">Delete</button><span class="why" id="why-${esc(w.name)}">${esc(w.whyNot)}</span>`}</span></td>
+      </tr>`).join('')}</tbody></table>`;
+  }
+  return `<section data-component="row-list" data-dataset="workspaces" aria-labelledby="h-list">
+    <p class="eyebrow">Inventory</p><h2 id="h-list">All workspaces</h2><div data-state="${s}">${body}</div></section>`;
+}
+
+function render() {
+  applyTheme(state.theme);
+  const { tiles, workspaces } = renderVals(state);
+  document.getElementById('app').innerHTML = `<div class="wrap">${appHeader()}<main>${kpiTiles(tiles)}${rowList(workspaces)}</main></div>`;
+}
+
+document.addEventListener('click', (event) => {
+  const button = event.target.closest('button');
+  if (!button || button.getAttribute('aria-disabled') === 'true') return;
+  if (button.dataset.themeChoice) {
+    state.theme = button.dataset.themeChoice;
+    try { localStorage.setItem('theme', state.theme); } catch (e) { /* storage off: keep it for this visit */ }
+    render();
+    document.querySelector(`[data-theme-choice="${state.theme}"]`).focus();
+  } else if (button.dataset.delete) {
+    const dialog = document.getElementById('confirm');
+    dialog.dataset.name = button.dataset.delete;
+    document.getElementById('confirm-title').textContent = `Delete ${button.dataset.delete}?`;
+    dialog.showModal();
+  } else if (['retry', 'reload'].includes(button.dataset.action)) {
+    state.view = 'ready';
+    render();
+  }
+});
+document.getElementById('confirm').addEventListener('close', (event) => {
+  const dialog = event.target;
+  if (dialog.returnValue !== 'delete') return;
+  state.deleted = dialog.dataset.name;
+  state.view = 'success';
+  render();
+  document.querySelector('[role="status"]').setAttribute('tabindex', '-1');
+  document.querySelector('[role="status"]').focus();
+});
+render();
+</script>
+</body>
+</html>

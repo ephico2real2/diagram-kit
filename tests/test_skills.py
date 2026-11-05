@@ -73,3 +73,33 @@ def test_the_review_skill_names_the_templates_it_ships():
     for template in ("brief-template.md", "record-template.md"):
         assert (skill / template).is_file()
         assert f"${{CLAUDE_SKILL_DIR}}/{template}" in text
+
+
+UI_STATES = ("loading", "empty", "error", "forbidden", "conflict", "success")
+
+
+@pytest.mark.parametrize("name", ["build-mockup", "mockup-to-page", "mockup-to-page-react"])
+def test_the_mockup_standard_names_every_ui_state(name):
+    # The mockup shows each state, and each page skill says what each one becomes, so none is left to a guess
+    text = (ROOT / "skill" / name / "SKILL.md").read_text()
+    for state in UI_STATES:
+        assert f"`{state}`" in text, f"{name} does not name the {state} state"
+
+
+@pytest.mark.parametrize("name", ["build-mockup", "mockup-to-page", "mockup-to-page-react"])
+def test_the_mockup_standard_points_to_its_example(name):
+    text = (ROOT / "skill" / name / "SKILL.md").read_text()
+    assert "build-mockup/example/workspaces.html" in text
+    assert (ROOT / "skill" / "build-mockup" / "example" / "workspaces.html").is_file()
+
+
+@pytest.mark.parametrize("name", ["mockup-to-page", "mockup-to-page-react"])
+def test_each_page_skill_shows_its_mapping_in_code(name):
+    text = (ROOT / "skill" / name / "SKILL.md").read_text()
+    assert "```tsx" in text, f"{name} has no React example"
+
+
+def test_the_build_skill_keeps_every_target():
+    text = (ROOT / "skill" / "build-mockup" / "SKILL.md").read_text()
+    for target in ("`react-ts`", "`preact-ts`", "`react-pf-ts`"):
+        assert target in text
