@@ -75,6 +75,21 @@ def test_the_review_skill_names_the_templates_it_ships():
         assert f"${{CLAUDE_SKILL_DIR}}/{template}" in text
 
 
+@pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
+def test_a_wrapped_line_does_not_start_a_numbered_list(skill):
+    # In CommonMark, a line that starts with "1." or "1)" interrupts the paragraph above it and opens a list.
+    # Another number ("403.") does not. So a wrap before a "1." is a defect, unless the line above is a list item too.
+    lines, fenced, bad = (skill / "SKILL.md").read_text().splitlines(), False, []
+    for n, line in enumerate(lines):
+        if line.lstrip().startswith("```"):
+            fenced = not fenced
+        elif not fenced and n and re.match(r"\s*1[.)] ", line):
+            above = lines[n - 1]
+            if above.strip() and not re.match(r"\s*(\d+[.)]|[-*+]) |\s*\|", above):
+                bad.append(f"{n + 1}: {line.strip()[:40]}")
+    assert not bad, bad
+
+
 UI_STATES = ("loading", "empty", "error", "forbidden", "conflict", "success")
 
 
