@@ -69,6 +69,11 @@ Script what a person does, and record at every step: the canonical DOM, which el
 - Run the same walk on the reference, save the transcript, and compare per step. In the portal 178 of 180 steps matched
   at once; the other two showed the reference mirroring a textarea's value into its text child.
 - Fail on console errors. Keep the walk deterministic: test a timer in a separate check, not in the transcript.
+- Try what should be refused, not only what should work: a date below `min`, a number off `step`, a bad email. A library
+  can switch these off silently. PatternFly's `Form` sets `noValidate`, so a text comparison passed while the page
+  submitted what the reference refuses.
+- Scan the states that only open on interaction. Axe was clean on every tab's first view and had two serious findings on
+  the open type-ahead.
 
 When a walk fails, check your assumption before the code. Two walk failures in the portal were the test's: instance
 buttons labelled differently from what was assumed, and requests the user could not act on.
@@ -85,13 +90,30 @@ every state check:
 
 Include input values and option text. Report the states and strings compared, not only that it passed.
 
+**Text alone is not enough.** A string found anywhere on the page says nothing about where it is. In the portal a text
+check like this passed with columns swapped, Fail showing Pass and every status pill the wrong colour. Compare structure
+as well, in a form that does not depend on layout: each table cell by cell, the count of every character, each status
+word with its colour, which choices are selected, which buttons are disabled, and each meter's value.
+
+Also read what the page says about itself. A footnote said "the black tick on each bar is the threshold", and the page had
+no tick. Every string matched.
+
 ## 4. Prove the checks can fail
 
-A check that has never failed proves nothing. Before trusting a suite, change one real thing and watch it fail, then
-restore it and confirm green.
+A check that has never failed proves nothing, and neither does one that has failed once. In the portal one changed heading
+failed the first parity test, and that was reported as proof. A later review ran 16 mutants and 13 survived.
 
-- Change one heading on the page: the check must report it as missing and as added.
-- Confirm the source is restored with a grep, and rebuild, before going on.
+Mutate each kind of thing the check claims to see, and report how many survive:
+
+- Text: a changed heading must show as missing and as added.
+- Place: two columns swapped.
+- Value: a count showing another count, every meter at 0.
+- State: every status the wrong colour, a button never disabled, a selection never shown.
+- Presence: a callout or a second pager removed.
+- Wiring: a button connected to nothing, a form's validation turned off.
+
+Decide what each survivor means: a weak check to fix, or a state nobody can reach. Then restore the source, confirm it with a
+grep, and rebuild.
 
 ## 5. Layout and accessibility, at more than one width
 
@@ -132,7 +154,13 @@ Diagnose from the measurement, then fix where the cause is: the test when the te
 offset is there, and the runtime rather than the source when the source is meant to stay unchanged. After any fix, run
 everything again, not only what failed.
 
-## 9. Report
+## 9. Have someone else attack it
+
+Your own suite shares your blind spots. Before calling the work done, run `/adversarial-review` with reviewers who did
+not write it, and let one of them run the browser. In the portal that review found 17 defects behind a fully green suite.
+Keep the review ahead of the merge when you can: otherwise say plainly that the fixes come after it.
+
+## 10. Report
 
 - A table per view: size, percent different, pass or fail, DOM identical or not.
 - The counts: steps walked, states and strings compared, widths, axe findings, browser and version.
@@ -145,8 +173,9 @@ everything again, not only what failed.
 1. Reference read in full. Oracle named, with what it allows you to claim.
 2. DOM and pixels captured by one driver from both sides.
 3. Every interaction walked, with DOM, focus and caret per step, and compared.
-4. Content checked in both directions at every state.
-5. Each check seen to fail by a mutation, and the mutation reverted.
+4. Content checked in both directions and by structure at every state, refusals and opened states included.
+5. Each kind of check seen to fail by a mutant, survivors explained, mutants reverted.
 6. Three widths: scroll, placeholders, reachability. Axe at two. Screenshots looked at.
 7. All suites repeated in the installed browser, with its version recorded.
-8. Everything re-run after the last fix, from a set-up environment. The report says what was skipped or not tested.
+8. Attacked by a reviewer who did not write it.
+9. Everything re-run after the last fix, from a set-up environment. The report says what was skipped or not tested.
