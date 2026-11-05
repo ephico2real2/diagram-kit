@@ -23,7 +23,7 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 def test_the_kit_ships_every_skill():
     assert [p.name for p in SKILLS] == ["adversarial-review", "app-architect", "build-mockup", "dashboard", "document", "mockup-to-page",
-                                      "visual"]
+                                      "mockup-to-page-react", "test-ui", "visual"]
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
@@ -42,6 +42,14 @@ def test_the_mockup_skills_are_one_standard():
     build = (ROOT / "skill" / "build-mockup" / "SKILL.md").read_text()
     page = (ROOT / "skill" / "mockup-to-page" / "SKILL.md").read_text()
     assert "`/mockup-to-page` are one standard: change them together" in build
+    assert "`/build-mockup` are one standard: change them together" in page
+
+
+def test_the_patternfly_page_skill_is_part_of_the_mockup_standard():
+    build = (ROOT / "skill" / "build-mockup" / "SKILL.md").read_text()
+    page = (ROOT / "skill" / "mockup-to-page-react" / "SKILL.md").read_text()
+    assert "`/mockup-to-page-react` are one standard" in build
+    assert "`react-pf-ts`" in build
     assert "`/build-mockup` are one standard: change them together" in page
 
 
