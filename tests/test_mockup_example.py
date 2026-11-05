@@ -158,12 +158,16 @@ def test_each_state_fits_each_width_in_each_theme(browser, view, theme, width):
     metrics = page.evaluate("""() => ({
         scroll: document.documentElement.scrollWidth, inner: innerWidth,
         bg: document.querySelector('#app').getBoundingClientRect().height, tall: innerHeight,
-        text: document.body.innerText, html: document.querySelector('#app').innerHTML })""")
+        text: document.body.innerText,
+        html: (() => { const body = document.body.cloneNode(true);
+                       body.querySelectorAll('script').forEach((s) => s.remove()); return body.innerHTML })() })""")
     assert metrics["scroll"] <= metrics["inner"], f"sideways scroll at {width} px"
     assert metrics["bg"] >= metrics["tall"], "the background stops short"
     for leftover in ("{{", "sc-", "undefined", "NaN", "null"):
         assert leftover not in metrics["text"], leftover
-    for leftover in ("{{", "<sc-", "sc-if", "sc-for"):  # also in markup that the text does not show, e.g. a comment
+    # Also in markup that the text does not show: a comment, or the closed dialog outside #app. The script is left out,
+    # because its own code holds `${{`.
+    for leftover in ("{{", "<sc-", "sc-if", "sc-for"):
         assert leftover not in metrics["html"], leftover
     if evidence := os.environ.get("MOCKUP_EVIDENCE"):
         pathlib.Path(evidence).mkdir(parents=True, exist_ok=True)

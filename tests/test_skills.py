@@ -149,6 +149,18 @@ def test_the_page_skill_says_what_each_other_http_answer_becomes():
         assert re.search(rf"^  - {status}\b", text, re.M), f"no rule for {status}"
 
 
+def test_the_example_fetch_obeys_the_http_rules_of_its_skill():
+    # The rules and the code that people copy must agree: a 401 goes to the shell, not to a "Try again"
+    text = (ROOT / "skill" / "mockup-to-page" / "SKILL.md").read_text()
+    fetch = text.split("export async function getWorkspaces", 1)[1].split("\n}\n", 1)[0]
+    generic = fetch.index("if (!response.ok)")
+    for status in ("401", "403", "429"):
+        assert f"response.status === {status}" in fetch[:generic], f"{status} falls to the generic error"
+    unauthorized = re.search(r"status === 401\)(.*)", fetch).group(1)
+    assert "signIn()" in unauthorized and "'error'" not in unauthorized
+    assert "Retry-After" in fetch
+
+
 def test_the_patternfly_example_does_not_hide_a_fault_behind_retries():
     # Query's default retries keep the section in `loading` for about 7 s before `error`
     text = (ROOT / "skill" / "mockup-to-page-react" / "SKILL.md").read_text()

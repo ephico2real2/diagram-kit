@@ -87,7 +87,7 @@ the mockup's.
   - 404 to a read of one object: the object is not there. Show it as `empty`, with the words of the mockup.
   - 422 to a change: the form shows each field error under its input, as `/build-mockup` section 8 says. The section
     keeps its data.
-  - 429: show it as `error`. The "Try again" button waits for the time that `Retry-After` gives.
+  - 429: show it as `error`. When `Retry-After` gives a number of seconds, the cause says how long to wait.
 - If the mockup needs words for one of these answers, the mockup's owner adds them, and the mockup shows them.
 - Permissions come from the API answer (`canDelete`, `whyNot`). Do not calculate a permission in the browser from a
   role name. The server enforces each permission. A contract test sends a request without the permission. The
@@ -112,11 +112,12 @@ the mockup.
 
 The example that follows translates the `row-list` section of `skill/build-mockup/example/workspaces.html`. The types
 come from its `// type` lines. The `Result` union comes from its `// states` line. The fetch comes from its
-`// dataset` line. The words, the `role` attributes and the disabled action with its reason come from its markup. The
+`// dataset` line, and its HTTP answers from section 4. `signIn` comes from the app shell. The words, the `role` attributes and the disabled action with its reason come from its markup. The
 code compiles with `tsc --strict` (React 19.3.1, TypeScript 7.0.2, on 2026-11-05).
 
 ```tsx
 import { useEffect, useRef } from 'react';
+import { signIn } from './session'; // the app shell's sign-in, from the project's OIDC client
 
 // types.ts: from the `// type` and `// states` lines of the mockup
 export type Workspace = {
@@ -130,9 +131,16 @@ export type Result<T> =
 
 // api/workspaces.ts: from `// dataset workspaces: GET /api/workspaces?cursor&team → Page<Workspace>`.
 // A network fault rejects the promise: the caller shows it as `error` (see the Query hook in /mockup-to-page-react).
+// The other answers follow section 4. This is a list, so a 404 is a fault, not one object that is not there.
 export async function getWorkspaces(query: URLSearchParams, signal: AbortSignal): Promise<Result<Page<Workspace>>> {
   const response = await fetch(`/api/workspaces?${query}`, { signal });
+  if (response.status === 401) { signIn(); return { state: 'loading' }; } // the shell signs in; the section waits
   if (response.status === 403) return { state: 'forbidden' };
+  if (response.status === 429) {
+    const wait = Number(response.headers.get('Retry-After')); // seconds; an HTTP date gives NaN and no wait
+    return { state: 'error', cause: Number.isInteger(wait) && wait > 0
+      ? `The server is busy. Try again in ${wait} seconds.` : 'The server is busy.' };
+  }
   if (!response.ok) return { state: 'error', cause: `The server sent HTTP ${response.status}.` };
   return { state: 'ready', data: (await response.json()) as Page<Workspace> };
 }
