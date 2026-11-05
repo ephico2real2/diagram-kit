@@ -26,6 +26,8 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/document/SKILL.md` | the `/document` Claude Code skill: when a Word file is made, from what, and how it is checked; link `~/.claude/skills/document` to this directory |
 | `skill/build-mockup/SKILL.md` | the `/build-mockup` Claude Code skill: an app mockup built as the contract for its page (target, tokens, state, typed data, section types, checks); link `~/.claude/skills/build-mockup` to this directory |
 | `skill/mockup-to-page/SKILL.md` | the `/mockup-to-page` Claude Code skill: that mockup translated one-to-one into React or Preact + TypeScript, and proven to match; link `~/.claude/skills/mockup-to-page` to this directory |
+| `skill/mockup-to-page-react/SKILL.md` | the `/mockup-to-page-react` Claude Code skill: a mockup translated into React, TypeScript, Vite and PatternFly, with PatternFly's look and the mockup's content, data and behaviour, proven by parity tests; link `~/.claude/skills/mockup-to-page-react` to this directory |
+| `skill/test-ui/SKILL.md` | the `/test-ui` Claude Code skill: a UI tested against its reference with canonical DOM and pixels, recorded walks, content checked in both directions, mutations that prove the checks fail, and the installed browser; link `~/.claude/skills/test-ui` to this directory |
 | `skill/app-architect/SKILL.md` | the `/app-architect` Claude Code skill: an application reviewed in its own forked agent, from inventories and a twelve-factor scorecard to a phased roadmap with a runnable proof per step; link `~/.claude/skills/app-architect` to this directory |
 | `skill/adversarial-review/SKILL.md` | the `/adversarial-review` Claude Code skill: a change attacked by two model families on a per-claim brief, every finding with its full fix and a failing-then-passing test, each decision written down; link `~/.claude/skills/adversarial-review` to this directory |
 | `skill/adversarial-review/brief-template.md`, `record-template.md` | the skeletons of a review's brief and of its record |
@@ -124,12 +126,16 @@ skills make one standard and change together:
 - **`skill/mockup-to-page/SKILL.md`** translates that mockup one-to-one: tokens to `tokens.css`, state to the URL
   or browser storage, datasets to typed API schemas, and each section type to one component. The page is then proven
   to match at the same widths in both themes, with an accessibility scan and contract tests in CI.
+- **`skill/mockup-to-page-react/SKILL.md`** translates a mockup into React, TypeScript, Vite and PatternFly for a
+  console-style app. PatternFly replaces the look, so the page is proven on content, states and behaviour, not by a
+  pixel diff against the mockup.
 
-Link both to install them:
+Link them to install them:
 
 ```sh
 ln -s "$PWD/skill/build-mockup" ~/.claude/skills/build-mockup
 ln -s "$PWD/skill/mockup-to-page" ~/.claude/skills/mockup-to-page
+ln -s "$PWD/skill/mockup-to-page-react" ~/.claude/skills/mockup-to-page-react
 ```
 
 The render and check tools they use live in Inkcast's `scripts/mockups/` (`render.js`, `check.py`), where the
@@ -173,10 +179,18 @@ did not reach the others, and one vendored copy still lacks it
 
 ## Tests
 
+Install first, once per clone, and run from that virtualenv:
+
 ```sh
+python3 -m venv .venv
 .venv/bin/pip install ".[test]"
+.venv/bin/playwright install chromium
 .venv/bin/python -m pytest tests -q
 ```
+
+A `pytest` from your PATH fails at collection with `ModuleNotFoundError: No module named 'diagram_kit'` or `'playwright'`.
+That means the setup above has not been done, not that a test failed. `tests/test_skills.py` has no such imports, so it
+passes either way and proves nothing about the rest. The tests of `doc-docx` skip without `pandoc` on the PATH.
 
 No test reaches the network. The browser tests inline a font from `tests/fixtures/fonts/` (Inter, SIL Open Font
 License 1.1, `tests/fixtures/fonts/OFL.txt`). The dashboard tests run no container and ask no Prometheus: they use a

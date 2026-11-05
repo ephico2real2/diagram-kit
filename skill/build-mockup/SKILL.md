@@ -9,6 +9,8 @@ description: Build an app mockup (a design-canvas artboard) as the contract for 
 the **target framework**: one source of colours, one source of state, typed data, a fixed set of section types. If a
 mockup breaks a rule below, fix the mockup, not the translation.
 
+This skill and `/mockup-to-page-react` are one standard too, for a page built on PatternFly.
+
 This skill and `/mockup-to-page` are one standard: change them together. Proven on Inkcast, where the standard was
 decided (ADR-0016, issue #235) and a copy lives in `docs/tooling/mockup-standard.md`, and on the tokensave dashboard
 design (2026-10-26).
@@ -28,7 +30,7 @@ Before any markup, settle and record it (in the issue, the canvas notes, and `da
 
 | Field | Values used today |
 |---|---|
-| `framework` | `react-ts`: a full web app (Inkcast's, React + TypeScript). `preact-ts`: small pages embedded in a binary, e.g. the tokensave dashboard (Preact + TypeScript, owner's choice 2026-10-26). |
+| `framework` | `react-ts`: a full web app (Inkcast's, React + TypeScript). `preact-ts`: small pages embedded in a binary, e.g. the tokensave dashboard (Preact + TypeScript, owner's choice 2026-10-26). `react-pf-ts`: a console-style app on PatternFly (React, TypeScript, Vite), translated by `/mockup-to-page-react`, where PatternFly's look replaces the mockup's. |
 | `styling` | CSS custom properties from `tokens.css` (always) |
 | `state` | URL query parameters for shareable state; browser storage for the theme |
 | `data` | the API the page will call (REST paths) |
@@ -103,7 +105,7 @@ exactly one component in the target, so its props are the dataset plus labels:
 | `segmented` | button group (theme, range, measure) with `aria-pressed` | `options, value, onChange` |
 
 Each section starts with an eyebrow (small upper-case letter-spaced `accent`) and an `h2`. A new type is added to this
-table, and to `/mockup-to-page`, in the same change.
+table, and to `/mockup-to-page` and `/mockup-to-page-react`, in the same change.
 
 ## 6. Fits every screen
 
