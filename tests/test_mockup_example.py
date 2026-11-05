@@ -96,9 +96,20 @@ def test_the_example_shows_every_ui_state():
     assert shown == set(STATES)
 
 
+def declared_state_keys() -> list[str]:
+    return re.findall(r"^\s*// state (\w+): owner=[\w-]+ type=\S+ default='[^']*'", source(), re.M)
+
+
 def test_every_state_key_is_declared_with_its_owner_type_and_default():
-    keys = re.findall(r"^\s*// state (\w+): owner=\w+ type=\S+ default='\w+'", source(), re.M)
-    assert {"theme", "view", "role"} <= set(keys)
+    assert {"theme", "view", "role"} <= set(declared_state_keys())
+
+
+def test_the_state_object_holds_each_declared_key_and_no_other():
+    # A declared key that the code never uses, or a key that the code uses without a declaration, is drift
+    body = re.search(r"^const state = \{\n(.*?)^\};", source(), re.M | re.S)
+    assert body, "the example keeps its state in one `const state = {...}`"
+    used = re.findall(r"^\s*(\w+):", body.group(1), re.M)
+    assert sorted(used) == sorted(declared_state_keys())
 
 
 def test_no_hex_colour_outside_the_token_tables():
@@ -147,23 +158,77 @@ def test_each_state_fits_each_width_in_each_theme(browser, view, theme, width):
     metrics = page.evaluate("""() => ({
         scroll: document.documentElement.scrollWidth, inner: innerWidth,
         bg: document.querySelector('#app').getBoundingClientRect().height, tall: innerHeight,
-        text: document.body.innerText })""")
+        text: document.body.innerText, html: document.querySelector('#app').innerHTML })""")
     assert metrics["scroll"] <= metrics["inner"], f"sideways scroll at {width} px"
     assert metrics["bg"] >= metrics["tall"], "the background stops short"
     for leftover in ("{{", "sc-", "undefined", "NaN", "null"):
         assert leftover not in metrics["text"], leftover
+    for leftover in ("{{", "<sc-", "sc-if", "sc-for"):  # also in markup that the text does not show, e.g. a comment
+        assert leftover not in metrics["html"], leftover
     if evidence := os.environ.get("MOCKUP_EVIDENCE"):
         pathlib.Path(evidence).mkdir(parents=True, exist_ok=True)
         page.screenshot(path=f"{evidence}/{view}.{theme}.{width}.png", full_page=True)
     page.close()
 
 
-@pytest.mark.parametrize("view,role", [("loading", "status"), ("success", "status"), ("error", "alert"),
-                                       ("conflict", "alert")])
-def test_a_state_that_changes_without_a_click_is_announced(browser, view, role):
+@pytest.mark.parametrize("dataset,view,role,words", [
+    ("workspaces", "loading", "status", "Loading workspaces…"),
+    ("workspaces", "success", "status", "Workspace sandbox-3 is deleted."),
+    ("workspaces", "error", "alert", "The workspaces did not load."),
+    ("workspaces", "conflict", "alert", "This list changed after you opened it."),
+    ("tiles", "loading", "status", "Loading the summary…"),
+    ("tiles", "error", "alert", "The summary did not load."),
+])
+def test_a_state_that_changes_without_a_click_is_announced_with_its_words(browser, dataset, view, role, words):
+    # The words count too: an empty live region announces nothing
     page = browser.new_page()
     page.goto(f"{EXAMPLE.as_uri()}?view={view}")
-    assert page.locator(f'[data-dataset="workspaces"] [role="{role}"]').count() == 1
+    region = page.locator(f'[data-dataset="{dataset}"] [role="{role}"]')
+    assert region.count() == 1
+    assert words in region.inner_text()
+    page.close()
+
+
+@pytest.mark.parametrize("dataset", ["workspaces", "tiles"])
+def test_an_error_offers_a_retry_that_sends_the_request_again(browser, dataset):
+    page = browser.new_page()
+    page.goto(f"{EXAMPLE.as_uri()}?view=error")
+    page.locator(f'[data-dataset="{dataset}"]').get_by_role("button", name="Try again").click()
+    assert page.locator(f'[data-dataset="{dataset}"] [data-state="ready"]').count() == 1
+    page.close()
+
+
+def test_the_next_action_of_an_empty_list_does_something(browser):
+    page = browser.new_page()
+    page.goto(f"{EXAMPLE.as_uri()}?view=empty&role=admin")
+    page.get_by_role("button", name="Create workspace").click()
+    assert page.locator('[data-dataset="workspaces"] [data-state="empty"]').count() == 0
+    assert page.evaluate("document.activeElement.id") == "h-list"
+    page.close()
+
+
+@pytest.mark.parametrize("role", ["admin", "viewer"])
+@pytest.mark.parametrize("view", VIEWS)
+def test_each_touch_target_is_44_px_or_more(browser, view, role):
+    page = browser.new_page(viewport={"width": 390, "height": 800})
+    page.goto(f"{EXAMPLE.as_uri()}?view={view}&role={role}")
+    boxes = page.evaluate("""() => [...document.querySelectorAll('button, a[href], input, select')]
+        .filter(e => e.checkVisibility())
+        .map(e => { const r = e.getBoundingClientRect();
+                    return { name: e.getAttribute('aria-label') || e.textContent, w: r.width, h: r.height } })""")
+    small = [b for b in boxes if b["w"] < 44 or b["h"] < 44]
+    assert not small, small
+    page.close()
+
+
+@pytest.mark.parametrize("font", ["monospace", "serif", "Courier New", "Verdana"])
+@pytest.mark.parametrize("width", (390, 820))
+def test_the_layout_fits_with_a_wider_font(browser, font, width):
+    # The example uses system-ui, and its glyphs differ by host. A wide font must not make the page scroll sideways.
+    page = browser.new_page(viewport={"width": width, "height": 800})
+    page.goto(EXAMPLE.as_uri())
+    page.add_style_tag(content=f"* {{ font-family: '{font}', monospace !important; }}")
+    assert page.evaluate("document.documentElement.scrollWidth <= innerWidth"), f"sideways scroll with {font}"
     page.close()
 
 

@@ -1,9 +1,10 @@
 <!doctype html>
 <!-- SPDX-License-Identifier: MPL-2.0 -->
 <!--
-  The example of /build-mockup: one small page that obeys every rule of the skill. It is plain HTML, so it opens from
-  disk with no tools. On a design canvas the same contract lives in Main.dc.html, and the canvas passes the preview
-  props. Here the URL query passes them: workspaces.html?theme=light&view=conflict&role=viewer.
+  The example of /build-mockup: one small page that obeys sections 0 and 2 to 8 of the skill. It is plain HTML, so it
+  opens from disk with no tools. Two canvas rules do not apply to it: the shape of section 1 (Main.dc.html, preview
+  frames, Colors.dc.html) and the {{c.<token>}} markup of section 2. Here the tokens are CSS variables, and the URL
+  query passes the preview props: workspaces.html?theme=light&view=conflict&role=viewer.
   Sample data · mockup. The names are generic.
 -->
 <html lang="en" data-theme="dark">
@@ -97,7 +98,8 @@ const TONE = { ready: 'ok', pending: 'info', failed: 'stop' };
 // state theme: owner=App type='dark'|'light'|'auto' default='dark' storage=theme
 // state view: owner=App type='ready'|'loading'|'empty'|'error'|'forbidden'|'conflict'|'success' default='ready' preview
 // state role: owner=App type='admin'|'viewer' default='admin' preview (the page gets canDelete from the API)
-// state deleting: owner=row-list type=string default='none' local (the row whose confirm dialog is open)
+// state deleting: owner=row-list type=string default='' local (the row whose confirm dialog is open)
+// state deleted: owner=row-list type=string default='sandbox-3' local (the row that the success line names)
 const PROPS = JSON.parse(document.getElementById('app').dataset.props);
 const query = new URLSearchParams(location.search);
 const pick = (key, fallback) => (PROPS[key].includes(query.get(key)) ? query.get(key) : fallback);
@@ -107,6 +109,7 @@ const state = {
   theme: pick('theme', PROPS.theme.includes(stored) ? stored : 'dark'),
   view: pick('view', 'ready'),
   role: pick('role', 'admin'),
+  deleting: '',
   deleted: 'sandbox-3',
 };
 
@@ -124,6 +127,8 @@ function renderVals(s) {
     { name: 'web-preview', team: 'Web', state: 'pending', cpuUsed: 0, cpuQuota: 4 },
     { name: 'sandbox-3', team: 'Payments', state: 'failed', cpuUsed: 0, cpuQuota: 4 },
   ].map((w) => {
+    // The sample answer of GET /api/workspaces for the preview role. The page gets canDelete and whyNot from the API.
+    // It never calculates them from a role.
     if (s.role !== 'admin') return { ...w, canDelete: false, whyNot: 'You need the admin role to delete a workspace.' };
     if (w.state === 'pending') return { ...w, canDelete: false, whyNot: 'Wait until the request for this workspace ends.' };
     return { ...w, canDelete: true };
@@ -163,8 +168,8 @@ function appHeader() {
 function kpiTiles(tiles) {
   const s = sectionState('tiles', ['loading', 'error', 'forbidden']);
   let body;
-  if (s === 'loading') body = `<div class="tiles" aria-busy="true">${tiles.map(() => '<div class="tile"><div class="skeleton"></div><div class="skeleton" style="height:28px"></div></div>').join('')}</div>`;
-  else if (s === 'error') body = '<p class="banner stop">The summary did not load. The list below has a retry.</p>';
+  if (s === 'loading') body = `<p role="status">Loading the summary…</p><div class="tiles" aria-busy="true" aria-hidden="true">${tiles.map(() => '<div class="tile"><div class="skeleton"></div><div class="skeleton" style="height:28px"></div></div>').join('')}</div>`;
+  else if (s === 'error') body = '<div role="alert" class="banner stop"><p>The summary did not load. The server sent HTTP 503.</p><button type="button" data-action="retry">Try again</button></div>';
   else if (s === 'forbidden') body = '<p class="banner stop">You do not have permission to see the summary.</p>';
   else body = `<div class="tiles">${tiles.map((t) => `<div class="tile"><div class="label">${esc(t.label)}</div><div class="value">${esc(t.value)}</div><div class="muted">${esc(t.note)}</div></div>`).join('')}</div>`;
   return `<section data-component="kpi-tiles" data-dataset="tiles" aria-labelledby="h-tiles">
@@ -218,23 +223,31 @@ document.addEventListener('click', (event) => {
     render();
     document.querySelector(`[data-theme-choice="${state.theme}"]`).focus();
   } else if (button.dataset.delete) {
-    const dialog = document.getElementById('confirm');
-    dialog.dataset.name = button.dataset.delete;
-    document.getElementById('confirm-title').textContent = `Delete ${button.dataset.delete}?`;
-    dialog.showModal();
+    state.deleting = button.dataset.delete;
+    document.getElementById('confirm-title').textContent = `Delete ${state.deleting}?`;
+    document.getElementById('confirm').showModal();
+  } else if (button.dataset.action === 'create') {
+    // The form to create a workspace is a different screen. Here the list comes back with the sample rows.
+    state.view = 'ready';
+    render();
+    const heading = document.getElementById('h-list');
+    heading.setAttribute('tabindex', '-1');
+    heading.focus();
   } else if (['retry', 'reload'].includes(button.dataset.action)) {
     state.view = 'ready';
     render();
   }
 });
 document.getElementById('confirm').addEventListener('close', (event) => {
-  const dialog = event.target;
-  if (dialog.returnValue !== 'delete') return;
-  state.deleted = dialog.dataset.name;
+  const name = state.deleting;
+  state.deleting = '';
+  if (event.target.returnValue !== 'delete') return;
+  state.deleted = name;
   state.view = 'success';
   render();
-  document.querySelector('[role="status"]').setAttribute('tabindex', '-1');
-  document.querySelector('[role="status"]').focus();
+  const done = document.querySelector('[data-dataset="workspaces"] [role="status"]');
+  done.setAttribute('tabindex', '-1');
+  done.focus();
 });
 render();
 </script>
