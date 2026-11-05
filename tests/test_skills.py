@@ -22,7 +22,8 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 
 def test_the_kit_ships_every_skill():
-    assert [p.name for p in SKILLS] == ["build-mockup", "dashboard", "document", "mockup-to-page", "visual"]
+    assert [p.name for p in SKILLS] == ["adversarial-review", "app-architect", "build-mockup", "dashboard", "document", "mockup-to-page",
+                                      "visual"]
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
@@ -42,3 +43,25 @@ def test_the_mockup_skills_are_one_standard():
     page = (ROOT / "skill" / "mockup-to-page" / "SKILL.md").read_text()
     assert "`/mockup-to-page` are one standard: change them together" in build
     assert "`/build-mockup` are one standard: change them together" in page
+
+
+def test_the_architect_skill_runs_in_its_own_agent_and_receives_its_subject():
+    skill = ROOT / "skill" / "app-architect" / "SKILL.md"
+    meta = frontmatter(skill)
+    assert (meta["context"], meta["agent"]) == ("fork", "general-purpose")
+    assert "$ARGUMENTS" in skill.read_text()
+
+
+@pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
+def test_a_frontmatter_value_that_yaml_reads_as_a_list_or_a_map_is_quoted(skill):
+    # `argument-hint: [path] [scope]` is a YAML list followed by stray text, and a strict parser refuses the block
+    for key, value in frontmatter(skill / "SKILL.md").items():
+        assert not value.startswith(("[", "{")), f"{skill.name}: quote the value of {key}"
+
+
+def test_the_review_skill_names_the_templates_it_ships():
+    skill = ROOT / "skill" / "adversarial-review"
+    text = (skill / "SKILL.md").read_text()
+    for template in ("brief-template.md", "record-template.md"):
+        assert (skill / template).is_file()
+        assert f"${{CLAUDE_SKILL_DIR}}/{template}" in text

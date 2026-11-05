@@ -26,6 +26,9 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/document/SKILL.md` | the `/document` Claude Code skill: when a Word file is made, from what, and how it is checked; link `~/.claude/skills/document` to this directory |
 | `skill/build-mockup/SKILL.md` | the `/build-mockup` Claude Code skill: an app mockup built as the contract for its page (target, tokens, state, typed data, section types, checks); link `~/.claude/skills/build-mockup` to this directory |
 | `skill/mockup-to-page/SKILL.md` | the `/mockup-to-page` Claude Code skill: that mockup translated one-to-one into React or Preact + TypeScript, and proven to match; link `~/.claude/skills/mockup-to-page` to this directory |
+| `skill/app-architect/SKILL.md` | the `/app-architect` Claude Code skill: an application reviewed in its own forked agent, from inventories and a twelve-factor scorecard to a phased roadmap with a runnable proof per step; link `~/.claude/skills/app-architect` to this directory |
+| `skill/adversarial-review/SKILL.md` | the `/adversarial-review` Claude Code skill: a change attacked by two model families on a per-claim brief, every finding with its full fix and a failing-then-passing test, each decision written down; link `~/.claude/skills/adversarial-review` to this directory |
+| `skill/adversarial-review/brief-template.md`, `record-template.md` | the skeletons of a review's brief and of its record |
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |
@@ -131,6 +134,36 @@ ln -s "$PWD/skill/mockup-to-page" ~/.claude/skills/mockup-to-page
 
 The render and check tools they use live in Inkcast's `scripts/mockups/` (`render.js`, `check.py`), where the
 standard was decided (Inkcast ADR-0016); the skills name them and their commands.
+
+## Application architecture
+
+**`skill/app-architect/SKILL.md`** reviews an application, new or existing, and returns a modernization plan grounded
+in measured evidence: inventories, a twelve-factor scorecard, observability against a layered OpenTelemetry standard,
+an adversarial security review, KEDA scaling with the TLS and identity each scaler needs, CI/CD, a portability map to
+open standards and managed services, and a phased roadmap. Every finding carries its full fix and a test that fails
+before it and passes after. The skill runs in its own forked agent (`context: fork`), so the review's reading stays
+out of the conversation and only its report comes back. Its figures are made with `/visual` and its dashboards with
+`/dashboard`. Its worked example is Fabric Coffee, demo 57 of
+[cilium-implementation-poc](https://github.com/ephico2real2/cilium-implementation-poc).
+
+```sh
+ln -s "$PWD/skill/app-architect" ~/.claude/skills/app-architect
+```
+
+## Adversarial review
+
+**`skill/adversarial-review/SKILL.md`** is the review pass every change gets before it is called ready, and the one
+`/app-architect` asks for. A brief of numbered claims goes to two reviewers or more from different model families,
+never the author. Each verdict carries its artefact, and each finding carries its full fix and a test that fails
+before it and passes after. The orchestrator traces every fix, writes each decision with its reason, applies and
+tests, writes the record, and runs a second pass on the fixed head.
+
+```sh
+ln -s "$PWD/skill/adversarial-review" ~/.claude/skills/adversarial-review
+```
+
+A personal skill wins over a project skill of the same name, so this link hides a repository's own
+`.claude/skills/adversarial-review` in that repository.
 
 ## Why a kit
 
