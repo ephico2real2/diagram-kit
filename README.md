@@ -158,17 +158,22 @@ same version.
 An app mockup is the contract for the page built from it, so it is built to be translated, not interpreted. Two
 skills make one standard and change together:
 
-- **`skill/build-mockup/SKILL.md`** builds the mockup on a design canvas. It declares the target framework first
-  (`react-ts` or `preact-ts`), then holds one interactive app with preview frames, every colour as a named token in one
-  table, shared state declared once with its owner and persistence, sample data as typed datasets with their API
-  source, and every section as one of nine fixed types. Before it is published, every tab, theme and range is
-  rendered and checked at 390, 820 and 1440 px.
+- **`skill/build-mockup/SKILL.md`** builds the mockup on a design canvas. It declares the target framework first:
+  `react-ts`, `preact-ts` or `react-pf-ts`. It holds one interactive app with preview frames, and every colour as a
+  named token in one table. It declares shared state one time, with its owner and persistence. Sample data is in
+  typed datasets with their API source. Every section is one of ten fixed types. Each section shows its UI states:
+  `loading`, `empty`, `error`, `forbidden`, `conflict` and `success`. Each action obeys the permissions that the API
+  gives. Before you publish the mockup, the checks open every tab, theme, range and state at 390, 820 and 1440 px.
+  Its example, `skill/build-mockup/example/workspaces.html`, opens from disk. `tests/test_mockup_example.py` does a
+  test of the example in each state, at each width, in both themes.
 - **`skill/mockup-to-page/SKILL.md`** translates that mockup one-to-one: tokens to `tokens.css`, state to the URL
   or browser storage, datasets to typed API schemas, and each section type to one component. The page is then proven
   to match at the same widths in both themes, with an accessibility scan and contract tests in CI.
 - **`skill/mockup-to-page-react/SKILL.md`** translates a mockup into React, TypeScript, Vite and PatternFly for a
   console-style app. PatternFly replaces the look, so the page is proven on content, states and behaviour, not by a
   pixel diff against the mockup.
+
+Each page skill ends with the example's list section in its framework, as code that compiles with `tsc --strict`.
 
 Link them to install them:
 
