@@ -40,7 +40,7 @@ A correct structure is easy to write. Do these steps yourself, because a report 
 
 1. Plant claims with known answers. Before you start the agent, include at least one true claim, one false claim and one claim that it cannot test from where it runs. Find the answers yourself first, and keep them out of the brief. A false claim marked CONFIRMED, or a claim with no possible test marked CONFIRMED, fails the job.
 2. Operate the tests again. Take each command and folder from the agent's records, and compare the output with the record. Use the recorded folder, because two tests in the pilot failed from another folder and passed from the recorded one. Install the tools first: the agent's Codex shell had `rg`, and the auditor needed `brew install ripgrep`.
-3. Count the calls in the agent's own session log, and compare them with its final message. For Codex or Cursor, `tool-use-audit.py` of `/tokensave-fork` also shows whether the agent read through the graph and whether it read a whole file.
+3. Count the calls in the agent's own session log, and compare them with its final message. For Claude, Codex or Cursor, `tool-use-audit.py` of `/tokensave-fork` also shows whether the agent read through the graph and whether it read a whole file.
 4. Read the files during the run, at least once. An agent can rewrite all files at its end, and then the file times show nothing. The times of its log files show the order of the work.
 5. Measure the time after the last claim. Compare the end of the job with the time of the last evidence file. A large share means that the agent worked on the report and not on the claims.
 6. Look for filler. A section that says only that nothing applies shows structure with no content.
