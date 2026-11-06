@@ -36,6 +36,13 @@ def cursor_graph(tool: str, args: dict) -> dict:
     return cursor("mcpToolCall", {"name": f"tokensave-{tool}", "args": args}, success)
 
 
+def claude(name: str, arguments: dict, text: str = "answer", is_error: bool = False, use_id: str = "use-1") -> list[dict]:
+    use = {"type": "assistant", "message": {"content": [{"type": "tool_use", "id": use_id, "name": name, "input": arguments}]}}
+    result = {"type": "user", "message": {"content": [{"type": "tool_result", "tool_use_id": use_id, "is_error": is_error,
+                                                       "content": [{"type": "text", "text": text}]}]}}
+    return [use, result]
+
+
 @pytest.fixture
 def project(tmp_path: pathlib.Path) -> pathlib.Path:
     (tmp_path / "src").mkdir()
@@ -133,3 +140,51 @@ def test_a_log_that_is_not_json_stops_with_its_line_number(project):
     result = subprocess.run([sys.executable, str(SCRIPT), str(log), "--root", str(project)], capture_output=True, text=True)
     assert result.returncode == 2
     assert "agent.jsonl:1: not JSON" in result.stderr
+
+
+def test_claude_with_a_slice_passes_and_a_schema_load_is_not_a_call(project):
+    records = claude("ToolSearch", {"query": "select:mcp__tokensave__tokensave_read"}, use_id="load")
+    records += claude("mcp__tokensave__tokensave_read", {"file": FILE, "mode": "lines", "lines": "2-4"})
+    result = operate(project, *records)
+    assert result.returncode == 0, result.stdout
+    assert f"{FILE}: 3 of 10 lines" in result.stdout
+    assert "ToolSearch" not in result.stdout
+
+
+def test_a_claude_schema_load_alone_fails(project):
+    result = operate(project, *claude("ToolSearch", {"query": "select:mcp__tokensave__tokensave_read"}))
+    assert "no tokensave tool that reads code answered" in result.stdout
+
+
+def test_claude_with_no_mode_fails(project):
+    result = operate(project, *claude("mcp__tokensave__tokensave_read", {"file": FILE}))
+    assert "with mode full asks for the whole file" in result.stdout
+
+
+@pytest.mark.parametrize("name, arguments", [
+    ("Bash", {"command": "grep -n name {root}/src/big.py"}),
+    ("Read", {"file_path": "{root}/src/big.py"}),
+    ("Grep", {"pattern": "name", "path": "{root}/src"}),
+], ids=["shell", "native read", "native search"])
+def test_claude_reading_the_project_outside_tokensave_fails(project, name, arguments):
+    filled = {key: value.format(root=project) for key, value in arguments.items()}
+    graph = claude("mcp__tokensave__tokensave_search", {"query": "name"}, use_id="graph")
+    assert operate(project, *graph, *claude(name, filled)).returncode == 1
+
+
+def test_a_claude_call_that_a_hook_refused_read_nothing(project):
+    graph = claude("mcp__tokensave__tokensave_search", {"query": "name"}, use_id="graph")
+    denied = claude("Bash", {"command": f"rg name {project}"}, text="STOP: use tokensave_search", is_error=True)
+    assert operate(project, *graph, *denied).returncode == 0
+
+
+def test_a_claude_report_that_only_mentions_the_project_is_not_a_read(project):
+    graph = claude("mcp__tokensave__tokensave_search", {"query": "name"}, use_id="graph")
+    report = claude("Write", {"file_path": "/elsewhere/verdicts.md", "content": f"Found in {project}/src/big.py"})
+    assert operate(project, *graph, *report).returncode == 0
+
+
+def test_a_claude_write_inside_the_project_still_fails(project):
+    graph = claude("mcp__tokensave__tokensave_search", {"query": "name"}, use_id="graph")
+    write = claude("Write", {"file_path": f"{project}/src/big.py", "content": "changed"})
+    assert operate(project, *graph, *write).returncode == 1

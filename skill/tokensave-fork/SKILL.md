@@ -140,6 +140,7 @@ The script copies the main configuration to `~/.cursor-jobs` with `sandbox.readB
 Do not set `sandbox.readBoundary` in `~/.cursor/cli-config.json`. A plain call with no sandbox then also got `Permission denied` outside its folder, so the setting limits each Cursor session. A plain call with the main file still reads the whole project, so a job must use both the variable and the flag.
 
 - Put a disposable clone in the job folder, because the agent can read and test only there. A symlink that points out of the folder is not tested.
+- `CURSOR_CONFIG_DIR` does not change the MCP server of a job. A server in that folder did not start, and a server in `.cursor/mcp.json` of the workspace did, with `--approve-mcps`. Without that file, the job uses `~/.cursor/mcp.json`.
 - The exit status does not show a refusal in a pipe: `cat <file> | wc -c` exits 0 and prints 0. Read stderr.
 - `curl https://example.com` was refused with the sandbox and no read boundary. This setup does not give network access, and a way to grant it is not tested.
 
@@ -199,6 +200,8 @@ The test above names the tool, so it proves only that the tool answers. It does 
 5. Compare the answer of the agent with yours. The audit shows how the agent read, and not whether the answer is correct.
 6. Operate one control. Ask the agent to call `tokensave_read` with only `file` and `graph_root`. The audit must print FAIL. If it prints PASS, the test proves nothing.
 
+For a Claude agent, operate `claude -p --output-format stream-json --verbose "$(cat prompt.txt)" < /dev/null > claude.jsonl`. The audit also reads the transcript of a subagent, at `~/.claude/projects/<project>/<session>/subagents/agent-<id>.jsonl`. On a real job, a command that runs tests in the project can print a PROBLEM line, so read each line and do not use the verdict alone.
+
 Results on 2026-11-06, for a file of 927 lines and 69,921 bytes:
 
 | Run | Audit | What the log shows |
@@ -210,6 +213,11 @@ Results on 2026-11-06, for a file of 927 lines and 69,921 bytes:
 | Cursor, told to use its native read | FAIL | The read succeeded, on the whole file |
 | Cursor, told to operate `rg` | FAIL | No graph call, and each shell call was refused, also `echo hello` |
 | Cursor job in its own folder, open question | PASS | 5 graph calls, no shell call, and the shell and native read cannot reach the project |
+| Claude, `claude -p`, open question, first run | FAIL | Tokensave for the code, and 26 of 927 lines of the file, but also `grep -n` in the project through Bash |
+| Claude, `claude -p`, open question, second run | PASS | 4 graph calls answered, no shell call, 20 of 927 lines of the file |
+| Claude subagent `ob1-lite`, with the brief standard | FAIL | 8 graph calls answered, also `sed -n` on a test file and test commands in the project. Its stated counts match the log |
+| Claude, `tokensave_read` with no `mode` | FAIL | 15,298 characters, cut at line 234 |
+| Claude, told to operate `rg`, `cat` and its Read tool | FAIL | All ran, and `cat` reached all 69,921 bytes |
 
 Both open answers named the correct method and call site. One run shows that an agent can follow the brief, and it does not show a rate. Audit real jobs too.
 

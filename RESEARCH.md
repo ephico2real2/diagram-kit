@@ -450,6 +450,11 @@ The last two rows and the 151 seconds are why the standard now forbids that fill
 | Cursor, told to use its native read | FAIL | The read succeeded, on the whole file |
 | Cursor, told to operate `rg` | FAIL | No graph call, and each shell call was refused, also `echo hello` |
 | Cursor job in its own folder, open question | PASS | 5 graph calls, no shell call, and the shell and native read cannot reach the project |
+| Claude, `claude -p`, open question, first run | FAIL | Tokensave for the code, and 26 of 927 lines of the file, but also `grep -n` in the project through Bash |
+| Claude, `claude -p`, open question, second run | PASS | 4 graph calls answered, no shell call, 20 of 927 lines of the file |
+| Claude subagent `ob1-lite`, with the brief standard | FAIL | 8 graph calls answered, also `sed -n` on a test file and test commands in the project. Its stated counts match the log |
+| Claude, `tokensave_read` with no `mode` | FAIL | 15,298 characters, cut at line 234 |
+| Claude, told to operate `rg`, `cat` and its Read tool | FAIL | All ran, and `cat` reached all 69,921 bytes |
 
 The two passes are one run each, so they show that an agent can follow the brief, and they do not show a rate. The refusals in the last row include a command that is not a search, so they came from the approval of the shell and not from the tokensave hook.
 

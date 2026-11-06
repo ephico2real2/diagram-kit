@@ -2,12 +2,12 @@
 # SPDX-License-Identifier: MPL-2.0
 # This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
 # distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Show, from the log of an agent, whether it read code through tokensave and whether it read a whole file.
+"""Show, from the log of a Claude, Codex or Cursor agent, whether it read through tokensave and whether it read a whole file.
 
 An agent's own report cannot prove this, and a call to `tokensave_read` does not prove it either: that tool reads the
-whole file by default, up to the response cap of the server. The input is the output of `codex exec --json` or of
-`cursor-agent -p --output-format stream-json`. Operate the agent from an empty folder, so that each read of the project
-must name the project root. The exit status is 0 for PASS, 1 for FAIL and 2 for a log that this script cannot read.
+whole file by default, up to the response cap of the server. The input is the output of `codex exec --json`, of
+`cursor-agent -p --output-format stream-json` or of `claude -p --output-format stream-json --verbose`, or the transcript
+of a Claude subagent. Operate the agent from an empty folder, so that each read of the project must name the project root. The exit status is 0 for PASS, 1 for FAIL and 2 for a log that this script cannot read.
 """
 
 from __future__ import annotations
@@ -23,7 +23,10 @@ import sys
 NOT_READING_CODE = {"tokensave_status", "tokensave_more"}
 # Cursor's call that fetches a tool's schema names the tool, but does not call it.
 NOT_A_CALL = {"getMcpToolsToolCall"}
+# ToolSearch loads the schema of a deferred Claude tool, and it calls nothing.
+CLAUDE_NOT_A_CALL = {"ToolSearch"}
 SHELL_READER = re.compile(r"(?:^|[\s;&|(\"'])(rg|ag|grep|cat|sed|awk|head|tail|less|more|nl|bat)\s")
+WRITTEN_TEXT = {"content", "old_string", "new_string", "edits"}
 TRUNCATED = "[... truncated at "
 # macOS writes this when a sandbox refuses a read. The exit status cannot show it: `cat file | wc -c` exits 0.
 SANDBOX_REFUSAL = "Operation not permitted"
@@ -86,20 +89,48 @@ def cursor_call(record: dict) -> Call | None:
     return Call("other", key, args, state)
 
 
+def claude_calls(record: dict, pending: dict[str, dict]) -> list[Call]:
+    """A Claude log has the call in one record and its result in a later one, so hold each call until its result."""
+    if record.get("type") not in ("assistant", "user"):
+        return []
+    content = record.get("message", {}).get("content")
+    calls = []
+    for part in content if isinstance(content, list) else []:
+        if part.get("type") == "tool_use" and part.get("name") not in CLAUDE_NOT_A_CALL:
+            pending[part.get("id", "")] = part
+        elif part.get("type") == "tool_result" and part.get("tool_use_id") in pending:
+            use = pending.pop(part["tool_use_id"])
+            name, args = use.get("name", ""), use.get("input") or {}
+            answer = part.get("content")
+            text = answer if isinstance(answer, str) else text_of(answer or [])
+            state = "refused" if SANDBOX_REFUSAL in text else "failed" if part.get("is_error") else "ok"
+            if name.startswith("mcp__tokensave__"):
+                calls.append(Call("graph", name.removeprefix("mcp__tokensave__"), args, state, text))
+            elif name == "Bash":
+                calls.append(Call("shell", "shell", args, state, text))
+            elif name == "Read":
+                calls.append(Call("read", "read", {"path": args.get("file_path", "")}, state, text))
+            else:
+                calls.append(Call("other", name, args, state, text))
+    return calls
+
+
 def load_calls(log: pathlib.Path) -> list[Call]:
     calls = []
+    pending: dict[str, dict] = {}
     for number, line in enumerate(log.read_text().splitlines(), 1):
         if not line.strip():
             continue
         try:
             record = json.loads(line)
         except json.JSONDecodeError as error:
-            print(f"{log}:{number}: not JSON ({error}). Use codex exec --json or cursor-agent --output-format stream-json.",
+            print(f"{log}:{number}: not JSON ({error}). Use the JSON stream of the agent, not its text output.",
                   file=sys.stderr)
             sys.exit(2)
         call = codex_call(record) or cursor_call(record)
         if call:
             calls.append(call)
+        calls.extend(claude_calls(record, pending))
     return calls
 
 
@@ -117,7 +148,8 @@ def audit(calls: list[Call], root: pathlib.Path) -> tuple[list[str], list[str]]:
     seen: dict[str, set[int]] = {}
     totals: dict[str, int] = {}
     for call in calls:
-        where = json.dumps(call.args)
+        # The text that a tool writes can mention the root, and that is not an access to the project.
+        where = json.dumps({key: value for key, value in call.args.items() if key not in WRITTEN_TEXT})
         if call.kind == "graph":
             size = f"{len(call.text)} chars" + (", truncated by the server" if TRUNCATED in call.text else "")
             facts.append(f"{call.name}: {call.state}, {size}")
@@ -153,7 +185,7 @@ def audit(calls: list[Call], root: pathlib.Path) -> tuple[list[str], list[str]]:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("log", type=pathlib.Path, help="the output of codex exec --json or cursor-agent stream-json")
+    parser.add_argument("log", type=pathlib.Path, help="the JSON stream of the agent, or a Claude transcript")
     parser.add_argument("--root", type=pathlib.Path, required=True, help="the absolute path of the indexed project")
     arguments = parser.parse_args()
     facts, problems = audit(load_calls(arguments.log), arguments.root.expanduser().resolve())
