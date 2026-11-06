@@ -104,6 +104,10 @@ the skeleton.
    own verification on the real environment. "Compiles" or "looks right" is not validation.
 5. Send each reviewer's accepted fixes to another reviewer to confirm or refute, with a test.
 
+## Agents that save their work
+
+Paste the brief standard of `/agent-report` into each brief, so that a stopped reviewer loses nothing and reads code through the graph if the project has an index. Its audit plants claims with known answers, and shows whether a reviewer did the work. Use it when you doubt a report.
+
 ## 6. The record
 
 Write the record in the repository. `${CLAUDE_SKILL_DIR}/record-template.md` is the skeleton. It holds a table of

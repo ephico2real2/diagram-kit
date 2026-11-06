@@ -421,6 +421,40 @@ output by hand.
 **Not in the kit yet**: the capture of a dashboard in the OpenShift console and in a Grafana fed by its sidecar,
 which the worked example does with its own scripts.
 
+## 8. Background agents: what a pilot of the report standard measured (2026-11-06)
+
+`skill/agent-report/SKILL.md` asks an arbiter to plant claims with known answers, because a correct report structure proves nothing about the work. One Codex job tested that audit: five claims about a private NestJS repository, under the brief standard. The claims were easy on purpose, so this says nothing about a hard investigation.
+
+| Measure | Result |
+|---|---|
+| Planted answers | 5 of 5 correct (2 true, 2 false, 1 that it could not test) |
+| Tests operated again from the recorded folder | 5 of 5 gave the recorded output, one after `brew install ripgrep` |
+| Graph and shell calls | 25 and 11 stated, 25 and 11 in the session log |
+| Job length, and time after the last evidence file | 555 s, and 151 s (27%), with an 89-line program to test its report format |
+| Report and evidence | 21 KB of reports, 140 KB of logs, 65,420 tokens |
+| Sections that say only that nothing applies | 3.4 KB in `fixes.md` and `recommendations.md` |
+
+The last two rows and the 151 seconds are why the standard now forbids that filler and that program. Those rules came after the pilot, so no measurement covers them yet. At the end of the job, all seven report files had the same modified time, so the skill tells the arbiter to read them during the run.
+
+### Does the agent use the graph, and does it read a whole file?
+
+`skill/tokensave-fork/tool-use-audit.py` answers this from the log of the agent, because the report of an agent cannot prove it. A call to `tokensave_read` also cannot prove it, because the default mode is `full`. The question was about one method in a private project, in a file of 927 lines and 69,921 bytes. Each row is one run with the 7.16.0 fork, from an empty folder.
+
+| Run | Audit | Log |
+|---|---|---|
+| Codex, open question with the brief standard | PASS | 7 graph calls, 1 shell call that read no code, 47 of 927 lines |
+| Cursor, open question with the brief standard | PASS | 7 graph calls, no shell call, 20 of 927 lines |
+| Codex, `tokensave_read` with no `mode` | FAIL | 15,298 characters, cut at line 234 |
+| Cursor, `tokensave_read` with no `mode` | FAIL | 15,298 characters, cut at line 234 |
+| Codex, told to operate `rg` and `cat` | FAIL | Both ran, and `cat` returned 69,921 bytes |
+| Cursor, told to use its native read | FAIL | The read succeeded, on the whole file |
+| Cursor, told to operate `rg` | FAIL | No graph call, and each shell call was refused, also `echo hello` |
+| Cursor job in its own folder, open question | PASS | 5 graph calls, no shell call, and the shell and native read cannot reach the project |
+
+The two passes are one run each, so they show that an agent can follow the brief, and they do not show a rate. The refusals in the last row include a command that is not a search, so they came from the approval of the shell and not from the tokensave hook.
+
+A sandbox with `sandbox.readBoundary` set to `workspace` gave Cursor a shell and took away the other ways to read the project. `git`, `python3` and `rg` ran in the job folder with no prompt. `cat`, `rg` and the native read of the project failed with `Operation not permitted` or `Permission denied`, and tokensave still answered. In the main configuration, the same setting also stopped the native read of a plain call with no sandbox, so `skill/tokensave-fork/cursor-job-config.py` puts it in a second folder that one call selects.
+
 ## Appendix: every page
 
 Repository, page, and the two renders. "Identical PNGs" counts the re-rendered PNGs byte-identical to a committed PNG beside the page.

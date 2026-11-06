@@ -22,8 +22,9 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 
 def test_the_kit_ships_every_skill():
-    assert [p.name for p in SKILLS] == ["adversarial-review", "app-architect", "build-mockup", "dashboard", "document", "mockup-to-page",
-                                      "mockup-to-page-react", "test-ui", "visual"]
+    assert [p.name for p in SKILLS] == ["adversarial-review", "agent-report", "app-architect", "build-mockup", "codex-arbiter", "dashboard",
+                                      "document", "fix-defect", "mockup-to-page", "mockup-to-page-react", "test-ui",
+                                      "tokensave-fork", "visual"]
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
@@ -73,3 +74,45 @@ def test_the_review_skill_names_the_templates_it_ships():
     for template in ("brief-template.md", "record-template.md"):
         assert (skill / template).is_file()
         assert f"${{CLAUDE_SKILL_DIR}}/{template}" in text
+
+
+def test_the_agent_report_skill_ships_its_brief_and_an_audit_of_real_work():
+    skill = (ROOT / "skill" / "agent-report" / "SKILL.md").read_text()
+    brief = (ROOT / "skill" / "agent-report" / "brief-standard.md").read_text()
+    assert "${CLAUDE_SKILL_DIR}/brief-standard.md" in skill
+    assert "Plant claims with known answers" in skill
+    assert "Operate the tests again" in skill
+    for report in ("plan.md", "research.md", "tests.md", "verdicts.md", "fixes.md", "recommendations.md", "resume.md"):
+        assert report in brief, report
+    assert "Do not write a program to test the format" in brief
+
+
+def test_the_defect_skill_and_the_fork_skill_use_the_brief_standard():
+    assert "`/agent-report`" in (ROOT / "skill" / "fix-defect" / "SKILL.md").read_text()
+    assert "`/agent-report`" in (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
+
+
+def test_the_fork_skill_installs_from_nothing_and_warns_about_upgrade():
+    skill = (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
+    assert "## Install from nothing" in skill
+    assert "${CLAUDE_SKILL_DIR}/cursor-allow.py" in skill
+    assert (ROOT / "skill" / "tokensave-fork" / "cursor-allow.py").is_file()
+    assert "Do not run `tokensave upgrade`" in skill
+    assert "brew install git rustup ripgrep" in skill
+
+
+def test_the_fork_skill_audits_the_log_and_the_brief_warns_about_the_default_read():
+    skill = (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
+    assert "${CLAUDE_SKILL_DIR}/tool-use-audit.py" in skill
+    assert (ROOT / "skill" / "tokensave-fork" / "tool-use-audit.py").is_file()
+    assert "${CLAUDE_SKILL_DIR}/cursor-job-config.py" in skill
+    assert (ROOT / "skill" / "tokensave-fork" / "cursor-job-config.py").is_file()
+    assert "`tool-use-audit.py`" in (ROOT / "skill" / "agent-report" / "SKILL.md").read_text()
+    assert "Its default reads the whole file" in (ROOT / "skill" / "agent-report" / "brief-standard.md").read_text()
+
+
+def test_no_new_skill_names_a_private_path():
+    for name in ("agent-report", "codex-arbiter", "fix-defect", "tokensave-fork"):
+        for path in (ROOT / "skill" / name).iterdir():
+            text = path.read_text()
+            assert "/Users/" not in text and "agent-report-standard.md" not in text, path
