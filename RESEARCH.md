@@ -455,6 +455,24 @@ The two passes are one run each, so they show that an agent can follow the brief
 
 A sandbox with `sandbox.readBoundary` set to `workspace` gave Cursor a shell and took away the other ways to read the project. `git`, `python3` and `rg` ran in the job folder with no prompt. `cat`, `rg` and the native read of the project failed with `Operation not permitted` or `Permission denied`, and tokensave still answered. In the main configuration, the same setting also stopped the native read of a plain call with no sandbox, so `skill/tokensave-fork/cursor-job-config.py` puts it in a second folder that one call selects.
 
+### Moving one Mac from Homebrew to the fork (2026-11-06)
+
+The fork at commit 9431b81, version 7.16.0, on macOS with zsh. Section 8 of `skill/tokensave-fork/SKILL.md` rests on these results.
+
+| Measured | Result |
+|---|---|
+| `cargo install` through the `stable` toolchain folder, with `rust-toolchain.toml` pinning 1.98.1 | Built with rustc 1.99.1 (`/rustc/58cf8f9c3`), exit 0, and no line in the last 6 lines of its output named the toolchain |
+| The same command through the `1.98.1` folder | `/rustc/48a229cea`, in 1 min 53 s |
+| `brew uninstall aovestdipaperino/tap/tokensave` | 2 files, 170.2 MB removed, exit 0. The tap stayed |
+| 5 MCP servers that were in operation from the removed file | All 5 still listed by `ps` after the removal |
+| `which tokensave` in `zsh -ic`, `zsh -c` and `zsh -lc`, with a clean environment | Found, not found, not found |
+| The same query from Claude, Codex and Cursor, from an empty folder | The same correct file from each, and 3 new rows in `savings_ledger`, all under the selected project |
+| `tokensave_str_replace` from Cursor | `User rejected MCP: tokensave-tokensave_str_replace`, and the file did not change |
+| `init` and `sync` in a throwaway repository with its own `HOME` | Exit 0 for each |
+| `claude -p --allowedTools <tool> "$P"` | `Input must be provided either through stdin or as a prompt argument`, because the flag took the prompt. With the prompt first, the query worked |
+
+Copilot has no CLI on that Mac, so no query from Copilot was measured. A git hook was not tested through a real commit.
+
 ## Appendix: every page
 
 Repository, page, and the two renders. "Identical PNGs" counts the re-rendered PNGs byte-identical to a committed PNG beside the page.
