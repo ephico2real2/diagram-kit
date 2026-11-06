@@ -1,6 +1,6 @@
 ---
 name: tokensave-fork
-description: Install and operate the tokensave2 fork beside upstream tokensave. It tells which build an agent runs and how to point Codex, Cursor or Copilot at the fork. It gives the permissions for the graph tools and the update steps. It also gives a test with a real query and an audit of the log of the agent. Use when the user types /tokensave-fork, or before `tokensave doctor`, `install`, `reinstall` or `upgrade`. Also use it for a new agent, and for a graph tool that Codex or Cursor refuses.
+description: Install and operate the tokensave2 fork beside upstream tokensave. It tells which build an agent runs and how to point Codex, Cursor or Copilot at the fork. It gives the permissions for the graph tools and the update steps. It also gives a test with a real query and an audit of the log of the agent. It also gives the shell PATH line, the removal of the upstream copy, and the checks that show that the fork works. Use when the user types /tokensave-fork, or before `tokensave doctor`, `install`, `reinstall` or `upgrade`. Also use it for a new agent, and for a graph tool that Codex or Cursor refuses.
 ---
 
 # /tokensave-fork: the graph tools for each agent
@@ -9,9 +9,9 @@ The fork [ephico2real2/tokensave2](https://github.com/ephico2real2/tokensave2) a
 
 | Item | Value |
 |---|---|
-| Checkout | `~/gitRepos/tokensave` |
+| Checkout | `~/gitRepos/tokensave2` |
 | Fork binary | `~/.cargo/bin/tokensave` |
-| Upstream binary | `/opt/homebrew/bin/tokensave`, from the tap `aovestdipaperino/tap` |
+| Upstream binary | `/opt/homebrew/bin/tokensave`, from the tap `aovestdipaperino/tap`, if it is installed. Section 8 removes it |
 
 Do not run `tokensave upgrade`. The command writes the upstream release over the binary that runs it, and this replaces the fork.
 
@@ -30,13 +30,13 @@ These steps are for macOS. Each step has a check.
 2. Clone the fork.
 
    ```sh
-   git clone https://github.com/ephico2real2/tokensave2.git ~/gitRepos/tokensave
+   git clone https://github.com/ephico2real2/tokensave2.git ~/gitRepos/tokensave2
    ```
 
 3. Build it from inside the checkout. The build took 3 minutes on an M-series Mac. Homebrew's rustup is keg-only, so `cargo` is not on `PATH`, and `ls ~/.rustup/toolchains` gives the name of the folder. Two warnings about `rust-objcopy` are harmless.
 
    ```sh
-   cd ~/gitRepos/tokensave
+   cd ~/gitRepos/tokensave2
    PATH="$HOME/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:$PATH" cargo install --locked --path .
    ~/.cargo/bin/tokensave dashboard --help > /dev/null && echo 'fork: ok'
    ```
@@ -75,13 +75,13 @@ These two items are optional:
 `tokensave --version` prints the same version for both builds. Use these commands:
 
 ```sh
-sh ~/gitRepos/tokensave/scripts/fork-path.sh
+sh ~/gitRepos/tokensave2/scripts/fork-path.sh
 ~/.cargo/bin/tokensave dashboard --help > /dev/null && echo 'fork: ok'
 ```
 
 The script changes no file. It prints the binary that each agent configuration names. Only the fork has the `dashboard` command.
 
-Use the full path for `~/.cargo/bin/tokensave doctor`, because a plain `tokensave` can find Homebrew first. The Homebrew `doctor` reported the rules of the fork as drifted. Each report and test must name the binary that it used.
+Use the full path for `~/.cargo/bin/tokensave doctor`, because a plain `tokensave` can find Homebrew first, and a shell that reads no startup file finds no plain `tokensave` (section 8). The Homebrew `doctor` reported the rules of the fork as drifted. Each report and test must name the binary that it used.
 
 ## 2. Point an agent at the fork
 
@@ -236,9 +236,63 @@ Do not remove a lock in a project that another agent uses. `.codegraph/` stays o
 ## 7. Update the fork
 
 ```sh
-cd ~/gitRepos/tokensave
+cd ~/gitRepos/tokensave2
 git pull --ff-only
-cargo install --locked --path .
+PATH="$HOME/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:$PATH" cargo install --locked --path .
+```
+
+Name the toolchain that `rust-toolchain.toml` of the fork pins. A direct path skips rustup, so the pin has no effect: on 2026-11-06, the `stable` folder built the fork with rustc 1.99.1. Compare the compiler with this command. For rustc 1.98.1, the result is `/rustc/48a229cea`.
+
+```sh
+strings -a ~/.cargo/bin/tokensave | grep -oE '/rustc/[0-9a-f]{9}' | sort -u
 ```
 
 Then restart the agent sessions, and do the test in section 4.
+
+## 8. Put the fork on the shell PATH, and remove the upstream copy
+
+The fork and upstream can stay installed together. Remove upstream when you do not use it. Do these steps in this order, so that a working binary is always installed.
+
+1. Build the fork (section 7), and confirm the compiler and `fork: ok`.
+2. Add the `PATH` line. `fork-path.sh` detects the login shell (zsh, bash or fish) from `$SHELL`, finds its startup file, and prints the command. It does not operate the command. This is the form for zsh. For another shell, use the command that the script prints:
+
+   ```sh
+   sh ~/gitRepos/tokensave2/scripts/fork-path.sh
+   grep -q 'HOME/.cargo/bin' ~/.zshrc || printf '\n%s\n%s\n' '# tokensave2 fork: run tokensave from cargo, before any other install' 'export PATH="$HOME/.cargo/bin:$PATH"' >> ~/.zshrc
+   ```
+
+3. Remove the Homebrew copy. Keep the tap if you use its other formulae:
+
+   ```sh
+   brew uninstall aovestdipaperino/tap/tokensave
+   ```
+
+4. In each terminal that is already open, operate `source ~/.zshrc`. An agent cannot do this for you, because each process has its own `PATH`. A new terminal needs nothing.
+
+Limits, measured on 2026-11-06:
+
+| Case | Result |
+|---|---|
+| `zsh -ic`, and a new terminal | Finds `~/.cargo/bin/tokensave` |
+| `zsh -c` and `zsh -lc`, with a clean environment | No `tokensave`, because these shells do not read `~/.zshrc`. A script must use the full path |
+| Agent configurations and git hooks that name the full path | Do not change |
+| The Bash shell of an agent session that was already open | `fork-path.sh` prints `tokensave now: not on PATH` until a new session starts |
+| An MCP server that was already in operation | Continues from the removed file until its session starts again. `ps` shows the old path. Do not stop a server of another session |
+
+### How to know that it works
+
+Each check gives one result that you can read.
+
+| Check | Command or method | Expected result |
+|---|---|---|
+| The shell finds the fork | `zsh -lic 'which tokensave; tokensave dashboard --help > /dev/null && echo fork: ok'` | `~/.cargo/bin/tokensave`, and `fork: ok` |
+| Homebrew has no copy | `brew list --versions \| grep '^tokensave'`, and `ls /opt/homebrew/bin/tokensave` | No line, and `No such file` |
+| Each agent names the fork | `sh ~/gitRepos/tokensave2/scripts/fork-path.sh` | `runs the fork` for each agent |
+| Agents answer a real query | Section 4, from an empty folder, with a symbol that you found first. For Claude, operate `claude -p "$P" --allowedTools mcp__tokensave__tokensave_search < /dev/null`. Put the prompt before the flag, because the flag takes each word after it | Each agent returns the file that you found |
+| No new server uses the old path | `ps -axo etime=,command= \| grep '[t]okensave serve'` | Young processes show `~/.cargo/bin/tokensave` |
+| The calls reach the ledger | `sqlite3 -readonly ~/.tokensave/global.db "SELECT id,project_path,tool_name FROM savings_ledger ORDER BY id DESC LIMIT 5"` | One row for each call, under the selected project. This needs the fork at PR #20 or later |
+| Edit tools stay refused | Section 4, `tokensave_str_replace` from Cursor | `User rejected MCP`, and the file does not change |
+| The sync command of the git hooks operates | Give a throwaway repository its own `HOME`, then operate `init` and `sync` with the full path | Exit 0. This does not write to the real `~/.tokensave` |
+| The deny hook operates | From an indexed folder, pipe `{"tool_name":"Bash","tool_input":{"command":"rg <symbol> src"}}` to `~/.cargo/bin/tokensave hook-pre-tool-use` | `"permission":"deny"` for a symbol in the index |
+
+A client with no CLI, such as Copilot, gets only the configuration check. For the audit of how an agent reads code, operate section 4.

@@ -111,6 +111,18 @@ def test_the_fork_skill_audits_the_log_and_the_brief_warns_about_the_default_rea
     assert "Its default reads the whole file" in (ROOT / "skill" / "agent-report" / "brief-standard.md").read_text()
 
 
+def test_the_fork_skill_builds_with_the_pinned_toolchain_and_moves_the_shell_before_it_removes_upstream():
+    skill = (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
+    # a direct toolchain path skips rustup, and a bare `cargo` is not on PATH with Homebrew's rustup
+    builds = [line.strip() for line in skill.splitlines() if "cargo install --locked" in line]
+    assert builds and all(line.startswith('PATH="$HOME/.rustup/toolchains/1.98.1-') for line in builds), builds
+    assert not re.search(r"gitRepos/tokensave(?!2)", skill)
+    assert "## 8. Put the fork on the shell PATH" in skill
+    assert skill.index('export PATH="$HOME/.cargo/bin:$PATH"') < skill.index("brew uninstall aovestdipaperino/tap/tokensave")
+    assert "`source ~/.zshrc`" in skill
+    assert "### How to know that it works" in skill
+
+
 def test_no_new_skill_names_a_private_path():
     for name in ("agent-report", "codex-arbiter", "fix-defect", "tokensave-fork"):
         for path in (ROOT / "skill" / name).iterdir():
