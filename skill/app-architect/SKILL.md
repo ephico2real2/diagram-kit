@@ -38,6 +38,10 @@ its standard logs, metrics and traces to a provider's managed service only by ch
     one. Demo 57's [tracing page](https://github.com/ephico2real2/cilium-implementation-poc/blob/main/demos/57-sni-fabric-lab/docs/tracing.md) and the twelve-factor scorecard in its
     [roadmap](https://github.com/ephico2real2/cilium-implementation-poc/blob/main/demos/57-sni-fabric-lab/docs/roadmap/ROADMAP.md) are the worked example.
 
+## Reading the code
+
+If the project has `.tokensave/` or `.codegraph/`, read code through it, not through grep and whole files. The `/tokensave-fork` skill gives the permissions of each agent.
+
 ## Rules of evidence
 
 - Read the code before judging it. Measure before claiming: run it, query it, cite `file:line`, the command and

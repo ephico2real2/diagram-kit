@@ -31,6 +31,14 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/app-architect/SKILL.md` | the `/app-architect` Claude Code skill: an application reviewed in its own forked agent, from inventories and a twelve-factor scorecard to a phased roadmap with a runnable proof per step; link `~/.claude/skills/app-architect` to this directory |
 | `skill/adversarial-review/SKILL.md` | the `/adversarial-review` Claude Code skill: a change attacked by two model families on a per-claim brief, every finding with its full fix and a failing-then-passing test, each decision written down; link `~/.claude/skills/adversarial-review` to this directory |
 | `skill/adversarial-review/brief-template.md`, `record-template.md` | the skeletons of a review's brief and of its record |
+| `skill/agent-report/SKILL.md` | the `/agent-report` Claude Code skill: how a background agent logs its research as it works, and an audit with planted claims that shows the work is real; link `~/.claude/skills/agent-report` to this directory |
+| `skill/agent-report/brief-standard.md` | the text to paste into the brief of every agent, of any kind |
+| `skill/codex-arbiter/SKILL.md` | the `/codex-arbiter` Claude Code skill: background Codex agents review pending patches in disposable clones, and Claude rules on each finding and tests it; link `~/.claude/skills/codex-arbiter` to this directory |
+| `skill/fix-defect/SKILL.md` | the `/fix-defect` Claude Code skill: each defect logged at once as an issue under its parent, researched, reviewed and proven; link `~/.claude/skills/fix-defect` to this directory |
+| `skill/tokensave-fork/SKILL.md` | the `/tokensave-fork` Claude Code skill: install the tokensave2 fork with its dependencies, connect Codex, Cursor and Copilot, and prove it with a real query; link `~/.claude/skills/tokensave-fork` to this directory |
+| `skill/tokensave-fork/cursor-allow.py` | adds the read tools of tokensave to the Cursor CLI allow list, and no tool that writes |
+| `skill/tokensave-fork/cursor-job-config.py` | makes a second Cursor configuration folder, so that one job gets a shell and reads only its own folder, and the main configuration does not change |
+| `skill/tokensave-fork/tool-use-audit.py` | reads the log of a Codex or Cursor agent, and shows whether the agent read through tokensave and whether it read a whole file |
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |
