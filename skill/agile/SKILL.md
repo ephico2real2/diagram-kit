@@ -112,7 +112,43 @@ Write each body to a file and use `--body-file`. Never put a long body inline in
 5. Update the task list of the epic with the real numbers, and tick each closed child.
 6. Add the new items to the build tracker of the project in the same change.
 
-## 5. Keep the records true
+## 5. Waves, stages and the timeline
+
+A milestone says what ships. A wave gives the dates of the work on it. A stage says how far each item is.
+
+- Each milestone has a due date: the date that it ships. Its open and closed counts show its progress.
+- One GitHub Project holds the items of all repositories of the product. Its iteration field `Wave` holds the waves, each with a start date and a length. Each item gets one wave.
+- Its single-select field `Stage` shows how far each item is. Each stage has an exit rule:
+
+| Stage | Exit rule |
+|---|---|
+| Mockup | The owner approves the mockup (`/build-mockup`). Work with no screen and no API shape starts at Draft |
+| Draft | A draft pull request holds the design or the first code |
+| Build | The tests that fail before the change pass after it |
+| Review | The reviewers report, and the arbiter rules on each finding |
+| Merged | The pull request is merged into the integration branch, with its proof |
+| Released | The change is on the default branch, and the issue is closed |
+
+- The `status:` labels stay on each defect. `status:open` covers Mockup to Review, `status:fixed-on-review-branch` is Merged, and a closed issue is Released.
+- The Project has 3 views: a board by Stage, a table by Wave, and a roadmap by Wave with the milestone dates.
+
+Create the Project and its fields. `gh project field-create` has no iteration type, so the iteration field comes from the GraphQL mutation `createProjectV2Field`:
+
+```sh
+gh project create --owner <owner> --title "<product> delivery"
+gh project field-create <number> --owner <owner> --name Stage --data-type SINGLE_SELECT \
+  --single-select-options "Mockup,Draft,Build,Review,Merged,Released"
+pid=$(gh project view <number> --owner <owner> --format json --jq .id)
+gh api graphql -f query='mutation($p:ID!){createProjectV2Field(input:{projectId:$p,dataType:ITERATION,name:"Wave",
+  iterationConfiguration:{startDate:"<YYYY-MM-DD>",duration:14,iterations:[{title:"W1",startDate:"<YYYY-MM-DD>",duration:14}]}})
+  {projectV2Field{... on ProjectV2IterationField{id name}}}}' -f p="$pid"
+gh project item-add <number> --owner <owner> --url <issue URL>
+gh api -X PATCH repos/<owner>/<repo>/milestones/<milestone number> -f due_on=<YYYY-MM-DDT00:00:00Z>
+```
+
+The token needs the `project` scope: `gh auth refresh -s project`. Dates come from the owner. Do not invent a due date or a wave length.
+
+## 6. Keep the records true
 
 - A pull request names its milestone, its issues, its class and its type label. `/pull-request` gives the template.
 - After a merge to a branch that is not the default branch, `Closes #` closes nothing. Set the status label by hand.

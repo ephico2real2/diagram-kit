@@ -67,3 +67,21 @@ def test_the_pull_request_template_asks_for_the_record():
     for need in ("Release milestone or hotfix", "Issues", "Class", "What changes, and why", "Proof"):
         assert need in headings, need
     assert "- [ ] INV: innovation." in template and "- [ ] TDT: tech debt." in template
+
+
+STAGES = ["Mockup", "Draft", "Build", "Review", "Merged", "Released"]
+
+
+def test_the_stage_table_and_the_stage_field_name_the_same_stages():
+    text = (AGILE / "SKILL.md").read_text()
+    table = re.findall(r"^\| (\w+) \| ", text.split("| Stage | Exit rule |", 1)[1].split("\n\n", 1)[0], re.M)
+    assert table == STAGES
+    assert f'--single-select-options "{",".join(STAGES)}"' in text
+
+
+@pytest.mark.parametrize("name", ["3-story.yml", "4-task.yml"])
+def test_the_definition_of_done_of_a_form_names_each_stage(name):
+    form = yaml.safe_load((AGILE / "templates" / "ISSUE_TEMPLATE" / name).read_text())
+    done = next(b for b in form["body"] if b.get("attributes", {}).get("label") == "Definition of done")
+    value = done["attributes"]["value"]
+    assert all(stage.lower() in value.lower() for stage in STAGES)
