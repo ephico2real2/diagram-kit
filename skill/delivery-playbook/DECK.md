@@ -111,6 +111,7 @@ date: "[date]"
 - A defect is a sub-issue of the issue under which it was found.
 - Each pull request names its milestone, its issues and its class.
 - The build tracker shows the milestone, the class and the status of each issue.
+- Waves give the dates. Stages run from mockup to draft, build, review, merged and released.
 
 ## From an idea to a release
 

@@ -77,9 +77,13 @@ What is true today, with the file or the measurement.
 -
 
 ## Definition of done
-- [ ] Tested as described above
+- [ ] Mockup approved, or the work has no screen and no API shape
+- [ ] Draft pull request open
+- [ ] Build: tests fail before the change and pass after it
 - [ ] Documented where a reader looks for it
-- [ ] Merged through a pull request
+- [ ] Review ruled
+- [ ] Merged with its proof
+- [ ] Released on the default branch
 
 ## Class
 INV, TDT, both, or no class.

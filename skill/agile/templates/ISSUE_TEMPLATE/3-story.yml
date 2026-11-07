@@ -42,7 +42,7 @@ body:
     id: done
     attributes:
       label: "Definition of done"
-      placeholder: "- [ ] "
+      value: "- [ ] Mockup approved, or the work has no screen and no API shape\n- [ ] Draft pull request open\n- [ ] Build: tests fail before the change and pass after it\n- [ ] Review ruled\n- [ ] Merged with its proof\n- [ ] Released on the default branch"
     validations:
       required: true
   - type: dropdown

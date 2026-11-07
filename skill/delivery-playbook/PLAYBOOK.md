@@ -246,6 +246,8 @@ The parent link is a GitHub sub-issue, and the body also says `Part of #<parent>
 
 Each pull request uses the template of its repository. It names its milestone, its issues and its class. The build tracker shows the milestone, the class and the status of each issue, and it changes in the same pull request as the work.
 
+Each milestone has a due date. One GitHub Project holds the items of all repositories: its field `Wave` gives the dates of the work, and its field `Stage` shows how far each item is. The stages are Mockup, Draft, Build, Review, Merged and Released, and each has an exit rule. The definition of done of each story and task names each stage. A roadmap view shows the waves and the milestone dates.
+
 ## 14. Legend
 
 Every report, issue, pull request and figure uses this legend. `skill/agile/LEGEND.md` holds the same legend with its labels. Each finding ID has a prefix and a number. The prefix gives the category. The number does not give an order of priority. An ID never changes after it is filed.
