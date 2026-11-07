@@ -46,6 +46,8 @@ A correct structure is easy to write. Do these steps yourself, because a report 
 6. Look for filler. A section that says only that nothing applies shows structure with no content.
 7. Make sure that each proof covers the claim. A pin in a local file does not establish what production runs.
 8. For a fix, apply the patch to a fresh clone. The test must fail before the patch and pass after it.
+9. File the defects. Read `verdicts.md`, `fixes.md` and `research.md` for each defect. Add each fault that your audit found, in the application or in the work of the agent. Search for a duplicate first. Each one gets an issue through `/fix-defect`. The audit is not finished until each defect has its issue number.
+10. For a job that tests an app, make sure that it followed the test loop in `/fix-defect`. After each fix, its log must show a restart from the first step. Its last full run on the final code must have 0 failures. Operate that last run again yourself. A job that fixed a defect and did not restart has not finished.
 
 Any failed step puts the whole report in doubt, and not only that claim. These steps do not measure the depth of a hard investigation, so read the research of the claims that matter.
 
