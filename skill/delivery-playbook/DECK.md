@@ -81,12 +81,13 @@ date: "[date]"
 
 ## Observability, APM and KPIs
 
-- OpenTelemetry in each service. Traces, metrics and logs in OTLP.
+- OpenTelemetry in each service: automatic and code instrumentation. Traces, metrics and logs in OTLP.
 - Open source back ends, or a managed APM through the same collector.
 - RED metrics for each service, USE metrics for each resource.
 - System KPIs with service level objectives. Business KPIs from a review of the business functions.
 - Alerts start from a measured baseline, and each alert has a runbook.
-- The admin portal shows the KPIs from end to end.
+- KPI facts and alert rules in PostgreSQL. The admin portal shows the dashboards and sets each threshold.
+- The portal BFF calls the API through Envoy. Administrators sign in with MFA.
 
 ## Runtime and scaling
 
