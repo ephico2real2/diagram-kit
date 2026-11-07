@@ -41,7 +41,9 @@ For example, a managed PostgreSQL service can lack the TimescaleDB extension. Th
 | Service | What the client gets |
 |---|---|
 | Adversarial security audit | Findings with a severity, a test, a fix and a user story. Reviewers from different model families attack each claim |
-| Architecture and modernization | The current and the target architecture, a pluggable design with no vendor lock-in, refactoring, and new functions that are secure and scale |
+| Architecture review | A review of a monolith or of services: inventories, a twelve-factor scorecard, the current and the target architecture, and a phased roadmap with a proof for each step |
+| Modernization and microservices | Refactoring, a pluggable design with no vendor lock-in, and a split into services where a measured need supports it. Each new function is secure and scales |
+| Standalone services | A new service for an existing application or a new design, with its own store, its contract and its view in the admin portal. An example is a fraud analytics service |
 | Identity and secrets | OpenID Connect (OIDC) sign-in, JSON Web Token (JWT) rules, mutual TLS where it is necessary, and secret management with workload identity |
 | CI/CD and the software supply chain | Pipelines with tests, scans, a software bill of materials (SBOM), image signatures and deploy by digest |
 | Observability, APM and KPIs | OpenTelemetry instrumentation, application performance monitoring (APM), dashboards, and alerts on system and business KPIs |
