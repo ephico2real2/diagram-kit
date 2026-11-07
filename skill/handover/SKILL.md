@@ -1,112 +1,152 @@
 ---
 name: handover
-description: "Record the state of a long piece of work so that a new session, after /clear or a context reset, resumes it alone. It updates the handover and status documents in the repository, the resume note in memory and RESUME-PROMPT.md, saves unfinished work in commits, checks each path and number, and gives the resume prompt in the reply. Use when the user types /handover, asks to update the handover, the status or the resume documents, asks for a resume prompt, or says that they will clear the session. Also use it before a long stop of autonomous work."
+description: "Keep the working state of a piece of work on disk at all times, so that /compact, auto-compact and /clear lose nothing. It owns the note claude-resumes/HANDOVER-<topic>.md, the pointer claude-resumes/CURRENT and the self-check scripts/handover.py. It also owns the four Claude Code hooks that make it automatic: Stop, PreCompact, SessionStart and PostToolUse. For a long stop, it also writes the handover document of the repository, the resume note in memory and RESUME-PROMPT.md. Use when the user types /handover, or asks to update the handover or the resume documents. Also use it for a resume prompt, and before a /clear or a /compact. Use it after a failed check of the Stop hook. Use it for the hooks of a new project."
 ---
 
-# /handover: a new session resumes the work with no help
+# /handover: the working state is always on disk
 
-`/handover` records where the work stands and gives the user one prompt to paste after `/clear`. The new session knows only what the files and the prompt tell it. Write each item so that a reader with no memory of this session can act on it.
+The files are the source of truth, not the conversation. /compact, auto-compact and /clear can happen at any time. So
+each fact that the next context needs must be on disk before they happen. The hooks below make this automatic: they do
+not depend on the model remembering it, or on the user asking for it.
 
-## 1. Collect the state from facts
+## 1. The three skills and their files
 
-Do not write the state from memory of the conversation. Get each fact from a command, and keep the output.
+Each skill owns one job. They know each other by name and share one folder, `claude-resumes/` at the project root. Keep
+the folder out of git: add it to `.gitignore`, or use a project root that is not a repository.
 
-```sh
-git -C <repo> status -sb                       # branch, ahead or behind, changes not committed
-git -C <repo> log --oneline -1                 # head of each branch that the work uses
-gh pr list -R <owner>/<repo> --author @me      # open pull requests and their CI
-gh issue list -R <owner>/<repo> --label <set>  # new issues, their milestone and status label
-date -u +%H:%M                                 # the time of the state, in UTC
-```
+| Skill | Owns | Files |
+|---|---|---|
+| `handover` (this skill) | The current working state, and the hooks | `claude-resumes/CURRENT`, `claude-resumes/HANDOVER-<topic>.md`, `scripts/handover.py`, `claude-resumes/.snapshots/` |
+| `build-tracker` | Progress: each unit of work, its status and its evidence | `claude-resumes/TRACKER-<topic>.md`. Also the published tracker of a project that has one |
+| `resume-work` | The restart after a new session, /compact, auto-compact or /clear | No file of its own. It reads the other files and corrects them through the other two skills |
 
-Also list:
+A topic is one feature, story, issue or release. `CURRENT` holds one line: the name of the active topic. The hooks read
+it to find the note and the tracker. To change topic, write the new name into `CURRENT`.
 
-- Each background job or agent that operates now, with its folder and how to read its result.
-- For a project that numbers its findings: the next free ID of each prefix.
-- Each decision that the user made in this session, in the user's words.
-- What is done but not pushed, and what is pushed but not merged.
+## 2. The note
 
-## 2. Save the work that is not committed
-
-A cleared session loses each change that is only in a scratch folder. It also loses each idea that is only in the chat.
-
-- Commit unfinished work on its working branch, with a message that says what is still to do. If the project rules do not allow the push, do not push it.
-- Copy each draft from the session scratchpad into the project handoff folder. The scratchpad of the next session is a different folder.
-- Never commit a secret, a private host name or an artifact URL. An artifact URL goes only into memory.
-
-## 3. Update the documents of the repository
-
-The repository documents are the record that other people read. Use the change flow of the project, for example a pull request with its template, milestone and labels.
-
-1. Handover document: add a section `State on <date>, <time> UTC` at the top of its "Start here" part. Change the "state is from" line at the top too.
-2. In that section, write what changed since the last state section. Then write the next steps as a numbered list, in order. Each step names its file, branch, issue or job, and the command to start it.
-3. Say that this section replaces the next steps of the older sections. Old steps that are done or dropped stay below as history.
-4. Status document or build tracker: add the new issues with their milestone and status. Add a row for each piece of work in progress. Change its state time.
-5. If the project keeps the same file in more than one repository, copy it and compare the copies with `cmp`.
-6. Lint the changed files with the rules of the project. Compare the count with the count before the change, and fix each new hit.
-
-## 4. Update memory
-
-1. Append a block `## LATEST STATE <date> <time> UTC (read this first)` to the resume note. Do not edit the older blocks: they are the history. If an older block is wrong, say so in the new block.
-2. The block holds the heads, the open pull requests and how to finish them, and the jobs in operation. It also holds the next free IDs, what is not pushed, and the next steps in short form.
-3. Put each decision of the user into the note of its subject, not only into the resume note. Add the link with `[[name]]`.
-4. Update the line of each changed note in `MEMORY.md`, for example the time of the last block.
-
-## 5. Write RESUME-PROMPT.md
-
-Write it in the project handoff folder, and replace the old text. Use this shape:
+Path: `claude-resumes/HANDOVER-<topic>.md`. Line 2 has a fixed form, because the self-check reads it:
 
 ```text
-Resume <the work> in <absolute project path> and work autonomously.
-
-Read these first, in this order:
-
-1. The LATEST STATE block at the end of the memory note <resume note>.
-2. The section "State on <date>, <time> UTC" in <handover path>, on the branch <branch>. Its numbered steps are the work, in order.
-3. The memory notes <names>, for <the decisions they hold>.
-
-Check before you start: <each item that was pending at the handover, such as a pull request whose CI was running, or a job that was operating>. If <its condition>, <the action>.
-
-Rules for this run:
-
-- <the change flow: branches, pull requests, milestones, labels, what to update in the same change>
-- <what must never be touched or called: branches, hosts, cloud accounts, secrets>
-- <who writes code, who reviews, who rules, and which models are not used>
-- <the defect and test loop>
-- <the commit attribution rule>
-- <each action that needs the user's yes first>
-
-First tell me in 3 lines where things stand. Then start <step 1, named>.
+# Handover: <topic>
+Last update: item <n> of <total> (<what>), <YYYY-MM-DD HH:MM> UTC (<HH:MM> <local zone>). Next: <the exact next step>.
 ```
 
-Rules for the prompt:
+`<n>` is the number of the unit in progress in the tracker. If no unit is in progress, it is the number of done units.
+`<total>` is the number of units in the tracker. UTC is the standard: git, CI and the hooks use it, and it has no
+daylight saving change. Take it from `date -u +"%Y-%m-%d %H:%M"`. The local time in parentheses is for the reader,
+from `date +"%H:%M %Z"` (for example `16:12 CST`). The self-check compares only the UTC time.
 
-- Take the rules from the memory notes and the instruction files of the project. Do not take them from the memory of this session. A rule that the user gave only in the chat goes into a memory note first.
-- Write each pending item as a condition, because the next session does not know its result.
-- Name files by their absolute path or by their path from the project root.
-- Do not put an artifact URL or a secret in the prompt. Name the memory note that holds the URL.
-- Keep the prompt short. The handover and memory hold the detail, and the prompt only points to them.
+Then these sections, in this order:
 
-## 6. Check the handover before you report it
+| Section | Holds |
+|---|---|
+| `## Context` | The goal, the ticket or story links and their acceptance criteria. Then one line each: `- Repos: <path>, <path>`, `- Branch:`, `- Environment:`, `- Tracker: claude-resumes/TRACKER-<topic>.md`. Name access by path or by name only: never a secret, a token or a password |
+| `## Done` | A short summary. The tracker holds the details |
+| `## Now` | The current state, and what was checked and how (the command and its result) |
+| `## Next steps` | The exact next command or action, with file paths. The next step comes first |
+| `## Running` | One line per background job, watcher, dev server or CI run: `- <id> \| <probe> \| <purpose> \| restart: <command>` |
+| `## Temporary changes` | Debug code, flags, mocks, skipped tests, local configuration, test data, stashes, scratch branches: what each one is, where it is, and how to undo it |
+| `## Open` | Decisions that wait for the user, blockers, risks and questions |
 
-- Each path in the prompt and in the new handover section exists: `ls` each one.
-- Each pull request and issue number resolves: `gh pr view <n>` and `gh issue view <n>`.
-- The commits of step 2 exist on their branches, and the working tree has no change left that matters.
-- The resume note ends with the new block, and `MEMORY.md` names its time.
-- Read the prompt once, as a new session reads it. Each "read", "check" and "start" must point to something that exists.
+The probe of a Running line tells the hooks how to see whether the job is alive:
 
-## 7. Report
+- `pid <n>`: a process.
+- `pidfile <path>`: a file that holds the process ID. A long job writes it first, for example `echo $$ > claude-resumes/.pids/<id>; exec bash run.sh`.
+- `task`: a background task of Claude Code. No hook except Stop can see these tasks, so prefer a pidfile for a job that must survive /clear.
 
-Give the prompt in a code block, so the user can copy it. Give the absolute path of RESUME-PROMPT.md too. Say what is still pending, such as CI that operates or a merge that waits for the user. If the session continues, finish the pending items. If a later step changes the state, update the handover again before the session ends.
+A short, current note is better than a full, stale one. Keep it under 6,000 characters, because the SessionStart hook
+puts it into a context that takes at most 10,000.
+
+## 3. When to write it
+
+Write the note at each point where a lost conversation loses work:
+
+- After each unit of work, together with the tracker (`build-tracker`).
+- Before and after a long or risky step: a migration, a deploy, a force push, a long test run.
+- When a background job starts or stops.
+- When a decision is made, in the words of the person who made it.
+- When a temporary change is made or undone.
+
+Each time, rewrite line 2 and the sections that changed. Do not append a history: the tracker and git hold it.
+
+## 4. The self-check
+
+```sh
+python3 ~/.claude/skills/handover/scripts/handover.py check [<topic>]
+```
+
+It reads only and prints one line for each failure. If there is a failure, it exits 1. It fails in these conditions:
+
+- Line 2 is missing or has the wrong form, or its time is older than `HANDOVER_MAX_AGE_MIN` minutes (default 30).
+- A repository of `- Repos:` has a commit that is newer than line 2.
+- A section is missing, or the sections are not in the order above.
+- The tracker changed after the note, or line 2 does not agree with the tracker (the total, or the item in progress).
+- The tracker breaks a rule of `build-tracker`: a status or a phase that is not allowed, two units in progress, a done unit with no evidence or no UTC time.
+- The note holds what looks like a secret: a token shape, a private key, `password=<value>`, or a password in a URL.
+
+## 5. The hooks
+
+Put them in the project configuration file, `.claude/settings.json`, with the `update-config` skill, and show the diff to the
+user before you save it. The hooks run `scripts/handover.py`, through the link `~/.claude/skills/handover`.
+
+```json
+{
+  "hooks": {
+    "Stop": [
+      { "hooks": [{ "type": "command", "command": "\"$HOME/.claude/skills/handover/scripts/handover.py\" stop", "timeout": 10 }] }
+    ],
+    "PreCompact": [
+      { "matcher": "manual|auto",
+        "hooks": [{ "type": "command", "command": "\"$HOME/.claude/skills/handover/scripts/handover.py\" precompact", "timeout": 10 }] }
+    ],
+    "SessionStart": [
+      { "matcher": "startup|resume|clear|compact",
+        "hooks": [{ "type": "command", "command": "\"$HOME/.claude/skills/handover/scripts/handover.py\" session-start", "timeout": 10 }] }
+    ],
+    "PostToolUse": [
+      { "matcher": "Bash",
+        "hooks": [{ "type": "command", "command": "\"$HOME/.claude/skills/handover/scripts/handover.py\" post-tool", "timeout": 5 }] }
+    ]
+  }
+}
+```
+
+| Hook | What it does |
+|---|---|
+| Stop | After each turn, it operates the self-check. It also makes sure that each live background task of the `background_tasks` input is in Running. If one fails, it prints `{"decision": "block", "reason": ...}`, and the model updates the note and the tracker, then stops. If `stop_hook_active` is true, it lets the turn stop. Thus it blocks once and never loops |
+| PreCompact | For `manual` and `auto`, it copies the note and the tracker to `claude-resumes/.snapshots/<UTC time>-<trigger>/`. Claude Code uses the stdout of this hook as instructions for the summary. So the hook prints the topic, the paths and each failure of the check there. It never blocks the compaction |
+| SessionStart | For `startup`, `resume`, `clear` and `compact`, it prints JSON with `additionalContext`: the note, a tracker summary, the branch, changes and head of each repository, the state of each Running job, and any failure of the check. That text starts the `resume-work` skill in the new context |
+| PostToolUse | It reads each Bash call. After a commit, a push, a merge, a pull request or a deploy, it tells the model to record the evidence |
+
+Each hook reads only, except for the snapshot copy. Each one takes well under a second (the kit test asserts under
+two). If all is well, each one is silent. Each one is also silent in a project that has no `claude-resumes/` folder.
+
+Facts from the Claude Code hooks reference (https://code.claude.com/docs/en/hooks, read on 2026-11-07):
+
+- Stop input has `stop_hook_active` and `background_tasks`. Claude Code also stops a stop hook after 8 continuations in a row.
+- PreCompact input has `trigger` (`manual` or `auto`). The stdout of exit 0 becomes the summary instructions, at most 10,000 characters, and a `systemMessage` is dropped.
+- SessionStart sources are `startup`, `resume`, `clear`, `compact` and `fork`. Text over 10,000 characters goes to a file with a preview of 2,000.
+- Edits of a configuration file are normally picked up by the file watcher. If `/hooks` does not show the change, start a new session.
+- The docs do not say whether background tasks survive /clear or /compact. So the SessionStart hook reports each Running job with its probe, and `resume-work` starts each job that is not running again.
+
+## 6. A long stop, or a handover to a person
+
+The note is for the next context. A person, or a session on another day, also needs the record of the repository:
+
+1. Collect the state from commands, not from memory: `git status -sb`, `git log --oneline -1`, `gh pr list`, `gh issue list`, `date -u`.
+2. Commit unfinished work on its working branch, with a message that says what is still to do. Copy each draft from the session scratchpad into the project handoff folder. Never commit a secret, a private host name or an artifact URL.
+3. Add a section `State on <date>, <time> UTC` at the top of the handover document of the repository, with what changed and the numbered next steps. Use the change flow of the project.
+4. Append a block `## LATEST STATE <date> <time> UTC (read this first)` to the resume note in memory. It points to the note and the tracker, and does not copy them.
+5. Replace `RESUME-PROMPT.md` in the handoff folder: what to read first, the pending items as conditions, and the rules of the run. Name an artifact URL only by the memory note that holds it.
+6. Make sure that each path, pull request and issue in the prompt exists (`ls`, `gh pr view`, `gh issue view`). Give the prompt to the user in a code block.
 
 ## Why each rule exists
 
-These cases come from a client review on 2026-11-07.
-
 | What happened | Rule |
 |---|---|
-| The handover document was 9 hours older than the work, because each update went only to the tracker | Step 3 updates the handover in each change of state |
-| The old resume prompt told the next session to ask a question that the user had already answered | Step 5 replaces the whole prompt each time |
-| A helper script was first written in the session scratchpad | Step 2 copies each draft and script to the handoff folder |
-| The handover went out while CI still operated on its own pull requests | Each pending item is a condition in the prompt |
-| The owner rule says that an artifact URL is never committed | The URL goes only into memory, and the prompt names that note |
+| A handover document was 9 hours older than the work, because each update went only to the tracker | If the note is older than the tracker or the newest commit, the Stop hook blocks |
+| A resume prompt told the next session to ask a question that the user had already answered | Each decision goes into the note at once, and each handover replaces the whole prompt |
+| A helper script was first written in the session scratchpad, which the next session cannot see | Drafts and scripts go to the handoff folder |
+| A handover went out while CI still operated on its own pull requests | Each CI run is a Running line, and each pending item is a condition |
+| A handover that depends on the model remembering it is skipped under load | Four hooks make it automatic, and the self-check is a script |
