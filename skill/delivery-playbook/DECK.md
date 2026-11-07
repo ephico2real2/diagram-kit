@@ -26,7 +26,9 @@ date: "[date]"
 ## Services
 
 - Adversarial security audit
-- Architecture and modernization, with no vendor lock-in
+- Architecture review of a monolith or of services
+- Modernization and microservices, with no vendor lock-in
+- Standalone services for an existing application or a new design
 - Identity and secrets: OIDC, JWT, mutual TLS, workload identity
 - CI/CD and the software supply chain: scans, SBOM, signatures
 - Observability, APM and KPIs, in open formats
