@@ -24,6 +24,8 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `diagram_kit/perses.py` | `perses-dashboard`: the Perses form of a Grafana dashboard, and the checks the conversion needs |
 | `diagram_kit/docx.py` | `doc-docx`: one Word document from Markdown files, with pandoc, the kit's palette, links kept inside the document, byte-reproducible |
 | `skill/document/SKILL.md` | the `/document` Claude Code skill: when a Word file is made, from what, and how it is checked; link `~/.claude/skills/document` to this directory |
+| `diagram_kit/delivery.py` | `delivery-page`: one page from a repository's tracker, handover and resume documents at one commit; it writes nothing when one of the three is missing, empty or still starter text |
+| `skill/delivery-page/SKILL.md` | the `/delivery-page` Claude Code skill: the three required documents, the render, and how the page is checked and published; link `~/.claude/skills/delivery-page` to this directory |
 | `skill/build-mockup/SKILL.md` | the `/build-mockup` Claude Code skill: an app mockup built as the contract for its page (target, tokens, state, typed data, section types, checks); link `~/.claude/skills/build-mockup` to this directory |
 | `skill/mockup-to-page/SKILL.md` | the `/mockup-to-page` Claude Code skill: that mockup translated one-to-one into React or Preact + TypeScript, and proven to match; link `~/.claude/skills/mockup-to-page` to this directory |
 | `skill/mockup-to-page-react/SKILL.md` | the `/mockup-to-page-react` Claude Code skill: a mockup translated into React, TypeScript, Vite and PatternFly, with PatternFly's look and the mockup's content, data and behaviour, proven by parity tests; link `~/.claude/skills/mockup-to-page-react` to this directory |
@@ -64,7 +66,7 @@ The repository is not published yet. Until it is, install from a local clone in 
 
 ### Prerequisite for documents: pandoc 3.12.1
 
-`doc-docx` and the decks need pandoc. `diagram-render` does not. A document's bytes depend on pandoc's version, so
+`doc-docx`, `delivery-page` and the decks need pandoc. `diagram-render` does not. A document's bytes depend on pandoc's version, so
 install the version that `ci.yml` pins, and check it against the digest that GitHub publishes for the file.
 `brew install pandoc` and `apt-get install pandoc` give another version, and the byte test then skips.
 
@@ -214,6 +216,22 @@ It refuses a link that would lead nowhere in the document, a link to a `.md` fil
 cannot find. The date is stamped on the file, so the same Markdown and the same pandoc give the same bytes on every
 machine; the kit's CI pins pandoc 3.12.1, and a repository that commits the `.docx` and compares it in CI pins the
 same version.
+
+## Delivery pages
+
+A delivery page is made from a repository's tracker, handover and resume documents, at one commit, and it names that
+commit. `skill/delivery-page/SKILL.md` is the standard, and `delivery-page` does the build. It needs git and pandoc.
+
+```sh
+# a starter for each document that does not exist; it never overwrites a file
+.venv/bin/delivery-page --init --repo .
+# the page, from what the default branch holds
+git fetch origin main
+.venv/bin/delivery-page delivery.html --repo . --ref refs/remotes/origin/main
+```
+
+The command refuses to write if one of the three documents is missing, empty or still starter text, and it names each
+one. Raw HTML in the Markdown shows as text, and a link with an unsafe scheme keeps only its words.
 
 ## Mockups
 
