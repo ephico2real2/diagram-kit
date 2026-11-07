@@ -10,6 +10,9 @@ Part of #<parent, or None yet>
 ## Goal
 What is true when this is finished, and for whom.
 
+## Business value
+What the work gives the business, in plain words.
+
 ## Why
 The problem or the risk today, with where it was seen.
 
@@ -37,6 +40,9 @@ Part of #<epic>
 ## Capability
 Who gets what, and why it matters.
 
+## Business value
+What the work gives the business, in plain words.
+
 ## Context
 What exists today, with the file, the commit or the measurement.
 
@@ -60,6 +66,9 @@ Part of #<feature or epic>
 
 ## Story
 As a <role>, I want <result>, so that <reason>.
+
+## Business value
+What the work gives the business, in plain words.
 
 ## Context
 What is true today, with the file or the measurement.

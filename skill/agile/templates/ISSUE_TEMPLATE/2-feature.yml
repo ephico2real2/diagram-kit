@@ -11,6 +11,11 @@ body:
     validations:
       required: true
   - type: textarea
+    id: value
+    attributes:
+      label: "Business value"
+      description: "What the work gives the business, in plain words, not the code change. For an INV item, the report shows it in the table of main innovations."
+  - type: textarea
     id: context
     attributes:
       label: "Context"

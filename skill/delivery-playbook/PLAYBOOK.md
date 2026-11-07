@@ -17,7 +17,7 @@ The playbook has three parts:
 - Sections 5 to 13 give the standard for each area of the work, with a figure where the order matters.
 - Section 14 gives the legend that every report, issue and figure uses.
 
-With this playbook, each client gets a detailed document: the Adversarial Review, Architecture and Implementation Report. It holds the findings and their proof, the current and the target architecture, the work that was built and tested, and a phased roadmap. It uses the legend of section 14.
+With this playbook, each client gets a detailed document: the Adversarial Review, Architecture and Implementation Report. It holds the findings and their proof, the current and the target architecture, the work that was built and tested, and a phased roadmap. Its summary shows the class of each issue and the innovations, built and proposed. It uses the legend of section 14.
 
 ## 2. Principles
 

@@ -204,7 +204,7 @@ done | jq -rs '
 A report for a client is also a business document, so it shows the innovations of the work, built and proposed. In the summary, under the class table, add two tables:
 
 1. A table of themes. Put each `INV` issue in one business theme, such as new services, the admin portal, security controls, test methods or CI/CD. Count its state from its status label: Built (`status:fixed-on-review-branch`), Partly built (`status:partly-fixed`), Proposed (`status:open`, or no status label) and Owner decision (`status:owner-action`). Each issue is in exactly one theme, and the total equals the number of `INV` issues.
-2. A table of the main innovations, with the columns Innovation, What it gives the business, State and Where. Give the business result in plain words, not the code change. Name the issue numbers, the design or the proof branch of each row.
+2. A table of the main innovations, with the columns Innovation, What it gives the business, State and Where. Take the business result from the Business value field of the issue, in plain words, not the code change. Name the issue numbers, the design or the proof branch of each row.
 
 A proposed innovation is never shown as built. If an innovation has a design but no issue yet, say so in its row. This command lists each `INV` issue with its status, to start the themes:
 
