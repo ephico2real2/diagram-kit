@@ -60,6 +60,59 @@ The repository is not published yet. Until it is, install from a local clone in 
 `.venv/bin/pip install <path-to-clone>`.
 `TUTORIAL.md` walks the whole path.
 
+### Prerequisite for documents: pandoc 3.12.1
+
+`doc-docx` and the decks need pandoc. `diagram-render` does not. A document's bytes depend on pandoc's version, so
+install the version that `ci.yml` pins, and check it against the digest that GitHub publishes for the file.
+`brew install pandoc` and `apt-get install pandoc` give another version, and the byte test then skips.
+
+On macOS, without `sudo`, for an Intel Mac or Apple Silicon. A Homebrew pandoc can stay installed:
+
+```sh
+case "$(uname -m)" in
+  arm64)  ARCH=arm64;  DIGEST=c2146cf33a583f3ac93eccddf1bb662371d5cfcce1aad1c87ad860cca1435d46 ;;
+  x86_64) ARCH=x86_64; DIGEST=81ed3e2cfecf096df15d407152f89a684fd65221082b919963f738e977fad3bc ;;
+esac
+curl -fsSL -o pandoc.zip "https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-$ARCH-macOS.zip"
+echo "$DIGEST  pandoc.zip" | shasum -a 256 -c -
+mkdir -p ~/.local/opt ~/.local/bin
+unzip -q pandoc.zip -d ~/.local/opt
+ln -s "$HOME/.local/opt/pandoc-3.12.1-$ARCH/bin/pandoc" ~/.local/bin/pandoc
+rm pandoc.zip
+```
+
+`~/.local/bin` must come before Homebrew on your `PATH`. In a new terminal, `which pandoc` prints
+`~/.local/bin/pandoc`, and `pandoc --version` prints `pandoc 3.12.1`.
+
+On Ubuntu or Debian, as `ci.yml` does it:
+
+```sh
+case "$(dpkg --print-architecture)" in
+  amd64) ARCH=amd64; DIGEST=b4217ac7c54067c442f9d4cd38bcd0c184a43f3e7053431a12263a6f92a33ba2 ;;
+  arm64) ARCH=arm64; DIGEST=38f44718c0cb15cb81fc31026bd68c33e8628ca5f7ab15ca86494a7f24f7b8e4 ;;
+esac
+curl -fsSL -o pandoc.deb "https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-1-$ARCH.deb"
+echo "$DIGEST  pandoc.deb" | sha256sum -c -
+sudo dpkg -i pandoc.deb
+rm pandoc.deb
+```
+
+### Intel Mac requirements
+
+The kit needs no extra package on an Intel Mac. These items differ from Apple Silicon. Measured on 2026-11-06 on an
+Intel Core i9-9980HK with macOS 15.8.1, Python 3.14.7 and Playwright 1.63.0 (`RESEARCH.md`, section 5).
+
+| Item | On an Intel Mac |
+| --- | --- |
+| Homebrew | The prefix is `/usr/local`, not `/opt/homebrew`. A command that names a Homebrew path takes it from `brew --prefix` |
+| The kit's venv | The commands in "Install and render" do not change, and they give a `x86_64` Python |
+| Chromium | `playwright install chromium` fetches the `chrome-mac-x64` build. `diagram-render` wrote its PNGs with it |
+| pandoc | The `x86_64` file in "Prerequisite for documents". It gave the same document bytes as `ci.yml`'s `.deb`, and the byte test passed |
+| The tokensave fork (`/tokensave-fork`) | Its Rust toolchain folder is `1.98.1-x86_64-apple-darwin`. Homebrew's `rust` 1.98.1, at commit `48a229cea`, built it with no rustup, in 19 min 51 s against 3 minutes on an M-series Mac |
+
+Not tested on an Intel Mac: decks, because LibreOffice and `pdftoppm` were not installed; an SVG in a document, because
+`rsvg-convert` was not installed; the rustup way to build the tokensave fork.
+
 ### Linux requirements
 
 Ubuntu/Debian packages (tested on Ubuntu 24.04):
@@ -67,8 +120,7 @@ Ubuntu/Debian packages (tested on Ubuntu 24.04):
 ```sh
 sudo apt-get install -y python3-venv          # the kit's venv
 sudo .venv/bin/playwright install-deps chromium   # Chromium's system libraries
-# documents built from the figures
-sudo apt-get install -y pandoc                # Markdown to .docx / .pptx
+# documents built from the figures: pandoc as "Prerequisite for documents" says, then
 sudo apt-get install -y libreoffice-impress   # .pptx to PDF, to look at slides before sharing
 sudo apt-get install -y poppler-utils         # pdftoppm: PDF pages to PNG
 sudo apt-get install -y podman                # optional: the Containerfile check
@@ -149,7 +201,7 @@ the source; it writes nothing when a check fails. `RESEARCH.md` §7 has what bot
 
 A Word document is made from Markdown, never edited by hand, the way a PNG is made from its page.
 `skill/document/SKILL.md` is the standard; `doc-docx` does the build (it needs pandoc, at the version your CI pins:
-the skill says where to get it):
+see "Prerequisite for documents"):
 
 ```sh
 # the guide, then the checklist, each after a page break, links between them kept inside the document
@@ -238,7 +290,7 @@ python3 -m venv .venv
 
 A `pytest` from your PATH fails at collection with `ModuleNotFoundError: No module named 'diagram_kit'` or `'playwright'`.
 That means the setup above has not been done, not that a test failed. `tests/test_skills.py` has no such imports, so it
-passes either way and proves nothing about the rest. The tests of `doc-docx` skip without `pandoc` on the PATH.
+passes either way and proves nothing about the rest. The tests of `doc-docx` skip without `pandoc` on the PATH, and its byte test skips on any version but 3.12.1.
 
 No test reaches the network. The browser tests inline a font from `tests/fixtures/fonts/` (Inter, SIL Open Font
 License 1.1, `tests/fixtures/fonts/OFL.txt`). The dashboard tests run no container and ask no Prometheus: they use a

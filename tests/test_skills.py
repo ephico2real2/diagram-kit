@@ -40,6 +40,28 @@ def test_the_readme_says_where_to_link_each_skill(skill):
     assert f"link `~/.claude/skills/{skill.name}` to this directory" in (ROOT / "README.md").read_text()
 
 
+def test_the_readme_installs_the_pandoc_that_ci_pins_on_each_platform():
+    readme = (ROOT / "README.md").read_text()
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    version = re.search(r"name: Install pandoc (\S+)", ci).group(1)
+    digest = re.search(r'echo "([0-9a-f]{64})  \$RUNNER_TEMP/pandoc\.deb"', ci).group(1)
+    section = readme.split("### Prerequisite for documents: pandoc ", 1)[1].split("\n### ", 1)[0]
+    assert section.startswith(version)
+    assert f"amd64) ARCH=amd64; DIGEST={digest} ;;" in section
+    assert f"releases/download/{version}/pandoc-{version}-$ARCH-macOS.zip" in section
+    assert re.search(r"arm64\)  ARCH=arm64;  DIGEST=[0-9a-f]{64} ;;", section)
+    assert re.search(r"x86_64\) ARCH=x86_64; DIGEST=[0-9a-f]{64} ;;", section)
+    # An unpinned package is another version, and the byte test then skips.
+    assert "apt-get install -y pandoc" not in readme
+    assert "arm64-macOS.pkg" not in (ROOT / "skill" / "document" / "SKILL.md").read_text()
+
+
+def test_the_readme_says_what_an_intel_mac_needs():
+    section = (ROOT / "README.md").read_text().split("### Intel Mac requirements", 1)[1].split("\n### ", 1)[0]
+    for need in ("`/usr/local`", "`brew --prefix`", "`x86_64`", "pandoc", "Chromium", "tokensave"):
+        assert need in section, need
+
+
 def test_the_mockup_skills_are_one_standard():
     build = (ROOT / "skill" / "build-mockup" / "SKILL.md").read_text()
     page = (ROOT / "skill" / "mockup-to-page" / "SKILL.md").read_text()

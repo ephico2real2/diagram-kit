@@ -262,6 +262,24 @@ embed.**
 It needs the repository public (step 3), because `pip` fetches the tag anonymously. The tutorial walk installed it
 from a local clone (`TUTORIAL.md`).
 
+### The kit on an Intel Mac (2026-11-06)
+
+An Intel Core i9-9980HK, macOS 15.8.1, Python 3.14.7, Playwright 1.63.0. The README's "Intel Mac requirements" and "Prerequisite for documents" rest on these results.
+
+| Measured | Result |
+|---|---|
+| `uname -m`, and `brew --prefix` | `x86_64`, and `/usr/local` |
+| `file` on the venv's Python | `Mach-O 64-bit executable x86_64` |
+| The Chromium that Playwright installed | `chromium-1248/chrome-mac-x64` |
+| `diagram-template`, then `diagram-render` on that page | 2 PNGs written, so every check passed |
+| The README's macOS block, run by `bash -eu` in a throwaway `HOME` | `pandoc.zip: OK`, then `pandoc 3.12.1`, with the link to `pandoc-3.12.1-x86_64/bin/pandoc` |
+| `arm64` zip of the same release | The digest in the README passes, and its folder is `pandoc-3.12.1-arm64`. It was not run |
+| `tests/test_docx.py` with the `x86_64` pandoc 3.12.1 | The byte test ran and passed, so this build gives the hash that `ci.yml` checks on Linux |
+| `doc-docx` on one Markdown file | `.docx` written |
+| The tokensave fork from Homebrew's `rust` 1.98.1, commit `48a229cea` | Exit 0 in 19 min 51 s, with no rustup |
+
+The digests are the `digest` values that the GitHub API gives for the assets of the 3.12.1 release. LibreOffice, `pdftoppm` and `rsvg-convert` were not installed, so decks and an SVG in a document were not measured. The Linux block in the README was not run here; its `amd64` digest and its commands are those of `ci.yml`.
+
 ## 6. Connectors: curves, dashed arrows, one arrowhead
 
 Asked for on 2026-10-06: curved arrows to show traffic from every Envoy pod reaching every mongot pod, and dashed
