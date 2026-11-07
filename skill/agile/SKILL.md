@@ -168,6 +168,37 @@ The token needs the `project` scope: `gh auth refresh -s project`. Dates come fr
     --jq '[.[] | select(([.labels[].name | select(startswith("status:"))] | length) > 1) | .number]'
   ```
 
+## 7. Show the class of each issue
+
+Each report and each build tracker shows the class of all issues, by category. The table shows the result of the sweep of section 6 to the owner and to the client. In a report, put it in the summary, under the table of findings by severity.
+
+- The columns do not overlap: `INV only`, `TDT only`, `Both`, `No class`, then `Total`. Each row adds up to its total.
+- There is one row for each prefix of the legend, in the order of the legend, then "Other work" and "Total". "Other work" is a story, a task, a spike or an epic with no finding ID. A prefix with no issue gets no row.
+- The table counts all issues of all repositories, open and closed. Its totals can differ from a table of findings, so say so under the table.
+- Give the date and the time of the read. Under the table, give the number of `INV` issues and `TDT` issues, and the kinds of issues with no class.
+- Make the table again after each sweep, in the same commit as the tracker.
+
+Replace the repositories in the first line, then paste the output into the document:
+
+```sh
+for r in <owner>/<repository-1> <owner>/<repository-2>; do
+  gh issue list -R "$r" --state all --limit 1000 --json title,labels
+done | jq -rs '
+  def order: ["SEC", "BUG", "PERF", "BP", "UX", "OA", "INV", "TDT", "Other work"];
+  def category: (.title | capture("^(?<p>SEC|BUG|PERF|BP|UX|OA|INV|TDT)-[0-9]+").p) // "Other work";
+  def classes: [.labels[].name | select(. == "class:INV" or . == "class:TDT")] | sort;
+  def row($name; $items): [$name,
+    ($items | map(select(classes == ["class:INV"])) | length),
+    ($items | map(select(classes == ["class:TDT"])) | length),
+    ($items | map(select(classes == ["class:INV", "class:TDT"])) | length),
+    ($items | map(select(classes == [])) | length),
+    ($items | length)];
+  add as $all
+  | (["Category", "INV only", "TDT only", "Both", "No class", "Total"], ["---", "---", "---", "---", "---", "---"],
+     (order[] as $c | row($c; $all | map(select(category == $c))) | select(.[5] > 0)), row("Total"; $all))
+  | "| " + (map(tostring) | join(" | ")) + " |"'
+```
+
 ## Anti-patterns
 
 | Do not | Do |
