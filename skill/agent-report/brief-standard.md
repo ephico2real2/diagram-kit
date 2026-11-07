@@ -1,6 +1,6 @@
 # Brief standard for every background agent: reading code and reporting
 
-Paste this into the brief of every agent, of any kind. Codex does not read `CLAUDE.md`, so the brief must hold it. Replace `<folder>` with a folder outside the session scratchpad. Replace `<job>` with the job name, and `<graph_root>` with each indexed repository path.
+Paste this into the brief of every agent, of any kind. Codex does not read `CLAUDE.md`, so the brief must hold it. Replace `<folder>` with the parent folder of the job folders, outside the session scratchpad. Do not use the job folder itself, because the text adds `<job>` to it. Replace `<job>` with the job name, and `<graph_root>` with each indexed repository path.
 
 ---
 
