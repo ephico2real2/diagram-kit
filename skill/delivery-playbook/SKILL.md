@@ -17,6 +17,7 @@ in this folder. They hold no firm name and no client data, because this reposito
 | `figures/source.html` | The five figures: lifecycle, review loop, local first, web pipeline and mobile pipeline |
 | `figures/*.light.png`, `figures/*.dark.png` | The figures, rendered by `diagram-render` |
 | `page-head.html` | The style of the page, in the kit palette, with light and dark themes |
+| `deck-template.html`, `deck.lua` | The template and the pandoc filter that make the deck page: one card for each slide |
 
 ## 2. Make a client copy
 
@@ -41,6 +42,9 @@ The Markdown is the source. Each other form is made from it and is never edited 
 pandoc PLAYBOOK.md --standalone --toc --toc-depth=2 -H page-head.html -o playbook.html
 # The deck: one slide for each level-2 heading of DECK.md.
 pandoc DECK.md --slide-level=2 -o playbook.pptx
+# The deck as a page: one card for each slide, light and dark figures, keyboard arrows. The figures folder sits beside it.
+pandoc DECK.md -t html5 --section-divs --lua-filter deck.lua --template deck-template.html \
+  -M hint="Use the arrow keys, or scroll. Each card is one slide." -o deck.html
 # Look at each slide before it goes out, as the kit README says (LibreOffice and pdftoppm).
 soffice -env:UserInstallation=file://$PWD/.lo --headless --convert-to pdf playbook.pptx
 pdftoppm -r 50 -png playbook.pdf slide
