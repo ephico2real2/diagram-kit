@@ -1,0 +1,77 @@
+name: "Story"
+description: "One slice of a feature for one role."
+type: "Feature"
+labels: ["story", "status:open"]
+body:
+  - type: textarea
+    id: story
+    attributes:
+      label: "Story"
+      placeholder: "As a <role>, I want <result>, so that <reason>."
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: "Context"
+      description: "What is true today, with the file or the measurement."
+  - type: textarea
+    id: criteria
+    attributes:
+      label: "Acceptance criteria"
+      description: "Each criterion is something that a test can show."
+      placeholder: "- [ ] "
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "Tasks"
+      placeholder: "- [ ] "
+    validations:
+      required: true
+  - type: textarea
+    id: out
+    attributes:
+      label: "Out of scope"
+  - type: textarea
+    id: evidence
+    attributes:
+      label: "Evidence"
+  - type: textarea
+    id: done
+    attributes:
+      label: "Definition of done"
+      placeholder: "- [ ] "
+    validations:
+      required: true
+  - type: dropdown
+    id: class
+    attributes:
+      label: "Class"
+      description: "Innovation adds something new. Tech debt pays back an earlier shortcut. After you create the issue, add the same class: labels."
+      multiple: true
+      options:
+        - "INV: innovation"
+        - "TDT: tech debt"
+        - "No class"
+    validations:
+      required: true
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: "Milestone"
+      description: "A form cannot set the milestone. After you create the issue, set the same milestone in the sidebar. In a client copy, list the milestones of the client."
+      options:
+        - "Replace with the milestones of the project"
+        - "Not known yet"
+    validations:
+      required: true
+  - type: input
+    id: parent
+    attributes:
+      label: "Part of"
+      description: "The parent issue. After you create the issue, add it as a sub-issue of that parent. If it has no parent, write 'None yet'."
+      placeholder: "#1"
+    validations:
+      required: true

@@ -1,0 +1,94 @@
+name: "Defect"
+description: "A fault, a failed test, a proof gap or a required configuration."
+title: "BUG-: "
+type: "Bug"
+labels: ["bug", "status:open"]
+body:
+  - type: textarea
+    id: wrong
+    attributes:
+      label: "What is wrong"
+    validations:
+      required: true
+  - type: textarea
+    id: where
+    attributes:
+      label: "Where"
+      description: "The file and line, and the commit."
+    validations:
+      required: true
+  - type: textarea
+    id: prove
+    attributes:
+      label: "How to prove it"
+      description: "The commands and their output."
+    validations:
+      required: true
+  - type: dropdown
+    id: evidence
+    attributes:
+      label: "Measured or inferred"
+      description: "Measured means that someone operated the proof."
+      options:
+        - "Measured"
+        - "Inferred"
+    validations:
+      required: true
+  - type: dropdown
+    id: severity
+    attributes:
+      label: "Severity"
+      description: "After you create the issue, add the same sev: label."
+      options:
+        - "Critical"
+        - "High"
+        - "Medium"
+        - "Low"
+    validations:
+      required: true
+  - type: textarea
+    id: after
+    attributes:
+      label: "What must hold after the fix"
+    validations:
+      required: true
+  - type: textarea
+    id: research
+    attributes:
+      label: "Research"
+      description: "Search the primary sources, and compare the options. Record the choice and its sources."
+  - type: textarea
+    id: solution
+    attributes:
+      label: "Solution (inline, not applied)"
+      description: "The root cause, the fix code and a test."
+  - type: dropdown
+    id: class
+    attributes:
+      label: "Class"
+      description: "Innovation adds something new. Tech debt pays back an earlier shortcut. After you create the issue, add the same class: labels."
+      multiple: true
+      options:
+        - "INV: innovation"
+        - "TDT: tech debt"
+        - "No class"
+    validations:
+      required: true
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: "Milestone"
+      description: "A form cannot set the milestone. After you create the issue, set the same milestone in the sidebar. In a client copy, list the milestones of the client."
+      options:
+        - "Replace with the milestones of the project"
+        - "Not known yet"
+    validations:
+      required: true
+  - type: input
+    id: parent
+    attributes:
+      label: "Part of"
+      description: "The parent issue. After you create the issue, add it as a sub-issue of that parent. If it has no parent, write 'None yet'."
+      placeholder: "#1"
+    validations:
+      required: true

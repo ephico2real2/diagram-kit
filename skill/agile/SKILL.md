@@ -1,0 +1,135 @@
+---
+name: agile
+description: "The standard for agile records on GitHub. It says how milestones, epics, features, stories, tasks, spikes, defects and owner actions relate, and gives the issue form and the body of each. It says how to create each one with gh and the GitHub API, with its issue type and its parent. It maps each item to the legend: the ID prefix, the INV and TDT classes, the severity and one status label. Use when the user types /agile. Also use it for agile templates, a backlog structure, issue or milestone templates, and how issues, epics, features and milestones relate. /issue, /epic, /fix-defect and /pull-request follow it."
+---
+
+# /agile: one record from the idea to the release
+
+`/agile` gives one structure for the work of a project on GitHub. Each item has a place, a template, a GitHub issue type, labels and a link to its parent. `LEGEND.md` beside this file is the standard legend. A client report, the Delivery Playbook and each issue use the same legend.
+
+## 1. The items and how they relate
+
+```text
+Milestone      a release train: what ships together, with a purpose, a date and a rollback
+               (each issue names the one milestone that ships it; a milestone is not a parent)
+
+Epic           a goal with exit criteria                                   label: epic
+  Feature      a capability that a user sees               type: Feature   label: feature
+    Story      one slice of the feature for one role       type: Feature   label: story
+    Task       one job with no user story                  type: Task      label: task
+    Spike      a time-boxed question with a measured answer type: Task     label: spike
+  Defect       a fault, a failed test or a proof gap       type: Bug       label: bug
+  Owner action work that needs an account, a key or a decision  type: Task  label: task
+```
+
+- The parent link is a GitHub sub-issue. The first line of the body also says `Part of #<parent>`, because an export or a search shows text, not the link.
+- A milestone names what ships. It is never the parent of an issue. An epic can span milestones, and each child has exactly one milestone.
+- A feature is optional. A small epic holds its stories directly.
+- A defect found under an issue becomes a sub-issue of that issue. `/fix-defect` gives its form.
+- A sub-issue and its parent have the same owner. A parent in another repository of the same owner is permitted.
+
+## 2. Map each item to the legend
+
+| Item | Issue type | Type label | ID in the title | Class labels | Severity | Status label |
+|---|---|---|---|---|---|---|
+| Epic | `Epic` where the organization has it, otherwise none | `epic` | None | None | None | One |
+| Feature | `Feature` | `feature` | The finding ID, or `INV-nn` | `class:INV`, and `class:TDT` for paid-back debt | None | One |
+| Story | `Feature` | `story` | The finding ID, `INV-nn`, `TDT-nn`, or none | As the work | None | One |
+| Task | `Task` | `task` | The finding ID, `TDT-nn`, or none | As the work | None | One |
+| Spike | `Task` | `spike` | None | As the work | None | One |
+| Defect | `Bug` | `bug` | `SEC`, `BUG`, `PERF` or `UX` | `class:TDT` for a cause in debt | One `sev:` label | One |
+| Owner action | `Task` | `task` | `OA-nn` | None | None | `status:owner-action` |
+| Milestone | Not an issue | None | A short code, for example `B1` | None | None | Open or closed |
+
+Rules for the legend:
+
+- An ID never changes after it is filed, because commits, pull requests and documents refer to it. To correct a category, add a class label or a note. Do not rename the ID.
+- Take the next free number of the prefix from the issue list. Never reuse a number.
+- An `INV` or `TDT` ID is only for work that comes from no finding. A finding keeps its own prefix and gets a class label.
+- Each issue has exactly one `status:` label. Change it with `--add-label` and `--remove-label` in one command.
+
+Decide the class with these questions, in this order:
+
+1. Does the work add something that does not exist today, such as a feature, a screen, a design, a service or a method? Then it is `INV`.
+2. Does the work pay back an earlier shortcut in code or a setup that works today? Examples are an old dependency, a weak test, a hand step, dead code or a document that drifted. Then it is `TDT`.
+3. If both answers are yes, it has both labels. If both are no, it has no class label. A defect that restores the intended behavior usually has no class.
+
+## 3. Templates
+
+| File | Use |
+|---|---|
+| `LEGEND.md` | The standard legend: prefixes, classes, severity, status, verdicts and figure elements |
+| `templates/ISSUE_TEMPLATE/*.yml` | GitHub issue forms for each item. Copy them into `.github/ISSUE_TEMPLATE/` of a repository |
+| `templates/bodies.md` | The body of each item, for `gh issue create --body-file` |
+| `templates/milestone.md` | The description of a milestone |
+
+Each form sets its issue type with the top-level `type` key, its type label and `status:open`. A form cannot set a milestone or a parent, so the form asks for both, and the person who files the issue sets them after. In a client copy, replace the milestone options with the milestones of the client.
+
+## 4. Create the records, in this order
+
+Write each body to a file and use `--body-file`. Never put a long body inline in the shell.
+
+1. Create the labels once for each repository. If a label exists, `gh label create` fails with a clear message and changes nothing.
+
+   ```sh
+   gh label create epic                --color 5319e7 --description "A body of work tracked by child issues"
+   gh label create feature             --color 0e8a16 --description "A capability that a user sees"
+   gh label create story               --color 1d76db --description "One slice of a feature for one role"
+   gh label create task                --color fbca04 --description "A unit of work with no user story"
+   gh label create spike               --color c2e0c6 --description "A time-boxed question with a measured answer"
+   gh label create bug                 --color d73a4a --description "A fault, a failed test or a proof gap"
+   gh label create class:INV           --color 1d76db --description "Innovation: a new feature, design, idea or method"
+   gh label create class:TDT           --color c5a3ff --description "Tech debt: works today, but costs more to change, operate or upgrade"
+   gh label create status:open         --color ededed --description "No fix yet"
+   gh label create status:owner-action --color d93f0b --description "Waits for the owner"
+   ```
+
+   Add the other `status:` and `sev:` labels of `LEGEND.md` the same way.
+
+2. Create the milestone, with the description from `templates/milestone.md`:
+
+   ```sh
+   gh api repos/<owner>/<repo>/milestones -f title="<code>: <what ships>" -F description=@milestone.md -f due_on=<YYYY-MM-DDT00:00:00Z>
+   ```
+
+3. Create the epic, then each feature, then each story, task or spike. Each child gets its milestone:
+
+   ```sh
+   gh issue create --title "<title>" --body-file story.md --label story --label status:open --milestone "<milestone title>"
+   ```
+
+4. Set the issue type and the parent. The GraphQL schema has `updateIssueIssueType(issueId, issueTypeId)` and `addSubIssue(issueId, subIssueId, replaceParent)`. Both take node IDs, not issue numbers:
+
+   ```sh
+   q='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){issue(number:$n){id} issueTypes(first:20){nodes{id name}}}}'
+   gh api graphql -f query="$q" -f o=<owner> -f r=<repo> -F n=<child number>    # the child id and the type ids
+   gh api graphql -f query='mutation($i:ID!,$t:ID!){updateIssueIssueType(input:{issueId:$i,issueTypeId:$t}){issue{number issueType{name}}}}' -f i=<child id> -f t=<type id>
+   gh api graphql -f query='mutation($p:ID!,$c:ID!){addSubIssue(input:{issueId:$p,subIssueId:$c}){issue{number}}}' -f p=<parent id> -f c=<child id>
+   ```
+
+   A repository of a personal account has no issue types. Then the type label carries the type.
+
+5. Update the task list of the epic with the real numbers, and tick each closed child.
+6. Add the new items to the build tracker of the project in the same change.
+
+## 5. Keep the records true
+
+- A pull request names its milestone, its issues, its class and its type label. `/pull-request` gives the template.
+- After a merge to a branch that is not the default branch, `Closes #` closes nothing. Set the status label by hand.
+- Close an issue only through a merged fix on the default branch, with the proof cited.
+- Count the issues with more than one status label after each change of status:
+
+  ```sh
+  gh issue list --state all --limit 500 --json number,labels \
+    --jq '[.[] | select(([.labels[].name | select(startswith("status:"))] | length) > 1) | .number]'
+  ```
+
+## Anti-patterns
+
+| Do not | Do |
+|---|---|
+| Use a milestone for a theme | A theme is a label. A body of work is an epic |
+| Rename an ID to correct its category | Add a class label or a note |
+| Leave the parent only in the text | Add the sub-issue link, and keep `Part of #` |
+| Add a second status label | Replace the status in one command |
+| File a feature with no acceptance criteria | Each criterion says how a test shows it |
