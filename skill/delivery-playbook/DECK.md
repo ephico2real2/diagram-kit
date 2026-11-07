@@ -20,6 +20,7 @@ date: "[date]"
 - Adversarial by default: each claim about the code is attacked.
 - People decide, agents execute: no agent merges a change.
 - No vendor lock-in: open standards and portable containers.
+- Creative use of open source: one port, an adapter for each store, one contract test suite.
 - Contract first, secure by design, observable by design, traceable delivery.
 
 ## Services

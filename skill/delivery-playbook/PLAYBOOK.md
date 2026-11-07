@@ -28,10 +28,13 @@ With this playbook, each client gets a detailed document: the Adversarial Review
 | Adversarial by default | Each claim about the code is attacked. Only what a test supports stays | A test that fails before a fix and passes after it |
 | People decide, agents execute | The architect decides. Agents test claims, write code and report. No agent merges a change | A written ruling for each agent job |
 | No vendor lock-in | Open standards and portable containers. A managed service is an option behind an interface, not a dependency | The same image operates on a virtual machine, a cloud virtual machine and Kubernetes |
+| Creative use of open source | Combine open-source components to give a feature that a managed service does not have. One port (an interface in the code) has an adapter for each store or service, and the configuration chooses the adapter. The licence of each component is recorded: open source, or source-available with its limits | One contract test suite passes against each adapter |
 | Contract first | Each API has an OpenAPI contract and a data model. A mock follows the contract | Contract tests on the client side and on the server side |
 | Secure by design | Standard identity, short-lived credentials, encryption in transit and no secret in code | Security tests in CI and an adversarial audit |
 | Observable by design | Open formats for traces, metrics and logs. Alerts on measured values | A dashboard and an alert for each key performance indicator (KPI) |
 | Traceable delivery | Each change has an issue, a milestone, a pull request and a tracker row | The tracker reads its values from the issue system |
+
+For example, a managed PostgreSQL service can lack the TimescaleDB extension. The product then has one time-series port with two adapters. One adapter uses TimescaleDB on a host that the team runs, with hypertables and continuous aggregates. The other uses plain PostgreSQL with native partitions, on any PostgreSQL or a managed service. The same contract test suite passes against both, so the team can change the store with one configuration value.
 
 ## 3. Services
 
