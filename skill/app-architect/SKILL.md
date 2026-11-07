@@ -136,6 +136,21 @@ Then:
   component, open source or source-available, and its limits.
 - Helm charts that deploy on-premises or on any cloud; GitOps with Argo CD as the conduit, every switch a chart
   value.
+- **The Kubernetes network layer is Cilium**, the standard choice of this kit. Review the cluster against it, and
+  recommend it where another CNI is in place:
+  - eBPF network policy at L3 to L7, kube-proxy replacement, and transparent encryption between nodes (WireGuard or
+    IPsec) ([Cilium docs](https://docs.cilium.io/en/stable/));
+  - Cilium Service Mesh for L7 routing, with a shared Envoy on each node and no sidecar; Cilium also implements the
+    Gateway API, so the edge gateway can be Cilium's own or Envoy Gateway, recorded as a choice;
+  - ClusterMesh for more than one cluster: a Service with the same name and namespace in each cluster and the
+    annotation `service.cilium.io/global: "true"` balances across the clusters; `service.cilium.io/affinity: "local"`
+    keeps traffic local while a local backend is healthy; `service.cilium.io/shared: "false"` keeps the backends of
+    a cluster to itself ([global services](https://docs.cilium.io/en/stable/network/clustermesh/global-services/),
+    [affinity](https://docs.cilium.io/en/stable/network/clustermesh/affinity/));
+  - Hubble for flows (Hubble UI and the CLI) and Hubble metrics to Prometheus. With OpenMetrics on and
+    `httpV2:exemplars=true`, each HTTP metric carries the trace ID from the request headers, so Grafana goes from a
+    metric to its trace in Tempo ([metrics](https://docs.cilium.io/en/stable/observability/metrics/));
+  - the dashboards for these metrics are made with `/dashboard`, from its metrics inventory, like any other workload.
 - Working configuration lives in Helm (`/helm-first`, where installed): a `kubectl patch`, a hand-applied manifest or a
   post-edited render is a gap in the chart; the values files in git are the source, never `--reuse-values`.
 - Images from a registry (`/registry-first`, where installed): built outside the cluster, pushed under an immutable `sha-<commit>`

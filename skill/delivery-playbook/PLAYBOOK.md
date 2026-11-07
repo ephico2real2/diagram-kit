@@ -216,6 +216,9 @@ A dashboard starts with an inventory of each metric that the workload emits. The
 - Each service is an OCI container image. The same image operates on a virtual machine, on a cloud virtual machine with Compose, or on Kubernetes with Helm.
 - On Kubernetes, Argo CD deploys from Git. KEDA scales each workload on a measured signal, for example the request rate or the queue depth.
 - The capacity follows the measured load. A managed service is an option, not a requirement.
+- On Kubernetes, the network layer is Cilium. It gives eBPF network policy from L3 to L7 and transparent encryption between nodes. Its service mesh uses a shared Envoy on each node, with no sidecar.
+- For more than one cluster, Cilium ClusterMesh joins them. A Service with the same name in each cluster and the annotation `service.cilium.io/global: "true"` balances across the clusters. The annotation `service.cilium.io/affinity: "local"` keeps traffic in the cluster while a local backend is healthy.
+- Hubble shows each flow, and its metrics go to Prometheus. With exemplars on, each HTTP metric carries its trace ID, so Grafana goes from a metric to the trace in Tempo. The `/dashboard` skill makes the Grafana dashboards for these metrics.
 
 ## 12. Testing
 
