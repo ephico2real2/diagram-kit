@@ -31,8 +31,8 @@ it produced a defect.
 ## 2. Build
 
 `doc-docx` is in the kit from 0.2.5 (install it as `/visual` §4 says). Install the pandoc version the repository's
-CI pins, because the bytes of the output depend on it; the kit's CI pins **3.12.1**. Take it from pandoc's release page
-(macOS: `pandoc-3.12.1-arm64-macOS.pkg`) and check it against the digest GitHub publishes: `brew install pandoc`
+CI pins, because the bytes of the output depend on it; the kit's CI pins **3.12.1**. The kit's README, "Prerequisite
+for documents", has the commands and the digests for an Intel Mac, Apple Silicon and Linux: `brew install pandoc`
 installs the newest release, which matches the pin only until the next one.
 
 ```sh
