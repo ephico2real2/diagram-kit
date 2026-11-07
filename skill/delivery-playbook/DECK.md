@@ -47,6 +47,8 @@ date: "[date]"
 ## API mocks when a provider has no sandbox
 
 - The mock uses the main programming language of the project.
+- It follows the public API documentation and contract of the provider.
+- It checks the API key and the credentials as the provider does, with test values only.
 - Each provider has an OpenAPI contract, a data model and the unit of each field.
 - Each answer has realistic values, so the product operates end to end.
 - Scenarios give failures on demand: a timeout, an error code, a slow answer.

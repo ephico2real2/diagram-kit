@@ -123,6 +123,8 @@ The local copy has stand-ins for each platform service:
 If an external provider has a sandbox, use the sandbox. If it has no sandbox, build a mock of its API:
 
 - The mock uses the main programming language of the project, so the same team can read, change and test it.
+- The team models the mock on the public API documentation and the API contract of each provider, not on the calls that the client makes. The mock then gives the real app experience, and a client call that differs from the contract fails a test.
+- The mock checks authentication as the provider does: the API key, the credentials, the token exchange and the signature of each webhook. It accepts only test values of the same form, never a real key.
 - Each provider has an OpenAPI contract with its paths, its data model and the units of each field.
 - Each answer has realistic values, so the product operates end to end.
 - Scenarios give failures on demand: a timeout, an error code, a slow answer and a duplicate webhook.

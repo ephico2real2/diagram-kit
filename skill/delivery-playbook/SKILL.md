@@ -70,5 +70,8 @@ prints the pages, build them with `figures-light.lua`. Each figure then looks th
 - Each statement in a client copy has a source. "Operates" needs a test or a workflow run. Anything else is
   "proposed" or "not built".
 - A figure shows the standard. The client copy states which stages operate today.
+- If a provider has no sandbox, the mock app follows the public API documentation and the API contract of that provider.
+  It also checks the authentication of the provider: the API key, the credentials, the token exchange and the webhook
+  signature. It accepts test values only. The client copy names the documents that each mock follows.
 - The playbook and the client report use the same legend, the same status words and the same verdict words.
 - After a change to the standard, render the figures again and update each client copy that the firm still keeps.
