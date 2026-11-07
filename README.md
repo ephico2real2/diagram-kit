@@ -37,6 +37,9 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/agent-report/brief-standard.md` | the text to paste into the brief of every agent, of any kind |
 | `skill/codex-arbiter/SKILL.md` | the `/codex-arbiter` Claude Code skill: background Codex agents review pending patches in disposable clones, and Claude rules on each finding and tests it; link `~/.claude/skills/codex-arbiter` to this directory |
 | `skill/fix-defect/SKILL.md` | the `/fix-defect` Claude Code skill: each defect logged at once as an issue under its parent, researched, reviewed and proven; link `~/.claude/skills/fix-defect` to this directory |
+| `skill/issue/SKILL.md` | the `/issue` Claude Code skill: one GitHub issue in agile form, with a milestone and one status label, grounded in the code and the measurements; link `~/.claude/skills/issue` to this directory |
+| `skill/epic/SKILL.md` | the `/epic` Claude Code skill: a body of work broken into child issues that each end in a demonstration, with risks and exit criteria; link `~/.claude/skills/epic` to this directory |
+| `skill/handover/SKILL.md` | the `/handover` Claude Code skill: the state of long work recorded in the handover, the tracker, memory and a resume prompt, so that a new session resumes it alone; link `~/.claude/skills/handover` to this directory |
 | `skill/tokensave-fork/SKILL.md` | the `/tokensave-fork` Claude Code skill: install the tokensave2 fork with its dependencies, connect Codex, Cursor and Copilot, put it on the shell PATH, remove the upstream copy, and prove it with a real query; link `~/.claude/skills/tokensave-fork` to this directory |
 | `skill/tokensave-fork/cursor-allow.py` | adds the read tools of tokensave to the Cursor CLI allow list, and no tool that writes |
 | `skill/tokensave-fork/cursor-job-config.py` | makes a second Cursor configuration folder, so that one job gets a shell and reads only its own folder, and the main configuration does not change |
@@ -290,6 +293,23 @@ ln -s "$PWD/skill/adversarial-review" ~/.claude/skills/adversarial-review
 
 A personal skill wins over a project skill of the same name, so this link hides a repository's own
 `.claude/skills/adversarial-review` in that repository.
+
+## Skills: the kit is the one copy
+
+Each general skill lives here, and `~/.claude/skills/<name>` is a link to its directory. Change a skill here, through
+a pull request, and never in a copy under `~/.claude/skills`. A copy drifts: on 2026-11-07, three local copies differed
+from the kit, and the newer rules were in different places.
+
+```sh
+ln -s "$PWD/skill/<name>" ~/.claude/skills/<name>
+```
+
+- A new general skill comes here in its first pull request, with its README row and its name in
+  `tests/test_skills.py`.
+- This repository is public. A skill holds no firm name, no client name, no client number and no private host. An
+  example from client work names the kind of work, not the client.
+- A skill for one client or one project lives in that repository, under `.claude/skills/`.
+- A fact about one machine, such as an installed version, goes into the memory of the agent, not into the skill.
 
 ## Why a kit
 
