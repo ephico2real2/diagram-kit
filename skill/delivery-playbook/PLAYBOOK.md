@@ -266,7 +266,7 @@ Every report, issue, pull request and figure uses this legend. `skill/agile/LEGE
 | `INV` | Innovation | A new feature, design, idea or method that comes from no finding |
 | `TDT` | Tech debt | A debt item that comes from no finding |
 
-A class says what kind of work an item is. Each item of any prefix can have one class, both classes or no class. A finding keeps its ID and gets a class label. If the fix of a defect brings existing behavior back to its intended form and adds nothing, the defect has no class. If the fix adds a new control, such as a webhook signature, a second factor, an allow-list or a scan, the defect is `INV`. A defect in new work that is not merged yet is also `INV`, because its fix is part of that work. Sweep the classes of all issues at the first classification and after each change of this rule, not only the classes of new issues.
+A class says what kind of work an item is. Each item of any prefix can have one class, both classes or no class. A finding keeps its ID and gets a class label. If the fix of a defect brings existing behavior back to its intended form and adds nothing, the defect has no class. If the fix adds a new control, such as a webhook signature, a second factor, an allow-list or a scan, the defect is `INV`. A defect in new `INV` work that is not merged yet is also `INV`, because its fix is part of that work. A defect in an unmerged fix that has no class keeps no class. Sweep the classes of all issues at the first classification and after each change of this rule, not only the classes of new issues.
 
 | Class | Label | Meaning |
 |---|---|---|

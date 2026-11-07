@@ -100,13 +100,15 @@ def test_inv_covers_controls_methods_and_gates(path):
     text = path.read_text()
     assert "a security control, a test method and a CI/CD gate" in text
     assert "brings existing behavior back to its intended form and adds nothing, the defect has no class" in text
-    assert "A defect in new work that is not merged yet is also `INV`" in text
+    assert "A defect in new `INV` work that is not merged yet is also `INV`" in text
+    assert "A defect in an unmerged fix that has no class keeps no class." in text
     assert "usually has no class" not in text
 
 
 def test_the_agile_skill_requires_a_sweep_of_all_issues():
     text = (AGILE / "SKILL.md").read_text()
     assert "Sweep the classes of all issues, not only the new ones." in text
+    assert "also for each issue that keeps no class" in text
     assert 'select(startswith("class:"))' in text
 
 

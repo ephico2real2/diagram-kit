@@ -52,7 +52,7 @@ Decide the class with these questions, in this order:
 
 1. Does the work add something new to the product or the delivery? Examples are a feature, a service, a security control, a test method and a CI/CD gate. Then it is `INV`.
 2. Does the work pay back an earlier shortcut in code or a setup that works today? Examples are an old dependency, a weak test, a hand step, dead code or a document that drifted. Then it is `TDT`.
-3. If both answers are yes, it has both labels. If both are no, it has no class label. If the fix of a defect brings existing behavior back to its intended form and adds nothing, the defect has no class. If the fix adds a new control, such as a webhook signature, a second factor, an allow-list or a scan, the defect is `INV`. A defect in new work that is not merged yet is also `INV`, because its fix is part of that work. Owner actions, epics and milestones have no class.
+3. If both answers are yes, it has both labels. If both are no, it has no class label. If the fix of a defect brings existing behavior back to its intended form and adds nothing, the defect has no class. If the fix adds a new control, such as a webhook signature, a second factor, an allow-list or a scan, the defect is `INV`. A defect in new `INV` work that is not merged yet is also `INV`, because its fix is part of that work. A defect in an unmerged fix that has no class keeps no class. Owner actions, epics and milestones have no class.
 
 ## 3. Templates
 
@@ -153,7 +153,7 @@ The token needs the `project` scope: `gh auth refresh -s project`. Dates come fr
 - A pull request names its milestone, its issues, its class and its type label. `/pull-request` gives the template.
 - After a merge to a branch that is not the default branch, `Closes #` closes nothing. Set the status label by hand.
 - Close an issue only through a merged fix on the default branch, with the proof cited.
-- Sweep the classes of all issues, not only the new ones. Do it at the first classification, after each change of the class rule, and before each tracker update. List each issue with no class label, read its fix, and add the class that the questions of section 2 give. Report the count: the issues read, the classes added and the issues that keep no class.
+- Sweep the classes of all issues, not only the new ones. Do it at the first classification, after each change of the class rule, and before each tracker update. List each issue with no class label, read its fix, and add the class that the questions of section 2 give. Report the count: the issues read, the classes added and the issues that keep no class. Record the reason for each issue, also for each issue that keeps no class, so that the next sweep starts from the record.
 
   ```sh
   gh issue list --state all --limit 500 --json number,title,labels \
