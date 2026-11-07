@@ -6,8 +6,11 @@ playbook equals LEGEND.md, and the pull request template asks for the milestone,
 
 from __future__ import annotations
 
+import json
 import pathlib
 import re
+import shutil
+import subprocess
 
 import pytest
 import yaml
@@ -117,3 +120,35 @@ def test_each_class_dropdown_states_the_wide_rule(form):
 def test_the_pull_request_template_narrows_no_class():
     text = (ROOT / "skill" / "pull-request" / "templates" / "pull_request_template.md").read_text()
     assert "- [ ] No class: the change only restores existing behavior and adds nothing" in text
+
+
+def class_table_program() -> str:
+    """The jq program of the class table in section 7 of the agile skill."""
+    section = (AGILE / "SKILL.md").read_text().split("## 7. Show the class of each issue", 1)[1].split("\n## ", 1)[0]
+    return section.split("jq -rs '", 1)[1].split("'\n```", 1)[0]
+
+
+@pytest.mark.skipif(shutil.which("jq") is None, reason="jq is not installed")
+def test_the_class_table_command_counts_each_issue_once():
+    repo_1 = [
+        {"title": "SEC-01: a new control", "labels": [{"name": "class:INV"}, {"name": "status:open"}]},
+        {"title": "SEC-02: a fix", "labels": [{"name": "status:open"}]},
+        {"title": "Add a dashboard", "labels": [{"name": "class:INV"}]},
+    ]
+    repo_2 = [
+        {"title": "BP-01: a gate", "labels": [{"name": "class:TDT"}, {"name": "class:INV"}]},
+        {"title": "OA-01: a decision", "labels": []},
+        {"title": "TDT-01: old code", "labels": [{"name": "class:TDT"}]},
+    ]
+    stdin = json.dumps(repo_1) + "\n" + json.dumps(repo_2) + "\n"
+    out = subprocess.run(["jq", "-rs", class_table_program()], input=stdin, capture_output=True, text=True, check=True)
+    assert out.stdout.splitlines() == [
+        "| Category | INV only | TDT only | Both | No class | Total |",
+        "| --- | --- | --- | --- | --- | --- |",
+        "| SEC | 1 | 0 | 0 | 1 | 2 |",
+        "| BP | 0 | 0 | 1 | 0 | 1 |",
+        "| OA | 0 | 0 | 0 | 1 | 1 |",
+        "| TDT | 0 | 1 | 0 | 0 | 1 |",
+        "| Other work | 1 | 0 | 0 | 0 | 1 |",
+        "| Total | 2 | 1 | 1 | 2 | 6 |",
+    ]
