@@ -1,0 +1,53 @@
+<!-- Included by pandoc with -H. It gives a playbook page the kit palette, in light and dark themes. -->
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;600&family=IBM+Plex+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --ground: #f5f6f8; --surface: #ffffff; --ink: #18212c; --muted: #58636f; --rule: #d7dce3;
+  --accent: #0e6f68; --accent-wash: #e3f3f1;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --ground: #0e131a; --surface: #151c25; --ink: #e5e9ef; --muted: #9aa5b3; --rule: #2a3440;
+    --accent: #3fcfc0; --accent-wash: #122a28; color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #0e131a; --surface: #151c25; --ink: #e5e9ef; --muted: #9aa5b3; --rule: #2a3440;
+  --accent: #3fcfc0; --accent-wash: #122a28; color-scheme: dark;
+}
+html, body { background: var(--ground); color: var(--ink); }
+body { font-family: var(--font-body); font-size: 16px; line-height: 1.6; max-width: 1000px; margin: 0 auto;
+  padding: 40px 16px 80px; hyphens: none; }
+h1, h2, h3 { line-height: 1.2; text-wrap: balance; }
+/* The title comes from the metadata block. Each section is an h2. */
+h1.title { font-size: clamp(28px, 4.5vw, 40px); margin: 0 0 8px; }
+h2 { font-size: 24px; margin: 48px 0 12px; padding-top: 16px; border-top: 1px solid var(--rule); }
+h3 { font-size: 18px; margin: 28px 0 8px; }
+p, li { max-width: 76ch; }
+a { color: var(--accent); }
+code { font-family: var(--font-mono); font-size: .9em; background: transparent; color: inherit; }
+/* pandoc centers the title block by default. The page reads from the left, so the title does too. */
+header#title-block-header { margin-bottom: 24px; text-align: left; }
+header#title-block-header .subtitle, header#title-block-header .author, header#title-block-header .date {
+  color: var(--muted); margin: 4px 0; }
+nav#TOC { background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; padding: 12px 20px; }
+nav#TOC ul { padding-left: 20px; margin: 6px 0; }
+table { display: block; overflow-x: auto; border-collapse: collapse; width: 100%; font-size: 14.5px;
+  background: var(--surface); border: 1px solid var(--rule); border-radius: 10px; margin: 12px 0 20px; }
+th, td { text-align: left; vertical-align: top; padding: 9px 14px; border-bottom: 1px solid var(--rule); }
+th { font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted);
+  background: var(--ground); }
+tbody tr:last-child td { border-bottom: 0; }
+picture, figure img, p img { display: block; width: 100%; height: auto; border-radius: 10px; }
+picture img { width: 100%; height: auto; }
+p em:only-child { color: var(--muted); font-size: 14px; }
+blockquote { margin: 16px 0; padding: 10px 16px; border-left: 3px solid var(--accent); background: var(--accent-wash);
+  border-radius: 0 8px 8px 0; }
+@media (max-width: 600px) { body { font-size: 15px; } h2 { font-size: 21px; } }
+</style>
