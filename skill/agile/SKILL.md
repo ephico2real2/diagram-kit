@@ -199,6 +199,20 @@ done | jq -rs '
   | "| " + (map(tostring) | join(" | ")) + " |"'
 ```
 
+### Highlight the innovations
+
+A report for a client is also a business document, so it shows the innovations of the work, built and proposed. In the summary, under the class table, add two tables:
+
+1. A table of themes. Put each `INV` issue in one business theme, such as new services, the admin portal, security controls, test methods or CI/CD. Count its state from its status label: Built (`status:fixed-on-review-branch`), Partly built (`status:partly-fixed`), Proposed (`status:open`, or no status label) and Owner decision (`status:owner-action`). Each issue is in exactly one theme, and the total equals the number of `INV` issues.
+2. A table of the main innovations, with the columns Innovation, What it gives the business, State and Where. Give the business result in plain words, not the code change. Name the issue numbers, the design or the proof branch of each row.
+
+A proposed innovation is never shown as built. If an innovation has a design but no issue yet, say so in its row. This command lists each `INV` issue with its status, to start the themes:
+
+```sh
+gh issue list -R <owner>/<repository> --state all --limit 1000 --json number,title,labels \
+  --jq '.[] | select([.labels[].name] | index("class:INV")) | "\(.number) [\([.labels[].name | select(startswith("status:"))] | join(","))] \(.title)"'
+```
+
 ## Anti-patterns
 
 | Do not | Do |
