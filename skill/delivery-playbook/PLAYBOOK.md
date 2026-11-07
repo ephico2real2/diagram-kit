@@ -151,6 +151,10 @@ A mock is a stand-in. The recommendation for real sandboxes stays.
 | Staging | Deploy the digest. Apply migrations by one tested method. Operate smoke and browser tests | A failed health check or test |
 | Production | Promote the same digest. Roll out in steps with health checks | A failed health check starts the rollback to the last digest |
 
+The pipeline operates in GitHub Actions. Each workflow calls the deploy scripts that the repository holds beside it. The same scripts build, deploy and test the product on a developer machine, so the local copy tests each deploy before CI operates it. CI operates on each branch and on each pull request of the branch flow: a working branch, the integration branch, the staging branch and the default branch.
+
+If the product operates on Kubernetes, Argo CD deploys from Git. The workflow writes the new image digest to the deployment repository, and Argo CD applies it and shows any difference from Git. If the product operates with no Kubernetes, the workflow operates the deploy script on the target, for example Compose on a virtual machine.
+
 The pipeline gets cloud access through OIDC federation, with no stored key. Each action and tool is pinned to a version and a checksum. A merge to a deploy branch needs a reviewed pull request and passed checks.
 
 ## 8. CI/CD for a mobile application
@@ -172,6 +176,8 @@ The pipeline gets cloud access through OIDC federation, with no stored key. Each
 | Signed build | A build service or the native tools make signed builds. Signing keys stay in the build service or a secret manager | A build or signing failure |
 | Internal release | An internal track and TestFlight. The device flows operate on the release build | A failed flow on the release build |
 | Store release | A person approves the submission. Over-the-air updates pass the same gates and have a rollback | No approval |
+
+The mobile pipeline also operates in GitHub Actions. Its local scripts start the emulators and the simulators and operate the same device flows on a developer machine.
 
 A store submission never starts from a push with no approval.
 

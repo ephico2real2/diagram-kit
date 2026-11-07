@@ -61,6 +61,14 @@ date: "[date]"
 
 ![Six stages. A person approves each store submission.](figures/pipeline-mobile.light.png)
 
+## How CI/CD operates
+
+- GitHub Actions operates each pipeline.
+- Each workflow calls the deploy scripts of its repository.
+- The same scripts operate on a developer machine first.
+- CI operates on each branch and each pull request of the branch flow.
+- On Kubernetes, Argo CD deploys from Git. With no Kubernetes, the deploy script operates on the target.
+
 ## Identity, transport security and secrets
 
 - Sign-in: OIDC with PKCE. Keycloak is the standard. A cloud provider, for example Amazon Cognito, is an option.
