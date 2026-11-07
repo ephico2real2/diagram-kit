@@ -110,6 +110,19 @@ def test_the_agent_report_skill_ships_its_brief_and_an_audit_of_real_work():
     assert "Do not write a program to test the format" in brief
 
 
+def test_the_brief_numbers_its_rules_once_each_and_keeps_the_audit_rules():
+    brief = (ROOT / "skill" / "agent-report" / "brief-standard.md").read_text()
+    rules = brief.split("\nRules:\n", 1)[1].lstrip("\n").split("\n\n", 1)[0]
+    numbers = [int(m) for m in re.findall(r"^(\d+)\. ", rules, re.M)]
+    assert numbers == list(range(1, len(numbers) + 1)), numbers
+    assert "If you cannot test a claim from where you operate, the claim is NOT REACHED." in brief
+    assert "stop each process that you started" in brief
+    assert "must not match its own command line" in brief
+    assert "Then restart from the first step, not from the failed step." in brief
+    skill = (ROOT / "skill" / "agent-report" / "SKILL.md").read_text()
+    assert "9. File the defects." in skill
+    assert "10. For a job that tests an app" in skill
+
 def test_the_defect_skill_and_the_fork_skill_use_the_brief_standard():
     assert "`/agent-report`" in (ROOT / "skill" / "fix-defect" / "SKILL.md").read_text()
     assert "`/agent-report`" in (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
