@@ -44,15 +44,17 @@ A background agent's task file is a `*.output` link to its `agent-*.jsonl` trans
 
 So an agent appears as a ghost, in the text report only, whether it is stale or still running. Read the age of each ghost before you act. The prompt hook does not name agents, because it leaves out ghosts. Run the text report to see them. It names the 3 newest ghosts.
 
-## What it never touches
+## What the guard protects
 
-The guard is applied last and overrides every finding. It protects these processes:
+If the command of a process matches this list, the script does not end that process:
 
-- anything under `/Applications` or `/System`
+- a command under `/Applications` or `/System`
 - editor extension hosts
 - CRC and container virtual machines (vfkit, qemu, hyperkit, colima, podman, docker)
 - launchd
-- the ancestors of the script
+- the script and its ancestors
+
+The guard reads only the process that a finding names. `--sweep` ends the whole tree of that process, so a child that matches the guard also ends. On 2026-11-07, a sweep ended helpers under `/Applications/ChatGPT.app` because they were children of a stale broker. The ChatGPT app kept running.
 
 ## Before you sweep
 

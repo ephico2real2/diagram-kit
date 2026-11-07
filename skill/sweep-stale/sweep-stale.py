@@ -22,9 +22,10 @@ reader; it never decides.
 Everything else is matched conservatively — orphaned (parent gone) leftovers of the harnesses this tooling
 actually starts, past a grace period.
 
-Never touched, whatever else matches: anything under /Applications or /System, an editor's extension host,
-the CRC or container virtual machines, launchd, and this process's own ancestry. The guard is applied last
-and beats every detector.
+The guard: this script does not end a process whose own command is under /Applications or /System, an editor's
+extension host, the CRC or container virtual machines, launchd, or this process's own ancestry. It reads only the
+process that a finding names. --sweep ends the whole tree of that process, so a child that matches the guard also
+ends (measured 2026-11-07: helpers under /Applications/ChatGPT.app ended with their stale broker).
 
   sweep-stale.py          report, human-readable
   sweep-stale.py --json   report as a Claude Code hook payload; prints nothing when clean
