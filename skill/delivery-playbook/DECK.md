@@ -143,7 +143,8 @@ date: "[date]"
 
 ## What the client gets
 
-- A report with findings, tests, fixes and a phased roadmap.
+- The Adversarial Review, Architecture and Implementation Report: the detailed document of the engagement.
+- It holds the findings, the architecture, the work that was built, the tests, the fixes and a phased roadmap.
 - Issues, epics and milestones that match the roadmap.
 - The product on a laptop, with sandboxes or API mocks.
 - Pipelines, test suites, dashboards and alerts.
