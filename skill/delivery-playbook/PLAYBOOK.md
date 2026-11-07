@@ -217,20 +217,25 @@ A dashboard starts with an inventory of each metric that the workload emits. The
 
 ## 13. Agile delivery
 
-| Item | Meaning |
-|---|---|
-| Epic | A body of work with a goal, child issues and exit criteria |
-| Milestone | A release train: the set of changes that ships together |
-| Feature and story | A capability for a named role, with acceptance criteria |
-| Task and spike | A step of work, or a time-boxed investigation |
-| Defect | A fault, filed at once with how to prove it |
-| Owner action | Work that needs an account, a key, a plan or a decision that code cannot supply |
+Each piece of work has one record on GitHub, from the idea to the release. The `/agile` skill gives the template of each item, its issue type and the commands that create it. The `/pull-request` skill gives the template of each change.
 
-Each pull request uses the template of its repository. It names its milestone and its issues. Each issue has one status label. The build tracker shows the milestone and the status of each issue, and it changes in the same pull request as the work.
+| Item | Meaning | GitHub issue type | Parent |
+|---|---|---|---|
+| Milestone | A release train: the set of changes that ships together, with a date and a rollback | Not an issue | None. Each issue names one milestone |
+| Epic | A goal with child issues and exit criteria | `Epic` where the organization has it | None |
+| Feature | A capability that a user sees | `Feature` | An epic |
+| Story | One slice of a feature for one role, with acceptance criteria | `Feature` | A feature or an epic |
+| Task and spike | A step of work, or a time-boxed question with a measured answer | `Task` | A feature or an epic |
+| Defect | A fault, filed at once with how to prove it | `Bug` | The issue under which it was found |
+| Owner action | Work that needs an account, a key, a plan or a decision that code cannot supply | `Task` | The issue that waits for it |
+
+The parent link is a GitHub sub-issue, and the body also says `Part of #<parent>`. A milestone is never a parent. Each issue has one type label, one `status:` label, and the class labels of section 14.
+
+Each pull request uses the template of its repository. It names its milestone, its issues and its class. The build tracker shows the milestone, the class and the status of each issue, and it changes in the same pull request as the work.
 
 ## 14. Legend
 
-Every report, issue and figure uses this legend. Each finding ID has a prefix and a number. The prefix gives the category. The number does not give an order of priority.
+Every report, issue, pull request and figure uses this legend. `skill/agile/LEGEND.md` holds the same legend with its labels. Each finding ID has a prefix and a number. The prefix gives the category. The number does not give an order of priority. An ID never changes after it is filed.
 
 | Prefix | Category | Meaning |
 |---|---|---|
@@ -240,6 +245,15 @@ Every report, issue and figure uses this legend. Each finding ID has a prefix an
 | `BP` | Best practice | A gap in how the team builds, tests, deploys or operates the code |
 | `UX` | User experience | A defect that a user sees on the screen |
 | `OA` | Owner action | Work that needs an account, a key, a plan or a decision that code cannot supply |
+| `INV` | Innovation | A new feature, design, idea or method that comes from no finding |
+| `TDT` | Tech debt | A debt item that comes from no finding |
+
+A class says what kind of work an item is. Each item of any prefix can have one class, both classes or no class. A finding keeps its ID and gets a class label. A defect that restores the intended behavior usually has no class.
+
+| Class | Label | Meaning |
+|---|---|---|
+| `INV` | `class:INV` | Innovation: the work adds something that does not exist today, such as a feature, a screen, a design, a service or a method |
+| `TDT` | `class:TDT` | Tech debt: the code or the setup works today, but an earlier shortcut makes it cost more to change, operate or upgrade |
 
 | Severity | Meaning |
 |---|---|

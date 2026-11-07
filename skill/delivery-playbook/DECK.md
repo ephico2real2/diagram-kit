@@ -94,10 +94,22 @@ date: "[date]"
 
 ## Agile delivery
 
-- Epics, milestones as release trains, features, stories, tasks and defects.
-- Each pull request names its milestone and its issues.
-- Each issue has one status label.
-- The build tracker shows the milestone and the status of each issue.
+- Milestone: a release train, with a date and a rollback. It is never a parent.
+- Epic, then feature, then story, task or spike, linked as GitHub sub-issues.
+- Each item has a GitHub issue type, a type label and one status label.
+- A defect is a sub-issue of the issue under which it was found.
+- Each pull request names its milestone, its issues and its class.
+- The build tracker shows the milestone, the class and the status of each issue.
+
+## From an idea to a release
+
+| Item | Issue type | ID | Class |
+|---|---|---|---|
+| Feature | Feature | Finding ID or `INV-nn` | `INV` |
+| Story | Feature | Finding ID, `INV-nn` or `TDT-nn` | As the work |
+| Task, spike | Task | Finding ID or `TDT-nn` | As the work |
+| Defect | Bug | `SEC`, `BUG`, `PERF`, `UX` | `TDT` for a cause in debt |
+| Owner action | Task | `OA-nn` | None |
 
 ## Legend: findings
 
@@ -109,6 +121,16 @@ date: "[date]"
 | `BP` | Best practice |
 | `UX` | User experience |
 | `OA` | Owner action |
+| `INV` | Innovation, from no finding |
+| `TDT` | Tech debt, from no finding |
+
+## Legend: classes
+
+- A class says what kind of work an item is. An ID never changes.
+- `INV`, label `class:INV`: the work adds a feature, a screen, a design, a service or a method.
+- `TDT`, label `class:TDT`: the setup works today, but an earlier shortcut makes it cost more to change.
+- An item can have one class, both classes or none.
+- A defect that restores the intended behavior usually has no class.
 
 ## Legend: severity, status and verdicts
 

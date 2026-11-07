@@ -27,7 +27,7 @@ in this folder. They hold no firm name and no client data, because this reposito
 3. Add a last section, "Applied to `<client>`". For each standard row, state what operates today, what is proposed,
    and the source: a file and line, a workflow job, a command, or an issue. A proposal stays a proposal until a test
    proves it.
-4. Keep the legend of section 14 unchanged. A client report opens with the same legend.
+4. Keep the legend of section 14 unchanged. It equals `skill/agile/LEGEND.md`. A client report opens with the same legend.
 5. If a client pipeline differs from figure 4 or 5, draw the client pipeline with `/visual`. Mark each proposed stage
    with a dashed box. Do not change the standard figures.
 

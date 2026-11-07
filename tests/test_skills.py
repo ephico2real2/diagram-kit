@@ -23,8 +23,8 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 
 def test_the_kit_ships_every_skill():
-    assert [p.name for p in SKILLS] == ["adversarial-review", "agent-report", "app-architect", "build-mockup", "codex-arbiter", "dashboard",
-                                      "delivery-page", "document", "epic", "fix-defect", "handover", "issue", "mockup-to-page", "mockup-to-page-react", "sweep-stale", "test-ui",
+    assert [p.name for p in SKILLS] == ["adversarial-review", "agent-report", "agile", "app-architect", "build-mockup", "codex-arbiter", "dashboard",
+                                      "delivery-page", "delivery-playbook", "document", "epic", "fix-defect", "handover", "issue", "mockup-to-page", "mockup-to-page-react", "pull-request", "sweep-stale", "test-ui",
                                       "tokensave-fork", "visual"]
 
 
