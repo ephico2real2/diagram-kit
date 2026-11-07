@@ -11,7 +11,7 @@ The fork [ephico2real2/tokensave2](https://github.com/ephico2real2/tokensave2) a
 |---|---|
 | Checkout | `~/gitRepos/tokensave2` |
 | Fork binary | `~/.cargo/bin/tokensave` |
-| Upstream binary | `/opt/homebrew/bin/tokensave`, from the tap `aovestdipaperino/tap`, if it is installed. Section 8 removes it |
+| Upstream binary | `$(brew --prefix)/bin/tokensave`, from the tap `aovestdipaperino/tap`, if it is installed: `/opt/homebrew` on Apple Silicon, `/usr/local` on an Intel Mac. Section 8 removes it |
 
 Do not run `tokensave upgrade`. The command writes the upstream release over the binary that runs it, and this replaces the fork.
 
@@ -27,18 +27,27 @@ These steps are for macOS. Each step has a check.
    rustup toolchain list
    ```
 
+   If Homebrew's `rust` is already installed, compare it first. When `rustc -vV` prints release `1.98.1` and a `commit-hash` that starts `48a229cea`, it is the compiler that the fork pins, and rustup is not necessary: omit `rustup` above and in step 3. This Homebrew compiler reads no `rust-toolchain.toml`, so compare it again before each build. Tested on 2026-11-06 on an Intel Mac.
+
 2. Clone the fork.
 
    ```sh
    git clone https://github.com/ephico2real2/tokensave2.git ~/gitRepos/tokensave2
    ```
 
-3. Build it from inside the checkout. The build took 3 minutes on an M-series Mac. Homebrew's rustup is keg-only, so `cargo` is not on `PATH`, and `ls ~/.rustup/toolchains` gives the name of the folder. Two warnings about `rust-objcopy` are harmless.
+3. Build it from inside the checkout. The build took 3 minutes on an M-series Mac, and 19 min 51 s on an Intel Core i9-9980HK. Homebrew's rustup is keg-only, so `cargo` is not on `PATH`, and `ls ~/.rustup/toolchains` gives the name of the folder. Two warnings about `rust-objcopy` are harmless. The rustup path on an Intel Mac is not tested.
 
    ```sh
    cd ~/gitRepos/tokensave2
-   PATH="$HOME/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:$PATH" cargo install --locked --path .
+   ARCH=$(uname -m | sed 's/arm64/aarch64/')
+   PATH="$HOME/.rustup/toolchains/1.98.1-$ARCH-apple-darwin/bin:$PATH" cargo install --locked --path .
    ~/.cargo/bin/tokensave dashboard --help > /dev/null && echo 'fork: ok'
+   ```
+
+   With the matching Homebrew compiler of step 1, this is the build command instead:
+
+   ```sh
+   "$(brew --prefix)/bin/cargo" install --locked --path .
    ```
 
 4. Operate `sh scripts/fork-path.sh`, and operate the shell commands that it prints.
@@ -165,6 +174,8 @@ cursor-agent -p --trust --workspace "$PWD" "$P"
 printf %s "$P" | codex exec --sandbox workspace-write --skip-git-repo-check -C "$PWD" -
 ```
 
+If `cursor-agent` is not on `PATH`, use `cursor agent` or `~/.local/bin/cursor-agent`. `cursor agent status` can print `Logged in` while `-p` still answers `Authentication required`. Then the owner operates `cursor agent login`, because that error says nothing about tokensave. Measured on 2026-11-06.
+
 While the test is in operation, read the binary with `ps -axo command= | grep '[t]okensave serve'`.
 
 Also ask Cursor to call `tokensave_str_replace` on a scratch file. The result must be a refusal, and the file must not change.
@@ -246,7 +257,8 @@ Do not remove a lock in a project that another agent uses. `.codegraph/` stays o
 ```sh
 cd ~/gitRepos/tokensave2
 git pull --ff-only
-PATH="$HOME/.rustup/toolchains/1.98.1-aarch64-apple-darwin/bin:$PATH" cargo install --locked --path .
+ARCH=$(uname -m | sed 's/arm64/aarch64/')
+PATH="$HOME/.rustup/toolchains/1.98.1-$ARCH-apple-darwin/bin:$PATH" cargo install --locked --path .
 ```
 
 Name the toolchain that `rust-toolchain.toml` of the fork pins. A direct path skips rustup, so the pin has no effect: on 2026-11-06, the `stable` folder built the fork with rustc 1.99.1. Compare the compiler with this command. For rustc 1.98.1, the result is `/rustc/48a229cea`.
@@ -294,7 +306,7 @@ Each check gives one result that you can read.
 | Check | Command or method | Expected result |
 |---|---|---|
 | The shell finds the fork | `zsh -lic 'which tokensave; tokensave dashboard --help > /dev/null && echo fork: ok'` | `~/.cargo/bin/tokensave`, and `fork: ok` |
-| Homebrew has no copy | `brew list --versions \| grep '^tokensave'`, and `ls /opt/homebrew/bin/tokensave` | No line, and `No such file` |
+| Homebrew has no copy | `brew list --versions \| grep '^tokensave'`, and `ls "$(brew --prefix)/bin/tokensave"` | No line, and `No such file` |
 | Each agent names the fork | `sh ~/gitRepos/tokensave2/scripts/fork-path.sh` | `runs the fork` for each agent |
 | Agents answer a real query | Section 4, from an empty folder, with a symbol that you found first. For Claude, operate `claude -p "$P" --allowedTools mcp__tokensave__tokensave_search < /dev/null`. Put the prompt before the flag, because the flag takes each word after it | Each agent returns the file that you found |
 | No new server uses the old path | `ps -axo etime=,command= \| grep '[t]okensave serve'` | Young processes show `~/.cargo/bin/tokensave` |

@@ -478,6 +478,24 @@ The fork at commit 9431b81, version 7.16.0, on macOS with zsh. Section 8 of `ski
 
 Copilot has no CLI on that Mac, so no query from Copilot was measured. A git hook was not tested through a real commit.
 
+### Installing the fork from nothing on an Intel Mac (2026-11-06)
+
+The fork at commit 9431b81, version 7.16.0, on an Intel Core i9-9980HK with macOS and zsh, Homebrew in `/usr/local`. Steps 1 and 3 of `skill/tokensave-fork/SKILL.md` rest on these results.
+
+| Measured | Result |
+|---|---|
+| `uname -m` | `x86_64`, so the skill's `1.98.1-aarch64-apple-darwin` folder cannot exist here |
+| `rustc -vV` from Homebrew's `rust` | Release 1.98.1, `commit-hash` `48a229cea...`, host `x86_64-apple-darwin` |
+| `cargo install --locked --path .` through that `cargo`, with no rustup installed | Exit 0 in 19 min 51 s, with no `rust-objcopy` warning |
+| The built binary | `Mach-O 64-bit executable x86_64`, `/rustc/48a229cea`, `dashboard --help` succeeds, 170.9 MB |
+| `which cursor-agent` in an agent's shell | Not found. It is in `~/.local/bin`, and `cursor agent` runs it |
+| `cursor agent status`, then `cursor agent -p` | `Logged in (unable to fetch user details)`, then `Authentication required`. After `cursor agent login`, `-p` worked with the main configuration and with `~/.cursor-jobs` |
+| The same query from Claude, Codex and Cursor, from an empty folder | The same correct file from each |
+| `tool-use-audit.py`, open question on a file of 377 lines | Codex PASS, Cursor job PASS, Claude FAIL (it read all 34 lines of a small second file) |
+| `tool-use-audit.py`, Codex told to call `tokensave_read` with no `mode` | FAIL, as the control must |
+
+The rustup path on an Intel Mac and the `brew --prefix` form on Apple Silicon were not run. Codex and Cursor each wrote `Pipeline.view` for a method of `class Plan`, so the cause of that wrong name is not known.
+
 ## Appendix: every page
 
 Repository, page, and the two renders. "Identical PNGs" counts the re-rendered PNGs byte-identical to a committed PNG beside the page.

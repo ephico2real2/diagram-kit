@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import pathlib
 import re
+import subprocess
 
 import pytest
 
@@ -113,14 +114,34 @@ def test_the_fork_skill_audits_the_log_and_the_brief_warns_about_the_default_rea
 
 def test_the_fork_skill_builds_with_the_pinned_toolchain_and_moves_the_shell_before_it_removes_upstream():
     skill = (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
-    # a direct toolchain path skips rustup, and a bare `cargo` is not on PATH with Homebrew's rustup
-    builds = [line.strip() for line in skill.splitlines() if "cargo install --locked" in line]
-    assert builds and all(line.startswith('PATH="$HOME/.rustup/toolchains/1.98.1-') for line in builds), builds
+    # a direct toolchain path skips rustup, and a bare `cargo` is not on PATH with Homebrew's rustup. Homebrew's own
+    # `rust` is the other form: step 1 allows it only after its commit is compared with the pin.
+    builds = [line.strip() for line in skill.splitlines() if "cargo install --locked" in line or "cargo\" install --locked" in line]
+    assert builds and all(
+        line.startswith(('PATH="$HOME/.rustup/toolchains/1.98.1-', '"$(brew --prefix)/bin/cargo" install --locked'))
+        for line in builds
+    ), builds
+    assert "`commit-hash` that starts `48a229cea`" in skill
     assert not re.search(r"gitRepos/tokensave(?!2)", skill)
     assert "## 8. Put the fork on the shell PATH" in skill
     assert skill.index('export PATH="$HOME/.cargo/bin:$PATH"') < skill.index("brew uninstall aovestdipaperino/tap/tokensave")
     assert "`source ~/.zshrc`" in skill
     assert "### How to know that it works" in skill
+
+
+@pytest.mark.parametrize(("machine", "toolchain"), [("arm64", "aarch64"), ("x86_64", "x86_64")])
+def test_the_fork_skill_names_the_toolchain_folder_of_each_mac(machine, toolchain):
+    skill = (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
+    # A folder or a Homebrew prefix for one architecture is a path that does not exist on the other.
+    assert "aarch64-apple-darwin" not in skill
+    assert "ls /opt/homebrew/bin/tokensave" not in skill
+    rustup_builds = [line.strip() for line in skill.splitlines() if ".rustup/toolchains/1.98.1-" in line]
+    assert rustup_builds and all(line.startswith('PATH="$HOME/.rustup/toolchains/1.98.1-$ARCH-apple-darwin/bin:') for line in rustup_builds)
+    sed_program = re.search(r"ARCH=\$\(uname -m \| sed '([^']+)'\)", skill)
+    assert sed_program, "the skill sets ARCH from uname -m"
+    # The program from the skill itself, on what uname -m prints on each Mac.
+    run = subprocess.run(["sed", sed_program.group(1)], input=machine, capture_output=True, text=True, check=True)
+    assert run.stdout.strip() == toolchain
 
 
 def test_no_new_skill_names_a_private_path():
