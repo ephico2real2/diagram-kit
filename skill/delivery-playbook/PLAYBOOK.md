@@ -164,6 +164,36 @@ If the product operates on Kubernetes, Argo CD deploys from Git. The workflow wr
 
 The pipeline gets cloud access through OIDC federation, with no stored key. Each action and tool is pinned to a version and a checksum. A merge to a deploy branch needs a reviewed pull request and passed checks.
 
+### Schema migrations, backups and the move to new environments
+
+Each task of this kind gets an `MG` ID. A migration fix gets three reviews, as section 5 says.
+
+| Part | The standard method |
+|---|---|
+| Schema history | Versioned migrations, recorded in a history table. One run for each release, under a database lock, before the new code takes traffic. If an entity changes with no migration, a CI test fails |
+| Copy before each run | On a managed database, a snapshot through the provider API, and a wait until it is available. Locally, a dump with a checksum. Keep the last copies, and alert on a stale one |
+| Old code on a new schema | Expand first, and contract one release after the code stops using the old shape. Each process refuses to serve below a schema floor, and only a contract change raises the floor. A rolling deploy then keeps the old hosts ready |
+| Restore | A restore tool lists, checks and restores a copy, and keeps the live set first. A copy with a newer floor than the build is refused. The keys that the data needs come back through the secret store |
+| Release | A migration ships only with a new app version. A route gives the image, the app version and the schema floor |
+
+The starter of each step depends on the target. The database stays managed on both.
+
+| Step | A virtual machine with Compose | Kubernetes with Argo CD |
+|---|---|---|
+| Copy | The deploy workflow takes the snapshot with the cloud CLI and its waiter | A PreSync hook Job in an early sync wave, with a role that can only take and read snapshots |
+| Migration | A one-shot service, started once on the first host, before the rollout | A PreSync hook Job in a later wave, with the release image digest |
+| A failed migration | The workflow stops, and the old containers serve | Argo CD stops the sync, and the old pods serve |
+
+To move a product to new infrastructure, build the new environments beside the current one, and change nothing in the current one until the cutover:
+
+1. Bootstrap once: the owner makes the state store and the CI roles. After that, only CI applies infrastructure.
+2. One infrastructure module builds each environment. A parameter file selects new resources, or existing ones by ID.
+3. Staging gets synthetic data only, provider sandbox keys and the end-to-end suites of each product, the mobile app included.
+4. Pre-prod is production grade, with a new URL. It starts in safe mode: no worker, no scheduled jobs, sandbox keys and no webhooks.
+5. Load a production dump into pre-prod, migrate it, and prove it: times, row counts and money totals. Repeat until the window is known. If the window is too long, use logical replication.
+6. An internal mobile build with its own app ID uses the pre-prod URL. Test on phones and emulators until one full run has 0 failures.
+7. Cut over by a rehearsed runbook: lower the DNS TTL, freeze writes, load the final dump, migrate, turn off safe mode in order, and switch DNS. Keep the old environment with no traffic for a hold period, then retire it.
+
 ## 8. CI/CD for a mobile application
 
 <!-- markdownlint-disable MD033 -->
@@ -263,6 +293,7 @@ Every report, issue, pull request and figure uses this legend. `skill/agile/LEGE
 | `BP` | Best practice | A gap in how the team builds, tests, deploys or operates the code |
 | `UX` | User experience | A defect that a user sees on the screen |
 | `OA` | Owner action | Work that needs an account, a key, a plan or a decision that code cannot supply |
+| `MG` | Migration | A task that moves a schema, data or a whole environment to a new version or a new place: a migration, the copy before it, a data load or a cutover |
 | `INV` | Innovation | A new feature, design, idea or method that comes from no finding |
 | `TDT` | Tech debt | A debt item that comes from no finding |
 
