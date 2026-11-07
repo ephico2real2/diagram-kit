@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "diagram-kit"
-version = "0.2.5"
-description = "Render each figure of a diagram source.html to light and dark PNGs, and refuse the defects a review of the SVG does not see; list a workload's metrics and generate the Perses form of a Grafana dashboard; build a Word document from Markdown."
+version = "0.2.6"
+description = "Render each figure of a diagram source.html to light and dark PNGs, and refuse the defects a review of the SVG does not see; list a workload's metrics and generate the Perses form of a Grafana dashboard; build a Word document from Markdown; build a delivery page from a repository's tracker, handover and resume documents."
 readme = "README.md"
 license = "MPL-2.0 AND MIT-0"
 license-files = ["LICENSE", "LICENSES/*", "NOTICE"]

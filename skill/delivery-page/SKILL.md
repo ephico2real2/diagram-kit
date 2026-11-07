@@ -41,7 +41,7 @@ text you did not check, because the page then shows that text as the state of th
 
 ## 2. Render
 
-Install pandoc as the kit's README says. The page reads only from the commit you name, so name the commit the reader
+`delivery-page` is in the kit from 0.2.6 (install it as `/visual` §4 says). Install pandoc as the kit's README says. The page reads only from the commit you name, so name the commit the reader
 expects. For the state of the default branch, fetch it first and name the remote's ref.
 
 ```sh
