@@ -66,7 +66,8 @@ For a **bug**, replace Story with: `## What happens`, `## What should happen`, `
 - Issue type and parent: `/agile` section 2 maps each item to its GitHub issue type (`Feature`, `Task`,
   `Bug`), and section 4 sets the type and the sub-issue link through the GitHub API.
 - Class label: `class:INV` for innovation, `class:TDT` for tech debt, both, or none. `/agile` gives the
-  questions that decide it, and `LEGEND.md` beside it is the standard legend.
+  questions that decide it, and `LEGEND.md` beside it is the standard legend. A defect does not get "no class" by
+  default: read its fix, because a new control, test method or gate is `INV`.
 - Area label if the repository has them (`area:chart`, `area:docs`, `area:lab`, …).
 - Milestone, if the repository has milestones: the release or train that ships the work
   (`--milestone "<title>"`). If no release carries it yet, leave it empty and say so in a tracker.

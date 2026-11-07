@@ -147,7 +147,7 @@ Part of #<the issue under which it was found>
 
 **Solution (inline, not applied):**
 
-**Class:** TDT when the cause is debt, otherwise no class.
+**Class:** INV if the fix adds a control or a method, or if the defect is in new work. TDT if the cause is debt. Both can apply. No class only if the fix restores existing behavior and adds nothing.
 ```
 
 ## Owner action

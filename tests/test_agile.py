@@ -85,3 +85,35 @@ def test_the_definition_of_done_of_a_form_names_each_stage(name):
     done = next(b for b in form["body"] if b.get("attributes", {}).get("label") == "Definition of done")
     value = done["attributes"]["value"]
     assert all(stage.lower() in value.lower() for stage in STAGES)
+
+
+# The class rule is one rule in every file that states it. On 2026-11-07 a narrow reading left 102 issues of one
+# client with no INV label, so the wide meaning and the sweep are tested here.
+CLASS_FILES = [AGILE / "LEGEND.md", ROOT / "skill" / "delivery-playbook" / "PLAYBOOK.md"]
+
+
+@pytest.mark.parametrize("path", CLASS_FILES, ids=lambda p: p.name)
+def test_inv_covers_controls_methods_and_gates(path):
+    text = path.read_text()
+    assert "a security control, a test method and a CI/CD gate" in text
+    assert "brings existing behavior back to its intended form and adds nothing, the defect has no class" in text
+    assert "A defect in new work that is not merged yet is also `INV`" in text
+    assert "usually has no class" not in text
+
+
+def test_the_agile_skill_requires_a_sweep_of_all_issues():
+    text = (AGILE / "SKILL.md").read_text()
+    assert "Sweep the classes of all issues, not only the new ones." in text
+    assert 'select(startswith("class:"))' in text
+
+
+@pytest.mark.parametrize("form", [f for f in FORMS if "id: class" in f.read_text()], ids=lambda p: p.stem)
+def test_each_class_dropdown_states_the_wide_rule(form):
+    field = next(b for b in yaml.safe_load(form.read_text())["body"] if b.get("id") == "class")
+    description = field["attributes"]["description"]
+    assert "security control" in description and "No class only for a fix that restores existing behavior" in description
+
+
+def test_the_pull_request_template_narrows_no_class():
+    text = (ROOT / "skill" / "pull-request" / "templates" / "pull_request_template.md").read_text()
+    assert "- [ ] No class: the change only restores existing behavior and adds nothing" in text
