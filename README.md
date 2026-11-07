@@ -31,6 +31,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/mockup-to-page-react/SKILL.md` | the `/mockup-to-page-react` Claude Code skill: a mockup translated into React, TypeScript, Vite and PatternFly, with PatternFly's look and the mockup's content, data and behaviour, proven by parity tests; link `~/.claude/skills/mockup-to-page-react` to this directory |
 | `skill/test-ui/SKILL.md` | the `/test-ui` Claude Code skill: a UI tested against its reference with canonical DOM and pixels, recorded walks, content checked in both directions, mutations that prove the checks fail, and the installed browser; link `~/.claude/skills/test-ui` to this directory |
 | `skill/app-architect/SKILL.md` | the `/app-architect` Claude Code skill: an application reviewed in its own forked agent, from inventories and a twelve-factor scorecard to a phased roadmap with a runnable proof per step; link `~/.claude/skills/app-architect` to this directory |
+| `skill/mock-app/SKILL.md` | the `/mock-app` Claude Code skill: a mock app planned from the public documents of each provider, in its own forked agent. To install it, link `~/.claude/skills/mock-app` to this directory |
 | `skill/adversarial-review/SKILL.md` | the `/adversarial-review` Claude Code skill: a change attacked by two model families on a per-claim brief, every finding with its full fix and a failing-then-passing test, each decision written down; link `~/.claude/skills/adversarial-review` to this directory |
 | `skill/adversarial-review/brief-template.md`, `record-template.md` | the skeletons of a review's brief and of its record |
 | `skill/agent-report/SKILL.md` | the `/agent-report` Claude Code skill: how a background agent logs its research as it works, and an audit with planted claims that shows the work is real; link `~/.claude/skills/agent-report` to this directory |
@@ -278,6 +279,11 @@ before it and passes after. The skill runs in its own forked agent (`context: fo
 out of the conversation and only its report comes back. Its figures are made with `/visual` and its dashboards with
 `/dashboard`. Its worked example is Fabric Coffee, demo 57 of
 [cilium-implementation-poc](https://github.com/ephico2real2/cilium-implementation-poc).
+
+If a provider has no sandbox, **`skill/mock-app/SKILL.md`** plans a mock app for it. It runs in its own forked agent. It researches current practice online, reads the public API documentation
+and contract of each provider, and compares them with the calls of the client. The plan gives the build choice, and an
+OpenAPI contract and the authentication of each provider, with test values only. It also gives the contract tests
+and a phased plan with a proof for each step. `/app-architect` sends each provider with no sandbox to it.
 
 ```sh
 ln -s "$PWD/skill/app-architect" ~/.claude/skills/app-architect
