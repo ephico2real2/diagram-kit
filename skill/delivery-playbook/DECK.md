@@ -160,6 +160,7 @@ date: "[date]"
 
 - The Adversarial Review, Architecture and Implementation Report: the detailed document of the engagement.
 - It holds the findings, the architecture, the work that was built, the tests, the fixes and a phased roadmap.
+- Its summary highlights the innovations, built and proposed, and the class of each issue.
 - Issues, epics and milestones that match the roadmap.
 - The product on a laptop, with sandboxes or API mocks.
 - Pipelines, test suites, dashboards and alerts.

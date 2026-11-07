@@ -152,3 +152,20 @@ def test_the_class_table_command_counts_each_issue_once():
         "| Other work | 1 | 0 | 0 | 0 | 1 |",
         "| Total | 2 | 1 | 1 | 2 | 6 |",
     ]
+
+
+def test_the_agile_skill_asks_reports_to_highlight_innovations():
+    section = (AGILE / "SKILL.md").read_text().split("### Highlight the innovations", 1)[1].split("\n## ", 1)[0]
+    for state in ("Built (`status:fixed-on-review-branch`)", "Partly built (`status:partly-fixed`)",
+                  "Owner decision (`status:owner-action`)"):
+        assert state in section
+    assert "Innovation, What it gives the business, State and Where" in section
+    assert "A proposed innovation is never shown as built." in section
+
+
+@pytest.mark.parametrize("name", ["1-epic.yml", "2-feature.yml", "3-story.yml"])
+def test_epic_feature_and_story_forms_ask_for_the_business_value(name):
+    body = yaml.safe_load((AGILE / "templates" / "ISSUE_TEMPLATE" / name).read_text())["body"]
+    field = next(b for b in body if b.get("id") == "value")
+    assert field["attributes"]["label"] == "Business value"
+    assert "table of main innovations" in field["attributes"]["description"]
