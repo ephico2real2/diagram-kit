@@ -134,12 +134,10 @@ date: "[date]"
 
 ## Legend: severity, status and verdicts
 
-| Severity | Status | Verdict |
-|---|---|---|
-| Critical | Open | CONFIRMED |
-| High | Fixed on the review branch | REFUTED |
-| Medium | Partly fixed | PLAUSIBLE |
-| Low | Owner action, Closed | NOT REACHED |
+- Severity, one `sev:` label on each defect: Critical, High, Medium or Low.
+- Status, one `status:` label on each open issue: Open, Partly fixed, Fixed on the review branch or Owner action.
+- Closed: the fix reached the default branch.
+- Verdict of each claim: CONFIRMED, REFUTED, PLAUSIBLE or NOT REACHED.
 
 ## What the client gets
 

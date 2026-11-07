@@ -17,12 +17,13 @@ in this folder. They hold no firm name and no client data, because this reposito
 | `figures/source.html` | The five figures: lifecycle, review loop, local first, web pipeline and mobile pipeline |
 | `figures/*.light.png`, `figures/*.dark.png` | The figures, rendered by `diagram-render` |
 | `page-head.html` | The style of the page, in the kit palette, with light and dark themes |
+| `page-template.html` | The pandoc template of the playbook page. It writes only the content of the page, with no `<html>` or `<head>` of its own |
 | `deck-template.html`, `deck.lua` | The template and the pandoc filter that make the deck page: one card for each slide |
 
 ## 2. Make a client copy
 
-1. Copy `PLAYBOOK.md`, `DECK.md`, `page-head.html` and the `figures` PNGs into the client repository, for example
-   into `docs/playbook/`.
+1. Copy `PLAYBOOK.md`, `DECK.md` and the `figures` PNGs into the client repository, for example into
+   `docs/playbook/`. Build from the templates and the filter of this folder. Do not copy them into the client repository.
 2. Replace each placeholder in the metadata block: `[Author]`, `[Role]`, `[Firm]`, `[version]` and `[date]`. The firm name goes only into
    the client copy, never back into this folder.
 3. Add a last section, "Applied to `<client>`". For each standard row, state what operates today, what is proposed,
@@ -39,7 +40,7 @@ The Markdown is the source. Each other form is made from it and is never edited 
 ```sh
 # The page: pandoc with the kit style. The figures folder sits beside the page.
 # The metadata block at the top gives the title, the subtitle, the byline and the date.
-pandoc PLAYBOOK.md --standalone --toc --toc-depth=2 -H page-head.html -o playbook.html
+pandoc PLAYBOOK.md --standalone --template page-template.html --toc --toc-depth=2 -H page-head.html -o playbook.html
 # The deck: one slide for each level-2 heading of DECK.md.
 pandoc DECK.md --slide-level=2 -o playbook.pptx
 # The deck as a page: one card for each slide, light and dark figures, keyboard arrows. The figures folder sits beside it.
