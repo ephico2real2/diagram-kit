@@ -19,6 +19,7 @@ in this folder. They hold no firm name and no client data, because this reposito
 | `page-head.html` | The style of the page, in the kit palette, with light and dark themes |
 | `page-template.html` | The pandoc template of the playbook page. It writes only the content of the page, with no `<html>` or `<head>` of its own |
 | `deck-template.html`, `deck.lua` | The template and the pandoc filter that make the deck page: one card for each slide |
+| `figures-light.lua` | A pandoc filter that shows the light render of each figure in both page themes |
 
 ## 2. Make a client copy
 
@@ -46,6 +47,11 @@ pandoc DECK.md --slide-level=2 -o playbook.pptx
 # The deck as a page: one card for each slide, light and dark figures, keyboard arrows. The figures folder sits beside it.
 pandoc DECK.md -t html5 --section-divs --lua-filter deck.lua --template deck-template.html \
   -M hint="Use the arrow keys, or scroll. Each card is one slide." -o deck.html
+# To show the light render of each figure in both themes, add the filter, after deck.lua for the deck:
+pandoc PLAYBOOK.md --standalone --template page-template.html --toc --toc-depth=2 -H page-head.html \
+  --lua-filter figures-light.lua -o playbook.html
+pandoc DECK.md -t html5 --section-divs --lua-filter deck.lua --lua-filter figures-light.lua \
+  --template deck-template.html -M hint="Use the arrow keys, or scroll. Each card is one slide." -o deck.html
 # Look at each slide before it goes out, as the kit README says (LibreOffice and pdftoppm).
 soffice -env:UserInstallation=file://$PWD/.lo --headless --convert-to pdf playbook.pptx
 pdftoppm -r 50 -png playbook.pdf slide
@@ -53,6 +59,10 @@ pdftoppm -r 50 -png playbook.pdf slide
 
 To share the page, publish `playbook.html` with its `figures` folder. A reader saves a PDF from the browser. Check
 the page at 375 px, 820 px and 1280 px in both themes before you publish it.
+
+By default, a page shows the render of each figure that matches the theme of the reader. If the client presents or
+prints the pages, build them with `figures-light.lua`. Each figure then looks the same on each screen and in the
+`.pptx`, which always uses the light render.
 
 ## 4. Rules
 
