@@ -199,12 +199,13 @@ A store submission never starts from a push with no approval.
 
 | Area | Standard |
 |---|---|
-| Instrumentation | The OpenTelemetry SDK in each service, and the OpenTelemetry collector. Traces, metrics and logs use OTLP, the open OpenTelemetry protocol |
-| Back ends | Open source back ends, for example Prometheus, Grafana, Tempo and Loki, or a managed APM service through the same collector. A change of back end needs no change of code |
+| Instrumentation | The OpenTelemetry SDK in each service, and the OpenTelemetry collector. Automatic instrumentation covers HTTP, the framework and the database. Code instrumentation adds spans and metrics for each business step. Traces, metrics and logs use OTLP, the open OpenTelemetry protocol |
+| Back ends | Open source back ends, for example Prometheus or VictoriaMetrics for metrics, Loki or VictoriaLogs for logs, and Tempo or VictoriaTraces for traces. Grafana gives the dashboards of the engineers, and Perses gives them where the platform console uses it, for example OpenShift. A managed APM service is an option through the same collector. A change of back end needs no change of code |
 | Service metrics | RED for each service: rate, errors and duration. USE for each resource: the share in use, the saturation and the errors |
 | KPIs | System KPIs, for example availability and latency, each with a service level objective. Business KPIs come from a review of the business functions, for example completed payments or new sign-ups |
-| Alerts | Each alert starts from a measured baseline and has a runbook. An alert names the KPI and the threshold |
-| Admin portal | The admin portal shows the KPIs and the RED metrics from end to end |
+| KPI store | The service also writes its KPI facts, its alert rules and its alert events to its own PostgreSQL database. The admin portal reads them with the access control of the product, and no new store is necessary |
+| Alerts | Each alert starts from a measured baseline and has a runbook. An alert names the KPI and the threshold. The rules cover system and business KPIs. An administrator with the write permission changes a threshold in the admin portal, and the API records each change |
+| Admin portal | The admin portal shows the dashboards of the KPIs and the RED metrics from end to end. Its backend for frontend (BFF) calls the API through the edge proxy, for example Envoy. Administrators sign in with a second factor (MFA) |
 
 A dashboard starts with an inventory of each metric that the workload emits. The dashboard then shows only the metrics that answer a question that a user asks.
 
