@@ -49,7 +49,7 @@ body:
     id: class
     attributes:
       label: "Class"
-      description: "Innovation adds something new. Tech debt pays back an earlier shortcut. After you create the issue, add the same class: labels."
+      description: "Innovation adds something that the product or the delivery does not have today, also a security control, a test method or a CI/CD gate. Tech debt pays back an earlier shortcut. Choose No class only for a fix that restores existing behavior and adds nothing. After you create the issue, add the same class: labels."
       multiple: true
       options:
         - "INV: innovation"

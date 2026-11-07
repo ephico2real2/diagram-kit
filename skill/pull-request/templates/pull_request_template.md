@@ -18,9 +18,9 @@ Part of #
 
 Select each that applies. Add the same `class:` labels to this pull request. They match the labels of its issues.
 
-- [ ] INV: innovation. The change adds a feature, a design, a service or a method.
+- [ ] INV: innovation. The change adds something new to the product or the delivery. Examples are a feature, a service, a security control, a test method and a CI/CD gate.
 - [ ] TDT: tech debt. The change pays back an earlier shortcut in code or setup that works today.
-- [ ] No class: the change restores the intended behavior, or it changes only records.
+- [ ] No class: the change only restores existing behavior and adds nothing, or it changes only records.
 
 ## What changes, and why
 

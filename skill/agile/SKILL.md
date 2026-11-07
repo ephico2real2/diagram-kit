@@ -50,9 +50,9 @@ Rules for the legend:
 
 Decide the class with these questions, in this order:
 
-1. Does the work add something that does not exist today, such as a feature, a screen, a design, a service or a method? Then it is `INV`.
+1. Does the work add something new to the product or the delivery? Examples are a feature, a service, a security control, a test method and a CI/CD gate. Then it is `INV`.
 2. Does the work pay back an earlier shortcut in code or a setup that works today? Examples are an old dependency, a weak test, a hand step, dead code or a document that drifted. Then it is `TDT`.
-3. If both answers are yes, it has both labels. If both are no, it has no class label. A defect that restores the intended behavior usually has no class.
+3. If both answers are yes, it has both labels. If both are no, it has no class label. If the fix of a defect brings existing behavior back to its intended form and adds nothing, the defect has no class. If the fix adds a new control, such as a webhook signature, a second factor, an allow-list or a scan, the defect is `INV`. A defect in new work that is not merged yet is also `INV`, because its fix is part of that work. Owner actions, epics and milestones have no class.
 
 ## 3. Templates
 
@@ -153,6 +153,14 @@ The token needs the `project` scope: `gh auth refresh -s project`. Dates come fr
 - A pull request names its milestone, its issues, its class and its type label. `/pull-request` gives the template.
 - After a merge to a branch that is not the default branch, `Closes #` closes nothing. Set the status label by hand.
 - Close an issue only through a merged fix on the default branch, with the proof cited.
+- Sweep the classes of all issues, not only the new ones. Do it at the first classification, after each change of the class rule, and before each tracker update. List each issue with no class label, read its fix, and add the class that the questions of section 2 give. Report the count: the issues read, the classes added and the issues that keep no class.
+
+  ```sh
+  gh issue list --state all --limit 500 --json number,title,labels \
+    --jq '.[] | select([.labels[].name | select(startswith("class:"))] | length == 0) | "\(.number) \(.title)"'
+  ```
+
+  On 2026-11-07, a narrow reading of question 1 left 102 issues of one client with no `INV` label. They held security controls, emulator tests, CI/CD gates and admin portal features. A sweep of all issues found them.
 - Count the issues with more than one status label after each change of status:
 
   ```sh
@@ -169,3 +177,5 @@ The token needs the `project` scope: `gh auth refresh -s project`. Dates come fr
 | Leave the parent only in the text | Add the sub-issue link, and keep `Part of #` |
 | Add a second status label | Replace the status in one command |
 | File a feature with no acceptance criteria | Each criterion says how a test shows it |
+| Give a defect no class by default | Read its fix. A new control, test method or gate is `INV` |
+| Classify only the new issues | Sweep the classes of all issues after each change of the rule |

@@ -142,10 +142,12 @@ date: "[date]"
 ## Legend: classes
 
 - A class says what kind of work an item is. An ID never changes.
-- `INV`, label `class:INV`: the work adds a feature, a screen, a design, a service or a method.
+- `INV`, label `class:INV`: the work adds something new to the product or the delivery.
+- Examples of `INV` are a feature, a service, a security control, a test method and a CI/CD gate.
 - `TDT`, label `class:TDT`: the setup works today, but an earlier shortcut makes it cost more to change.
 - An item can have one class, both classes or none.
-- A defect that restores the intended behavior usually has no class.
+- If the fix of a defect only restores existing behavior, the defect has no class.
+- Sweep the classes of all issues after each change of this rule.
 
 ## Legend: severity, status and verdicts
 

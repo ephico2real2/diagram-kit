@@ -72,6 +72,8 @@ Project rules still apply to the issue: its language mode, its label set and its
 
 If the repository tracks releases with milestones, set the milestone of the release that carries the fix. A milestone names a thing that ships, such as a release or a train. A theme is a label, and a body of work is a parent issue. If the carrying release is not known yet, leave it empty and set it when the research names it. A defect found in a patch takes the milestone of the issues that the patch fixes, because it ships in the same change.
 
+Set the class with the questions of `/agile`. A defect does not get "no class" by default. If its fix adds a new control, the defect is `INV`. A defect in new work that is not merged is also `INV`. If its cause is an earlier shortcut, it is also `TDT`.
+
 ### One status label for each issue
 
 If the repository has `status:` labels, each issue has exactly one. On 2026-11-07, 16 issues had 2 status labels, because `--add-label` added the new status and kept `status:open`. Then the tracker did not show which status was true. Change a status in one command, and then count the issues with more than one:
