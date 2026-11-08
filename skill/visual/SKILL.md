@@ -103,7 +103,8 @@ contrast in either theme, a dashed arrow with no label, a name/figure count mism
 later state first (`after` before `before`), and sideways scroll at 375 px. **Open the PNGs and read them**: a line crossing a label and an arrow into the wrong
 box are only visible there.
 
-`diagram-render --check <page.html>...` runs the same checks on several pages and writes no PNG. It is
+`diagram-render --check <page.html>...` runs every check except name/figure count and state order, because it receives
+no figure names. It checks several pages and writes no PNG. It is
 what a repository's CI runs, through the kit's `check-diagrams` job (README, "In a repository's CI"), so
 that a page edited without being rendered again cannot be merged broken.
 

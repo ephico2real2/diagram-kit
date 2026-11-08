@@ -6,7 +6,7 @@
 
     diagram-render <page.html> <out-dir> <name-1>,<name-2>,...      (installed)
     python diagram_kit/render.py <page.html> <out-dir> <name-1>,<name-2>,...
-    diagram-render --check <page.html>...                            (every check, no PNG: what a CI job runs)
+    diagram-render --check <page.html>...                            (page checks, no PNG: what a CI job runs)
 
 One name per .fig-scroll, in document order; each becomes <out-dir>/<name>.light.png and
 <name>.dark.png at 2x pixel density. The page may be a fragment (an Artifact page starts at
@@ -28,9 +28,9 @@ the defects a code review of the SVG text does not see:
 
 The browser runs in a process of its own for each page, which is ended at that limit.
 
-With --check every page given is put through the same checks and nothing is written: the figures are counted, not
-named, and a page with none fails. So does a page that cannot be read or loaded, and the pages after it are still
-checked. The exit status is non-zero when any page fails.
+With --check every page gets every check except name/figure count and state order, because no figure names are
+given. Nothing is written. A page with no figures fails. A page that cannot be read or loaded also fails. The
+remaining pages still get checked. The exit status is non-zero when any page fails.
 """
 
 from __future__ import annotations
@@ -294,8 +294,8 @@ def state_order(names: list[str]) -> list[str]:
 
 
 def render_page(page: str | pathlib.Path, out_dir: pathlib.Path, names: list[str] | None) -> int:
-    """Check one page and write its figures under the names given. With no names (--check) the same checks run and
-    nothing is written. Whatever stops a page from being checked is that page's failure, in one line."""
+    """Check one page and write its figures under the names given. With no names (--check), run every check except
+    name/figure count and state order, and write nothing. Report each failure in one line."""
     shown, failures, count, width = os.path.relpath(page), [], 0, None
     try:
         page_path = pathlib.Path(page).resolve()
