@@ -240,13 +240,18 @@ def running_jobs(note: str, root: pathlib.Path) -> list[str]:
         if probe.startswith("pidfile "):
             pidfile = pathlib.Path(probe[8:].strip().strip("`"))
             pidfile = pidfile if pidfile.is_absolute() else root / pidfile
-            if pidfile.is_file() and pidfile.read_text().strip().isdigit():
-                pid = int(pidfile.read_text().strip())
+            try:
+                if pidfile.is_file():
+                    value = pidfile.read_text().strip()
+                    if value.isdecimal():
+                        pid = int(value)
+            except (OSError, ValueError):
+                pass
         elif re.fullmatch(r"pid \d+", probe):
             pid = int(probe[4:])
         if probe == "task":
             state = "a Claude Code background task: alive only if /tasks lists it, else start it again"
-        elif pid is None:
+        elif pid is None or pid <= 0:
             state = "unknown (no pid): check it by hand"
         else:
             try:
@@ -256,6 +261,8 @@ def running_jobs(note: str, root: pathlib.Path) -> list[str]:
                 state = f"NOT RUNNING (pid {pid}): start it again if its work is not done"
             except PermissionError:
                 state = f"alive (pid {pid}, other user)"
+            except (OverflowError, ValueError):
+                state = "unknown (invalid pid): check it by hand"
         report.append(f"{cells[0]}: {state}. {' | '.join(cells[2:])}")
     return report
 
