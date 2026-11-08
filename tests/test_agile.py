@@ -18,8 +18,17 @@ import yaml
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 AGILE = ROOT / "skill" / "agile"
 FORMS = sorted((AGILE / "templates" / "ISSUE_TEMPLATE").glob("[0-9]-*.yml"))
-# The issue types that GitHub gives each organization. An epic has no type, because "Epic" is not a default type.
-TYPES = {"Feature", "Task", "Bug"}
+# The types of the supplied forms. Epic is optional in an organization, so its portable form omits the type.
+TYPES = {
+    "Epic": None,
+    "Feature": "Feature",
+    "Story": "Feature",
+    "Task": "Task",
+    "Spike": "Task",
+    "Defect": "Bug",
+    "Owner action": "Task",
+    "Release milestone": "Task",
+}
 
 
 def table_rows(text: str, header: str) -> list[list[str]]:
@@ -42,7 +51,7 @@ def test_there_is_a_form_for_each_item():
 def test_a_form_names_its_type_and_exactly_one_status(form):
     data = yaml.safe_load(form.read_text())
     assert data["description"] and data["body"]
-    assert data.get("type") in TYPES | ({None} if data["name"] == "Epic" else set())
+    assert data.get("type") == TYPES[data["name"]]
     assert len([label for label in data["labels"] if label.startswith("status:")]) == 1
 
 
