@@ -283,7 +283,9 @@ def cmd_check(args: list[str]) -> int:
 
 def unlisted_tasks(hook: dict, note: str) -> list[str]:
     """Each live background task of the Stop input that the Running section does not name by its id."""
-    running = sections(note).get("Running", "")
+    running = {line[2:].split("|", 1)[0].strip()
+               for line in sections(note).get("Running", "").splitlines()
+               if line.startswith("- ") and "|" in line}
     return [f"background task {task.get('id')} ({task.get('description') or task.get('command', '')[:60]}) is "
             "not in Running: add its id, purpose and restart command"
             for task in hook.get("background_tasks") or []
