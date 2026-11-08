@@ -149,7 +149,7 @@ Then:
     [affinity](https://docs.cilium.io/en/stable/network/clustermesh/affinity/));
   - Hubble for flows (Hubble UI and the CLI) and Hubble metrics to Prometheus. With OpenMetrics on and
     `httpV2:exemplars=true`, each HTTP metric carries the trace ID from the request headers, so Grafana goes from a
-    metric to its trace in Tempo ([metrics](https://docs.cilium.io/en/stable/observability/metrics/));
+    metric to its trace in Tempo ([metrics](https://docs.cilium.io/en/stable/observability/metrics/)); Sources for trace export and the Grafana link: [trace setup](https://grafana.com/docs/tempo/latest/set-up-for-tracing/), [exemplar links](https://grafana.com/docs/grafana/latest/datasources/prometheus/configure/#exemplars).
   - the dashboards for these metrics are made with `/dashboard`, from its metrics inventory, like any other workload.
 - Working configuration lives in Helm (`/helm-first`, where installed): a `kubectl patch`, a hand-applied manifest or a
   post-edited render is a gap in the chart; the values files in git are the source, never `--reuse-values`.
