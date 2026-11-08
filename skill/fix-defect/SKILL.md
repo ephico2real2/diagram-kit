@@ -76,10 +76,10 @@ Set the class with the questions of `/agile`. A defect does not get "no class" b
 
 ### One status label for each issue
 
-If the repository has `status:` labels, each issue has exactly one. On 2026-11-07, 16 issues had 2 status labels, because `--add-label` added the new status and kept `status:open`. Then the tracker did not show which status was true. Change a status in one command, and then count the issues with more than one:
+If the repository has `status:` labels, each issue has exactly one. On 2026-11-07, 16 issues had 2 status labels, because `--add-label` added the new status and kept `status:open`. Then the tracker did not show which status was true. Read the current status label from the issue. Use it for `<old status>` in this command. Then count the issues with more than one:
 
 ```sh
-gh issue edit <n> --add-label status:fixed-on-review-branch --remove-label status:open
+gh issue edit <n> --add-label status:fixed-on-review-branch --remove-label "<old status>"
 gh issue list --state all --limit 500 --json number,labels \
   --jq '[.[] | select(([.labels[].name | select(startswith("status:"))] | length) > 1) | .number]'
 ```
