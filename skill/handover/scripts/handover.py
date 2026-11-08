@@ -50,7 +50,7 @@ LINE2 = re.compile(
 TOPIC = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,80}")
 EVIDENCE = re.compile(r"\b[0-9a-f]{7,40}\b|#\d+|https?://[A-Za-z0-9][^\s|<>]*|"
                       r"\b(?:\d+ (?:passed|failed)|run \d+|deployed \S+)\b", re.I)
-UTC_TIME = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}")
+UTC_TIME = re.compile(r"\d{4}-\d{2}-\d{2} \d{2}:\d{2}(?: \(\d{2}:\d{2} (?:[A-Z][A-Za-z+0-9:-]{0,9}|[+-]\d{2}(?::?\d{2})?)\))?")
 # Shapes of real credentials. A name such as "the API key of the payment provider" is allowed: a value is not.
 SECRET_SHAPES = [
     (r"gh[pousr]_[A-Za-z0-9]{36,}", "a GitHub token"),
@@ -146,6 +146,16 @@ def git(repo: pathlib.Path, *args: str) -> str:
     return out.stdout.strip() if out.returncode == 0 else ""
 
 
+def valid_tracker_time(text: str) -> bool:
+    if not UTC_TIME.fullmatch(text):
+        return False
+    try:
+        dt.datetime.strptime(text[:16], "%Y-%m-%d %H:%M")
+    except ValueError:
+        return False
+    return True
+
+
 def check(root: pathlib.Path, topic: str | None = None) -> tuple[list[str], dict]:
     """Return the failures, and the facts that the hooks reuse. An empty list means that the note is current."""
     files = paths(root, topic)
@@ -210,7 +220,7 @@ def check(root: pathlib.Path, topic: str | None = None) -> tuple[list[str], dict
             failures.append(f"tracker unit {row['n']}: status '{row['status']}' is not one of {sorted(STATUSES)}")
         if row["phase"] not in PHASES:
             failures.append(f"tracker unit {row['n']}: phase '{row['phase']}' is not one of {sorted(PHASES)}")
-        if row["status"] == "done" and not (EVIDENCE.search(row["evidence"]) and UTC_TIME.match(row["updated"])):
+        if row["status"] == "done" and not (EVIDENCE.search(row["evidence"]) and valid_tracker_time(row["updated"])):
             failures.append(f"tracker unit {row['n']}: a done unit needs its evidence (a SHA, a PR or issue number, "
                             "a CI run, a test result or a URL) and its UTC time from git, CI or a log")
         elif row["status"] in {"in progress", "blocked"} and not row["evidence"]:
