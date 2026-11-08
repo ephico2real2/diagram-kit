@@ -8,7 +8,11 @@ from __future__ import annotations
 
 import pathlib
 import re
+import subprocess
+import sys
+import tempfile
 
+import playwright
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
@@ -159,6 +163,65 @@ def test_the_example_fetch_obeys_the_http_rules_of_its_skill():
     unauthorized = re.search(r"status === 401\)(.*)", fetch).group(1)
     assert "signIn()" in unauthorized and "'error'" not in unauthorized
     assert "Retry-After" in fetch
+    # Run the exact type and fetch declarations, without JSX. Playwright already ships the Node runtime.
+    snippet = "export type Workspace =" + text.split("export type Workspace =", 1)[1].split("// components/RowList.tsx:", 1)[0]
+    node = pathlib.Path(playwright.__file__).parent / "driver" / ("node.exe" if sys.platform == "win32" else "node")
+    program = """import assert from 'node:assert/strict';
+let signIns = 0;
+function signIn() { signIns += 1; }
+""" + snippet + """
+const cases = [
+  [200, {}, { state: 'ready', data: { items: [] } }, 0],
+  [401, {}, { state: 'loading' }, 1],
+  [403, {}, { state: 'forbidden' }, 0],
+  [404, {}, { state: 'error', cause: 'The server sent HTTP 404.' }, 0],
+  [503, {}, { state: 'error', cause: 'The server sent HTTP 503.' }, 0],
+  [429, { 'Retry-After': '30' }, { state: 'error', cause: 'The server is busy. Try again in 30 seconds.' }, 0],
+  [429, { 'Retry-After': 'Wed, 21 Oct 2015 07:28:00 GMT' }, { state: 'error', cause: 'The server is busy.' }, 0],
+  [429, {}, { state: 'error', cause: 'The server is busy.' }, 0],
+  [429, { 'Retry-After': '-1' }, { state: 'error', cause: 'The server is busy.' }, 0],
+  [429, { 'Retry-After': 'invalid' }, { state: 'error', cause: 'The server is busy.' }, 0],
+];
+for (const [status, headers, expected, expectedSignIns] of cases) {
+  const signal = new AbortController().signal;
+  let requests = 0;
+  signIns = 0;
+  globalThis.fetch = async (url, options) => {
+    requests += 1;
+    assert.equal(url, '/api/workspaces?team=example');
+    assert.equal(options.signal, signal);
+    return new Response(JSON.stringify({ items: [] }), { status, headers });
+  };
+  assert.deepEqual(await getWorkspaces(new URLSearchParams('team=example'), signal), expected, `HTTP ${status}`);
+  assert.equal(signIns, expectedSignIns, `HTTP ${status} sign-in count`);
+  assert.equal(requests, 1);
+}
+globalThis.fetch = async () => { throw new Error('network failed'); };
+await assert.rejects(getWorkspaces(new URLSearchParams(), new AbortController().signal), /network failed/);
+console.log('10 HTTP cases and network rejection passed');
+"""
+    with tempfile.TemporaryDirectory() as tmp:
+        script = pathlib.Path(tmp) / "fetch.mts"
+        script.write_text(program)
+        result = subprocess.run([str(node), str(script)], capture_output=True, text=True, timeout=10)
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert result.stdout.strip() == "10 HTTP cases and network rejection passed"
+
+
+@pytest.mark.parametrize(("old", "new"), [
+    ("return { state: 'forbidden' };", "return { state: 'loading' };"),
+    ("signIn(); return", "/* signIn() */ return"),
+    ("Number.isInteger(wait) && wait > 0", "false"),
+])
+def test_the_http_rule_test_rejects_wrong_behavior(monkeypatch, tmp_path, old, new):
+    text = (ROOT / "skill" / "mockup-to-page" / "SKILL.md").read_text()
+    assert text.count(old) == 1
+    skill = tmp_path / "skill" / "mockup-to-page" / "SKILL.md"
+    skill.parent.mkdir(parents=True)
+    skill.write_text(text.replace(old, new))
+    monkeypatch.setitem(globals(), "ROOT", tmp_path)
+    with pytest.raises(AssertionError):
+        test_the_example_fetch_obeys_the_http_rules_of_its_skill()
 
 
 def test_the_patternfly_example_does_not_hide_a_fault_behind_retries():
