@@ -122,7 +122,7 @@ def tracker_rows(text: str) -> list[dict[str, str]]:
     """The rows of the units table: | # | Unit | Phase | Status | Step or evidence | Updated (UTC) |"""
     rows = []
     for line in text.splitlines():
-        cells = [c.strip() for c in line.strip().strip("|").split("|")]
+        cells = [c.strip().replace(r"\|", "|") for c in re.split(r"(?<!\\)\|", line.strip().strip("|"))]
         if len(cells) == 6 and cells[0].isdigit():
             rows.append(dict(zip(["n", "unit", "phase", "status", "evidence", "updated"], cells)))
     return rows
