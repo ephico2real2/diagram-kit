@@ -96,6 +96,7 @@ date: "[date]"
 
 - OpenTelemetry in each service: automatic and code instrumentation. Traces, metrics and logs in OTLP.
 - Open source back ends, or a managed APM through the same collector.
+- Libraries that we build instrument themselves: the OpenTelemetry API only, structured logs in the OpenTelemetry format, and a route to Prometheus.
 - RED metrics for each service, USE metrics for each resource.
 - System KPIs with service level objectives. Business KPIs from a review of the business functions.
 - Alerts start from a measured baseline, and each alert has a runbook.
