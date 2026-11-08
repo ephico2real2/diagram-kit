@@ -19,6 +19,9 @@ date: "[date]"
 - Evidence first: each claim comes from a command, a test or a record.
 - Adversarial by default: each claim about the code is attacked.
 - People decide, agents execute: no agent merges a change.
+
+## Principles, continued
+
 - No vendor lock-in: open standards and portable containers.
 - Creative use of open source: one port, an adapter for each store, one contract test suite.
 - Contract first, secure by design, observable by design, traceable delivery.
@@ -31,6 +34,9 @@ date: "[date]"
 - Standalone services for an existing application or a new design
 - Identity and secrets: OIDC, JWT, mutual TLS, workload identity
 - CI/CD and the software supply chain: scans, SBOM, signatures
+
+## Services, continued
+
 - Observability, APM and KPIs, in open formats
 - Error tracking and APM with GlitchTip first, in the admin portal
 - Custom integrations and an extended admin portal
@@ -55,6 +61,9 @@ date: "[date]"
 - It follows the public API documentation and contract of the provider.
 - It checks the API key and the credentials as the provider does, with test values only.
 - Each provider has an OpenAPI contract, a data model and the unit of each field.
+
+## API mocks: contracts and tests
+
 - Each answer has realistic values, so the product operates end to end.
 - Scenarios give failures on demand: a timeout, an error code, a slow answer.
 - Contract tests compare the mock and the client with the contract.
@@ -81,6 +90,9 @@ date: "[date]"
 - One migration run for each release, under a lock, after a snapshot of the managed database
 - Expand, then contract one release later. Each process refuses to serve below a schema floor
 - Compose: a one-shot service on the first host. Kubernetes: PreSync hook Jobs in sync waves
+
+## Migrations, continued
+
 - New environments beside the current one, from one module and a parameter file each
 - Staging with synthetic data. Pre-prod in safe mode, with repeated production loads
 - Cutover: lower the TTL, freeze, final load, migrate, switch DNS, hold, retire
@@ -92,11 +104,14 @@ date: "[date]"
 - Service to service: mutual TLS where it is necessary, with automatic rotation.
 - Secrets: workload identity, a secret manager, External Secrets on Kubernetes, and no secret in code.
 
-## Observability, APM and KPIs
+## Observability and APM
 
 - OpenTelemetry in each service: automatic and code instrumentation. Traces, metrics and logs in OTLP.
 - Open source back ends, or a managed APM through the same collector.
 - Libraries that we build instrument themselves: the OpenTelemetry API only, structured logs in the OpenTelemetry format, and a route to Prometheus.
+
+## KPIs, alerts and the admin portal
+
 - RED metrics for each service, USE metrics for each resource.
 - System KPIs with service level objectives. Business KPIs from a review of the business functions.
 - Alerts start from a measured baseline, and each alert has a runbook.
@@ -160,6 +175,9 @@ date: "[date]"
 - `INV`, label `class:INV`: the work adds something new to the product or the delivery.
 - Examples of `INV` are a feature, a service, a security control, a test method and a CI/CD gate.
 - `TDT`, label `class:TDT`: the setup works today, but an earlier shortcut makes it cost more to change.
+
+## Legend: classes, continued
+
 - An item can have one class, both classes or none.
 - The prefix names the body of work, and the class names its kind: an `APM` task can be `INV`.
 - If the fix of a defect only restores existing behavior, the defect has no class.
@@ -178,6 +196,10 @@ date: "[date]"
 - It holds the findings, the architecture, the work that was built, the tests, the fixes and a phased roadmap.
 - Its summary highlights the innovations, built and proposed, and the class of each issue.
 - Issues, epics and milestones that match the roadmap.
+
+## What the client gets, continued
+
 - The product on a laptop, with sandboxes or API mocks.
 - Pipelines, test suites, dashboards and alerts.
 - Figures, guides and runbooks made from the code at a named commit.
+
