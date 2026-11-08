@@ -64,6 +64,8 @@ The shared brief states:
 - A test failure counts only with evidence of whether it fails without the patch too.
 - The verdict for each patch is APPLY, APPLY WITH FIX, DO NOT APPLY or OWNER DECISION.
 - Save the report to `$C/reports/<id>.md` and each corrected patch to `$C/fixed/`. Leave fixes uncommitted.
+  The sandbox keeps `.git` read-only, so this rule also matches what the sandbox allows. A job that must commit needs
+  `--add-dir <clone>/.git` (see `/agent-report`, "Let a Codex job commit in its clone").
 - The final chat message is at most 5 lines, so that a report costs Claude few tokens.
 
 ## 5. One job, one wake-up

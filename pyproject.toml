@@ -21,6 +21,7 @@ diagram-template = "diagram_kit.template:main"
 metrics-inventory = "diagram_kit.metrics:main"
 perses-dashboard = "diagram_kit.perses:main"
 doc-docx = "diagram_kit.docx:main"
+delivery-page = "diagram_kit.delivery:main"
 
 [tool.setuptools]
 packages = ["diagram_kit"]

@@ -24,6 +24,8 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `diagram_kit/perses.py` | `perses-dashboard`: the Perses form of a Grafana dashboard, and the checks the conversion needs |
 | `diagram_kit/docx.py` | `doc-docx`: one Word document from Markdown files, with pandoc, the kit's palette, links kept inside the document, byte-reproducible |
 | `skill/document/SKILL.md` | the `/document` Claude Code skill: when a Word file is made, from what, and how it is checked; link `~/.claude/skills/document` to this directory |
+| `diagram_kit/delivery.py` | `delivery-page`: one page from a repository's tracker, handover and resume documents at one commit; it writes nothing when one of the three is missing, empty or still starter text |
+| `skill/delivery-page/SKILL.md` | the `/delivery-page` Claude Code skill: the three required documents, the render, and how the page is checked and published; link `~/.claude/skills/delivery-page` to this directory |
 | `skill/build-mockup/SKILL.md` | the `/build-mockup` Claude Code skill: an app mockup built as the contract for its page (target, tokens, state, typed data, section types, checks); link `~/.claude/skills/build-mockup` to this directory |
 | `skill/mockup-to-page/SKILL.md` | the `/mockup-to-page` Claude Code skill: that mockup translated one-to-one into React or Preact + TypeScript, and proven to match; link `~/.claude/skills/mockup-to-page` to this directory |
 | `skill/mockup-to-page-react/SKILL.md` | the `/mockup-to-page-react` Claude Code skill: a mockup translated into React, TypeScript, Vite and PatternFly, with PatternFly's look and the mockup's content, data and behaviour, proven by parity tests; link `~/.claude/skills/mockup-to-page-react` to this directory |
@@ -33,8 +35,11 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/adversarial-review/brief-template.md`, `record-template.md` | the skeletons of a review's brief and of its record |
 | `skill/agent-report/SKILL.md` | the `/agent-report` Claude Code skill: how a background agent logs its research as it works, and an audit with planted claims that shows the work is real; link `~/.claude/skills/agent-report` to this directory |
 | `skill/agent-report/brief-standard.md` | the text to paste into the brief of every agent, of any kind |
+| `skill/agent-report/scripts/brief_check.py` | the check that refuses a brief without the current standard, with a placeholder left, without a stop point or the browser and env rules, or with planted answers that lack a verdict or sit in the job folder |
 | `skill/codex-arbiter/SKILL.md` | the `/codex-arbiter` Claude Code skill: background Codex agents review pending patches in disposable clones, and Claude rules on each finding and tests it; link `~/.claude/skills/codex-arbiter` to this directory |
 | `skill/fix-defect/SKILL.md` | the `/fix-defect` Claude Code skill: each defect logged at once as an issue under its parent, researched, reviewed and proven; link `~/.claude/skills/fix-defect` to this directory |
+| `skill/houston-mayday/SKILL.md` | the `/houston-mayday` Claude Code skill: low-token mode, where Claude writes each mission and its definition of done, Codex builds (high, or extra-high across layers) and a second Codex job reviews, Opus rules last, and work built from scratch gets labels for a later deep review; `make_brief.py` and `run-pair.sh` beside it; link `~/.claude/skills/houston-mayday` to this directory |
+| `skill/workbench/SKILL.md` | the `/workbench` Claude Code skill: the fixed place `$HOME/gitRepos/workbench/<project>/` for clones, worktrees and agent work that must outlive a session, never `/private/tmp` or a scratchpad; `move.sh` beside it moves folders in, skips a folder in use or mounted, and repairs each git worktree; link `~/.claude/skills/workbench` to this directory |
 | `skill/tokensave-fork/SKILL.md` | the `/tokensave-fork` Claude Code skill: install the tokensave2 fork with its dependencies, connect Codex, Cursor and Copilot, put it on the shell PATH, remove the upstream copy, and prove it with a real query; link `~/.claude/skills/tokensave-fork` to this directory |
 | `skill/tokensave-fork/cursor-allow.py` | adds the read tools of tokensave to the Cursor CLI allow list, and no tool that writes |
 | `skill/tokensave-fork/cursor-job-config.py` | makes a second Cursor configuration folder, so that one job gets a shell and reads only its own folder, and the main configuration does not change |
@@ -64,7 +69,7 @@ The repository is not published yet. Until it is, install from a local clone in 
 
 ### Prerequisite for documents: pandoc 3.12.1
 
-`doc-docx` and the decks need pandoc. `diagram-render` does not. A document's bytes depend on pandoc's version, so
+`doc-docx`, `delivery-page` and the decks need pandoc. `diagram-render` does not. A document's bytes depend on pandoc's version, so
 install the version that `ci.yml` pins, and check it against the digest that GitHub publishes for the file.
 `brew install pandoc` and `apt-get install pandoc` give another version, and the byte test then skips.
 
@@ -214,6 +219,22 @@ It refuses a link that would lead nowhere in the document, a link to a `.md` fil
 cannot find. The date is stamped on the file, so the same Markdown and the same pandoc give the same bytes on every
 machine; the kit's CI pins pandoc 3.12.1, and a repository that commits the `.docx` and compares it in CI pins the
 same version.
+
+## Delivery pages
+
+A delivery page is made from a repository's tracker, handover and resume documents, at one commit, and it names that
+commit. `skill/delivery-page/SKILL.md` is the standard, and `delivery-page` does the build. It needs git and pandoc.
+
+```sh
+# a starter for each document that does not exist; it never overwrites a file
+.venv/bin/delivery-page --init --repo .
+# the page, from what the default branch holds
+git fetch origin main
+.venv/bin/delivery-page delivery.html --repo . --ref refs/remotes/origin/main
+```
+
+The command refuses to write if one of the three documents is missing, empty or still starter text, and it names each
+one. Raw HTML in the Markdown shows as text, and a link with an unsafe scheme keeps only its words.
 
 ## Mockups
 

@@ -24,8 +24,8 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 def test_the_kit_ships_every_skill():
     assert [p.name for p in SKILLS] == ["adversarial-review", "agent-report", "app-architect", "build-mockup", "codex-arbiter", "dashboard",
-                                      "document", "fix-defect", "mockup-to-page", "mockup-to-page-react", "sweep-stale", "test-ui",
-                                      "tokensave-fork", "visual"]
+                                      "delivery-page", "document", "fix-defect", "houston-mayday", "mockup-to-page", "mockup-to-page-react", "sweep-stale", "test-ui",
+                                      "tokensave-fork", "visual", "workbench"]
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
@@ -110,6 +110,19 @@ def test_the_agent_report_skill_ships_its_brief_and_an_audit_of_real_work():
     assert "Do not write a program to test the format" in brief
 
 
+def test_the_brief_numbers_its_rules_once_each_and_keeps_the_audit_rules():
+    brief = (ROOT / "skill" / "agent-report" / "brief-standard.md").read_text()
+    rules = brief.split("\nRules:\n", 1)[1].lstrip("\n").split("\n\n", 1)[0]
+    numbers = [int(m) for m in re.findall(r"^(\d+)\. ", rules, re.M)]
+    assert numbers == list(range(1, len(numbers) + 1)), numbers
+    assert "If you cannot test a claim from where you operate, the claim is NOT REACHED." in brief
+    assert "stop each process that you started" in brief
+    assert "must not match its own command line" in brief
+    assert "Then restart from the first step, not from the failed step." in brief
+    skill = (ROOT / "skill" / "agent-report" / "SKILL.md").read_text()
+    assert "9. File the defects." in skill
+    assert "10. For a job that tests an app" in skill
+
 def test_the_defect_skill_and_the_fork_skill_use_the_brief_standard():
     assert "`/agent-report`" in (ROOT / "skill" / "fix-defect" / "SKILL.md").read_text()
     assert "`/agent-report`" in (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
@@ -167,7 +180,7 @@ def test_the_fork_skill_names_the_toolchain_folder_of_each_mac(machine, toolchai
 
 
 def test_no_new_skill_names_a_private_path():
-    for name in ("agent-report", "codex-arbiter", "fix-defect", "tokensave-fork"):
-        for path in (ROOT / "skill" / name).iterdir():
+    for name in ("agent-report", "codex-arbiter", "fix-defect", "houston-mayday", "tokensave-fork", "workbench"):
+        for path in sorted(p for p in (ROOT / "skill" / name).rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             text = path.read_text()
             assert "/Users/" not in text and "agent-report-standard.md" not in text, path
