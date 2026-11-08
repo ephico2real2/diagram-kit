@@ -22,6 +22,8 @@ Select each that applies. Add the same `class:` labels to this pull request. The
 - [ ] TDT: tech debt. The change pays back an earlier shortcut in code or setup that works today.
 - [ ] No class: the change only restores existing behavior and adds nothing, or it changes only records.
 
+The class is separate from the ID prefix of each issue. The prefix names the body of work, and the class names its kind. For example, an `APM` task can have the class `INV`. The legend (`skill/agile/LEGEND.md`) gives each prefix.
+
 ## What changes, and why
 
 ## Proof

@@ -66,6 +66,35 @@ def test_migration_work_has_the_mg_prefix_after_the_owner_actions():
     assert "| `MG` | Migration |" in deck.split("## Legend: classes", 1)[0]
 
 
+def test_mock_app_and_apm_work_have_their_prefixes_after_mg():
+    legend = (AGILE / "LEGEND.md").read_text()
+    prefixes = table_column(legend, "| Prefix |")
+    assert prefixes[prefixes.index("`MG`") + 1 : prefixes.index("`MG`") + 3] == ["`MA`", "`APM`"]
+    deck = (ROOT / "skill" / "delivery-playbook" / "DECK.md").read_text().split("## Legend: findings", 1)[1]
+    findings = deck.split("## Legend: classes", 1)[0]
+    assert "| `MA` | Mock app |" in findings and "| `APM` | Application performance monitoring |" in findings
+
+
+# An item has one prefix and any classes. The owner's example of 2026-11-08: an INV idea can be an APM task.
+PREFIX_AND_CLASS = "The prefix names the body of work, and the class names its kind."
+
+
+@pytest.mark.parametrize(
+    "path",
+    [AGILE / "LEGEND.md", ROOT / "skill" / "delivery-playbook" / "PLAYBOOK.md",
+     ROOT / "skill" / "pull-request" / "templates" / "pull_request_template.md"],
+    ids=lambda p: p.name,
+)
+def test_each_record_says_that_the_prefix_and_the_class_are_separate(path):
+    assert PREFIX_AND_CLASS in path.read_text()
+
+
+@pytest.mark.parametrize("name", ["3-story.yml", "4-task.yml"])
+def test_a_story_or_task_form_asks_for_the_id_prefix_in_the_title(name):
+    body = yaml.safe_load((AGILE / "templates" / "ISSUE_TEMPLATE" / name).read_text())["body"]
+    assert body[0]["type"] == "markdown" and PREFIX_AND_CLASS in body[0]["attributes"]["value"]
+
+
 def test_the_classes_have_their_labels_in_the_legend():
     legend = (AGILE / "LEGEND.md").read_text()
     for label in ("`class:INV`", "`class:TDT`", "`status:open`", "`status:owner-action`", "`sev:critical`"):

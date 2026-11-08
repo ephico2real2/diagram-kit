@@ -47,6 +47,8 @@ For example, a managed PostgreSQL service can lack the TimescaleDB extension. Th
 | Identity and secrets | OpenID Connect (OIDC) sign-in, JSON Web Token (JWT) rules, mutual TLS where it is necessary, and secret management with workload identity |
 | CI/CD and the software supply chain | Pipelines with tests, scans, a software bill of materials (SBOM), image signatures and deploy by digest |
 | Observability, APM and KPIs | OpenTelemetry instrumentation, application performance monitoring (APM), dashboards, and alerts on system and business KPIs |
+| Error tracking and APM, with GlitchTip first | GlitchTip, or Sentry as the option (hosted or self-hosted), installed by the method of each deploy target. GlitchTip recommends 512 MB of RAM, and self-hosted Sentry needs 4 CPU cores and 16 GB. A module of the admin portal shows the errors, the alerts and the KPIs, with a link to each item in the provider |
+| Custom integrations and an extended admin portal | Integrations that add what a tool does not give, for example a collector for the fired alerts of GlitchTip, which have no API. Each one comes with a contract, a test and a view in the admin portal |
 | Runtime and scaling | Containers that operate on virtual machines, cloud virtual machines or Kubernetes, with autoscaling on measured load |
 | Local product copy and API mocks | The full product on one machine, with provider sandboxes or a mock of each external API |
 | Automated testing | Unit, integration, contract, API, browser, mobile, load and mutation tests, on a laptop and in CI |
@@ -237,6 +239,7 @@ A store submission never starts from a push with no approval.
 | KPIs | System KPIs, for example availability and latency, each with a service level objective. Business KPIs come from a review of the business functions, for example completed payments or new sign-ups |
 | KPI store | The service also writes its KPI facts, its alert rules and its alert events to its own PostgreSQL database. The admin portal reads them with the access control of the product, and no new store is necessary |
 | Alerts | Each alert starts from a measured baseline and has a runbook. An alert names the KPI and the threshold. The rules cover system and business KPIs. An administrator with the write permission changes a threshold in the admin portal, and the API records each change |
+| Error tracking | GlitchTip is the recommendation, because of its resource needs, and Sentry is the option. One setting selects the provider for each app. The SDKs are the open source Sentry SDKs, which send to GlitchTip or Sentry. The admin portal reads the provider data on the server side, from a cache in Valkey or PostgreSQL, and never waits for the provider |
 | Admin portal | The admin portal shows the dashboards of the KPIs and the RED metrics from end to end. Its backend for frontend (BFF) calls the API through the edge proxy, for example Envoy. Administrators sign in with a second factor (MFA) |
 
 A dashboard starts with an inventory of each metric that the workload emits. The dashboard then shows only the metrics that answer a question that a user asks.
@@ -294,10 +297,12 @@ Every report, issue, pull request and figure uses this legend. `skill/agile/LEGE
 | `UX` | User experience | A defect that a user sees on the screen |
 | `OA` | Owner action | Work that needs an account, a key, a plan or a decision that code cannot supply |
 | `MG` | Migration | A task that moves a schema, data or a whole environment to a new version or a new place: a migration, the copy before it, a data load or a cutover |
+| `MA` | Mock app | A story of a mock app: a stand-in for an external API, with its contract |
+| `APM` | Application performance monitoring | A story or task of error tracking and APM: the provider, the alerts, the KPIs and their view in the admin portal |
 | `INV` | Innovation | A new feature, design, idea or method that comes from no finding |
 | `TDT` | Tech debt | A debt item that comes from no finding |
 
-A class says what kind of work an item is. Each item of any prefix can have one class, both classes or no class. A finding keeps its ID and gets a class label. If the fix of a defect brings existing behavior back to its intended form and adds nothing, the defect has no class. If the fix adds a new control, such as a webhook signature, a second factor, an allow-list or a scan, the defect is `INV`. A defect in new `INV` work that is not merged yet is also `INV`, because its fix is part of that work. A defect in an unmerged fix that has no class keeps no class. Sweep the classes of all issues at the first classification and after each change of this rule, not only the classes of new issues.
+A class says what kind of work an item is. Each item of any prefix can have one class, both classes or no class. The prefix names the body of work, and the class names its kind. For example, an `APM` task that adds a new alert collector has the class `INV`. A finding keeps its ID and gets a class label. If the fix of a defect brings existing behavior back to its intended form and adds nothing, the defect has no class. If the fix adds a new control, such as a webhook signature, a second factor, an allow-list or a scan, the defect is `INV`. A defect in new `INV` work that is not merged yet is also `INV`, because its fix is part of that work. A defect in an unmerged fix that has no class keeps no class. Sweep the classes of all issues at the first classification and after each change of this rule, not only the classes of new issues.
 
 | Class | Label | Meaning |
 |---|---|---|

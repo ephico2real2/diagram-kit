@@ -32,6 +32,8 @@ date: "[date]"
 - Identity and secrets: OIDC, JWT, mutual TLS, workload identity
 - CI/CD and the software supply chain: scans, SBOM, signatures
 - Observability, APM and KPIs, in open formats
+- Error tracking and APM with GlitchTip first, in the admin portal
+- Custom integrations and an extended admin portal
 - Runtime and scaling: virtual machines, cloud or Kubernetes, with KEDA
 - Local product copy and API mocks, automated testing, agile delivery
 
@@ -146,6 +148,8 @@ date: "[date]"
 | `UX` | User experience |
 | `OA` | Owner action |
 | `MG` | Migration |
+| `MA` | Mock app |
+| `APM` | Application performance monitoring |
 | `INV` | Innovation, from no finding |
 | `TDT` | Tech debt, from no finding |
 
@@ -156,6 +160,7 @@ date: "[date]"
 - Examples of `INV` are a feature, a service, a security control, a test method and a CI/CD gate.
 - `TDT`, label `class:TDT`: the setup works today, but an earlier shortcut makes it cost more to change.
 - An item can have one class, both classes or none.
+- The prefix names the body of work, and the class names its kind: an `APM` task can be `INV`.
 - If the fix of a defect only restores existing behavior, the defect has no class.
 - Sweep the classes of all issues after each change of this rule.
 
