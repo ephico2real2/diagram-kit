@@ -74,6 +74,7 @@ def test_the_page_shows_only_the_light_render_when_asked(tmp_path):
 @needs_pandoc
 def test_an_alt_text_with_a_quote_stays_inside_its_attribute(tmp_path):
     found = tags(build(tmp_path, DECK, "deck.lua"))
+    assert len(found) == 2
     assert all('alt="Rate &quot;p95&quot; of the API"' in t for t in found)
 
 
