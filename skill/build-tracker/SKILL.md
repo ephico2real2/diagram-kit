@@ -30,7 +30,7 @@ Goal: <one line>. Ticket: <link or number>. Published tracker: <path in the repo
 - **Phase**: one of the SDLC phases `plan`, `design`, `build`, `test`, `review`, `release`, `deploy`.
 - **Status**: `todo`, `in progress`, `blocked` or `done`. Nothing else.
 - **Step or evidence**: for `in progress`, the current step. For `blocked`, the blocker and who can remove it. For `done`, the evidence.
-- **Updated (UTC)**: `YYYY-MM-DD HH:MM`, then the local time in parentheses, as `(HH:MM <zone>)`. Take the UTC time from git (`git log -1 --format=%cI`), CI (`gh run view <id> --json updatedAt`) or a log. Not from memory.
+- **Updated (UTC)**: `YYYY-MM-DD HH:MM`. The local time in parentheses is optional. Use `(HH:MM <zone>)` when you include it. Take the UTC time from git (`git log -1 --format=%cI`), CI (`gh run view <id> --json updatedAt`) or a log. Not from memory.
 
 ## 2. The rules
 

@@ -34,8 +34,8 @@ Last update: item <n> of <total> (<what>), <YYYY-MM-DD HH:MM> UTC (<HH:MM> <loca
 
 `<n>` is the number of the unit in progress in the tracker. If no unit is in progress, it is the number of done units.
 `<total>` is the number of units in the tracker. UTC is the standard: git, CI and the hooks use it, and it has no
-daylight saving change. Take it from `date -u +"%Y-%m-%d %H:%M"`. The local time in parentheses is for the reader,
-from `date +"%H:%M %Z"` (for example `16:12 CST`). The self-check compares only the UTC time.
+daylight saving change. Take it from `date -u +"%Y-%m-%d %H:%M"`. The local time in parentheses is optional.
+Take it from `date +"%H:%M %Z"` (for example `16:12 CST`). The self-check compares only the UTC time.
 
 Then these sections, in this order:
 
