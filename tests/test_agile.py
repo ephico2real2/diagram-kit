@@ -88,6 +88,10 @@ def test_the_definition_of_done_of_a_form_names_each_stage(name):
     done = next(b for b in form["body"] if b.get("attributes", {}).get("label") == "Definition of done")
     value = done["attributes"]["value"]
     assert all(stage.lower() in value.lower() for stage in STAGES)
+    bodies = (AGILE / "templates" / "bodies.md").read_text()
+    body = bodies.split(f"## {form['name']}\n", 1)[1].split("```markdown\n", 1)[1].split("\n```", 1)[0]
+    done = body.split("## Definition of done\n", 1)[1].split("\n## ", 1)[0]
+    assert all(stage.lower() in done.lower() for stage in STAGES)
 
 
 # The class rule is one rule in every file that states it. On 2026-11-07 a narrow reading left 102 issues of one

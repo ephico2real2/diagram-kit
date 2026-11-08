@@ -109,7 +109,12 @@ Part of #<parent>
 - [ ] <step>
 
 ## Definition of done
-- [ ] <check>
+- [ ] Mockup approved, or the work has no screen and no API shape
+- [ ] Draft pull request open
+- [ ] Build: tests fail before the change and pass after it
+- [ ] Review ruled
+- [ ] Merged with its proof
+- [ ] Released on the default branch
 
 ## Class
 INV, TDT, both, or no class.
