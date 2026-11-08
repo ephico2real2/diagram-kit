@@ -47,7 +47,8 @@ LINE2 = re.compile(
     r"Next: (?P<next>\S.*)$"
 )
 TOPIC = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,80}")
-EVIDENCE = re.compile(r"\b[0-9a-f]{7,40}\b|#\d+|https?://|\b(?:passed|failed|run \d+|deployed)\b", re.I)
+EVIDENCE = re.compile(r"\b[0-9a-f]{7,40}\b|#\d+|https?://[A-Za-z0-9][^\s|<>]*|"
+                      r"\b(?:\d+ (?:passed|failed)|run \d+|deployed \S+)\b", re.I)
 UTC_TIME = re.compile(r"^\d{4}-\d{2}-\d{2} \d{2}:\d{2}")
 # Shapes of real credentials. A name such as "the API key of the payment provider" is allowed: a value is not.
 SECRET_SHAPES = [
