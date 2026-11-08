@@ -163,7 +163,12 @@ def check(root: pathlib.Path, topic: str | None = None) -> tuple[list[str], dict
         failures.append("line 2 is not 'Last update: item <n> of <total> (<what>), <YYYY-MM-DD HH:MM> UTC "
                         "(<HH:MM> <local zone>). Next: <step>.'")
     else:
-        stamp = dt.datetime.strptime(line2["time"], "%Y-%m-%d %H:%M").replace(tzinfo=dt.timezone.utc)
+        try:
+            stamp = dt.datetime.strptime(line2["time"], "%Y-%m-%d %H:%M").replace(tzinfo=dt.timezone.utc)
+        except ValueError:
+            failures.append("line 2 has an invalid UTC date or time")
+            line2 = None
+    if line2:
         facts["stamp"] = stamp
         age = (utcnow() - stamp).total_seconds() / 60
         if age > MAX_AGE_MIN:
