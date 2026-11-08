@@ -44,6 +44,9 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/tokensave-fork/tool-use-audit.py` | reads the log of a Claude, Codex or Cursor agent, and shows whether the agent read through tokensave and whether it read a whole file |
 | `skill/sweep-stale/SKILL.md` | the `/sweep-stale` Claude Code skill: watch for stale background agents and the processes a session leaves behind, and end them on request; link `~/.claude/skills/sweep-stale` to this directory |
 | `skill/sweep-stale/sweep-stale.py` | reports stale background agents, Codex brokers, orphaned test and browser processes, zombies and leftover socket directories, as text or as a prompt hook; `--sweep` ends what it names |
+| `skill/act-local/SKILL.md` | the `/act-local` Claude Code skill: run the jobs of a GitHub Actions workflow on a Mac with act and Podman, with the Homebrew tools, the Docker socket link, a runner image pinned by digest and the measured gotchas; link `~/.claude/skills/act-local` to this directory |
+| `skill/act-local/act-ci.sh` | runs each job and each matrix entry of a workflow alone under act, cleans up after a failure, and runs a gitleaks job natively from the same release as its pin |
+| `skill/act-local/Dockerfile.runner` | the act runner image, pinned by digest, with a relative `/var/run` link for Podman and the Yarn version of the GitHub runner |
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |
