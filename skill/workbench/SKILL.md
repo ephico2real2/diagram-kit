@@ -20,6 +20,7 @@ $HOME/gitRepos/workbench/                 # WORKBENCH: the root
 - The root is `$HOME/gitRepos/workbench`. Set `WORKBENCH` to use another root.
 - Use the name of the project folder under `$HOME/gitRepos` as `<project>`.
 - Name a clone for an agent or a job `cj-<topic>`, and a worktree for its branch.
+- End each clone or worktree path with a folder named for its repository, for example `cj-<topic>/backend`. Some tools find the repository from that folder name. On 2026-11-08, a page builder failed a test in a worktree at `wt-<topic>`, and passed at `wt-<topic>/backend`.
 - The workbench is not a git repository. Do not commit it, and do not index it as a project.
 
 ## 2. What stays temporary
@@ -35,7 +36,7 @@ Only a file that you can make again in one step stays in the scratchpad or `/tmp
 ```sh
 W=${WORKBENCH:-$HOME/gitRepos/workbench}/<project>
 mkdir -p "$W"
-git -C <repository> worktree add -b <branch> "$W/<branch-name>" <base>
+git -C <repository> worktree add -b <branch> "$W/<branch-name>/<repository-name>" <base>
 git clone -q --no-hardlinks -b <branch> <repository> "$W/cj-<topic>"
 ```
 
