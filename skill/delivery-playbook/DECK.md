@@ -109,6 +109,7 @@ date: "[date]"
 - OpenTelemetry in each service: automatic and code instrumentation. Traces, metrics and logs in OTLP.
 - Open source back ends, or a managed APM through the same collector.
 - Libraries that we build instrument themselves: the OpenTelemetry API only, structured logs in the OpenTelemetry format, and a route to Prometheus.
+- An APM module in the middle sends GlitchTip or Sentry issues, events and alerts as OpenTelemetry log records to the logging solution, for example VictoriaLogs.
 
 ## KPIs, alerts and the admin portal
 
