@@ -20,8 +20,9 @@ done) and get a yes before creating anything**, unless the user has already said
 2. **Slice by outcome, not by file or by person.** Each child ends in something that can be
    demonstrated: a tunnel that carries traffic, a chart that installs, a guide a new engineer can
    follow. Five to twelve children is the usual size; more means two epics.
-3. **Say what is done and what is not.** A done child cites its commits and its measurement and
-   is closed. An open child says what is missing. Nothing is marked done that was not verified.
+3. **Say what is done and what is not.** Close a child only after its work reaches the default
+   branch, with its commits and measurements. Keep work on another branch open and name that branch.
+   If the repository uses `status:` labels, give that work `status:fixed-on-review-branch`.
 4. **No secrets, no personal data.** Same rule as `/issue`.
 
 ## 2. Shape of the epic
@@ -63,7 +64,8 @@ The problem or the risk today, with where it was seen.
    If the repository has milestones, give each child the milestone of the release that ships it;
    the epic itself gets no milestone when its children ship in different releases. If the
    repository has `status:` labels, each child has exactly one.
-   Close the ones that are already done, with their evidence (`gh issue close <n> --reason completed --comment "…"`).
+   Close only the children whose work reaches the default branch, with their evidence
+   (`gh issue close <n> --reason completed --comment "…"`). Keep the other children open.
 4. Rewrite the epic's Issues section as a task list of the real numbers, ticked where the child
    is closed: `gh issue edit <epic> --body-file <epic.md>`. GitHub then shows the progress.
 5. Close the epic only when every exit criterion is met. If some children stay open, the epic
