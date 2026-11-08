@@ -210,7 +210,7 @@ def check(root: pathlib.Path, topic: str | None = None) -> tuple[list[str], dict
     active = [row for row in rows if row["status"] == "in progress"]
     if len(active) > 1:
         failures.append("the tracker has more than one unit in progress: " + ", ".join(r["n"] for r in active))
-    if tracker_path.stat().st_mtime > note_path.stat().st_mtime + 60:
+    if tracker_path.stat().st_mtime > note_path.stat().st_mtime:
         failures.append("the tracker changed after the note: update the note")
     if line2:
         if int(line2["total"]) != len(rows):
