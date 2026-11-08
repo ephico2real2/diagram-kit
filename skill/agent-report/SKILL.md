@@ -89,6 +89,24 @@ It refuses a brief in these cases:
 
 Keep the planted answers in a folder outside the job folders, for example `~/.claude/plants/<job>.md`. A hook of the project can run the script before each agent or `codex exec` start, and refuse the start on exit 1.
 
+## Let a Codex job commit in its clone
+
+The test loop of the brief standard asks for one commit for each defect. Codex `--sandbox workspace-write` lets a job
+write files in its clone, but it keeps the `.git` folder of the clone read-only. Then `git add` fails with "Unable to
+create '.git/index.lock'", and the job leaves its work uncommitted.
+
+Give the job write access to that one folder:
+
+```sh
+codex exec --sandbox workspace-write --skip-git-repo-check -C <clone> --add-dir <clone>/.git --add-dir <report folder> - < brief.md
+```
+
+On 2026-11-08 (codex-cli 0.166.0), a job with no such access wrote its files but made no commit. A probe with
+`--add-dir <clone>/.git` made the commit. Nothing else outside the clone becomes writable, so do not use
+`danger-full-access` for this. If a later step clones the result of a job, commit what the job left first. If you do
+not, the next job reads an empty branch. The `approval_mode` settings of `~/.codex/config.toml` approve MCP tools only.
+They do not change this rule.
+
 ## 7. The arbiter's own research
 
 Research that the arbiter does without an agent follows the same structure, because the next reader cannot tell a fact from an impression in a chat reply. Write it to `<topic>/arbiter/`: `research.md`, `tests.md` and `verdicts.md`, one heading per ID. Label each statement MEASURED, READ FROM CODE, WEB RESULT NOT TESTED or PROPOSAL NOT OPERATED. A short lookup by a fetch agent is a source of the arbiter: quote it with its URL and the date read.
@@ -107,4 +125,5 @@ Report the graph calls and the shell calls in your final message.
 | Tell an agent to report as its last step | Tell it to write after each ID |
 | Accept a report because it has the right files | Plant answers, and operate the tests again |
 | Trust the call counts of the final message | Count the calls in the session log |
+| Ask a Codex job to commit with no write access to `.git` | Pass `--add-dir <clone>/.git` |
 | Ask for a section per ID in each file | Ask for a section only where there is something to say |
