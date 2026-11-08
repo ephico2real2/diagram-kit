@@ -16,7 +16,7 @@ A pull request is the record of one change. It names what ships it (the mileston
 
 ## 2. Open a pull request
 
-GitHub fills the template only for a pull request opened in the browser. From the command line, fill a copy and pass it as a file.
+From the command line, fill a copy and pass it with `--body-file`. For an interactive draft, `gh pr create --template <file>` uses a template.
 
 ```sh
 git switch -c work/<topic>
