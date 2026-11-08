@@ -44,7 +44,7 @@ CONTEXT_LIMIT = 9000  # SessionStart text that goes into the new context, in cha
 
 LINE2 = re.compile(
     r"^Last update: (?:item )?(?P<n>\d+) of (?P<total>\d+) \((?P<what>.+?)\), "
-    r"(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}) UTC(?: \((?P<local>\d{2}:\d{2} [A-Z][A-Za-z+0-9:-]{1,9})\))?\. "
+    r"(?P<time>\d{4}-\d{2}-\d{2} \d{2}:\d{2}) UTC(?: \((?P<local>\d{2}:\d{2} (?:[A-Z][A-Za-z+0-9:-]{0,9}|[+-]\d{2}(?::?\d{2})?))\))?\. "
     r"Next: (?P<next>\S.*)$"
 )
 TOPIC = re.compile(r"[A-Za-z0-9][A-Za-z0-9._-]{0,80}")
