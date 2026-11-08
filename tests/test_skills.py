@@ -184,3 +184,19 @@ def test_no_new_skill_names_a_private_path():
         for path in (ROOT / "skill" / name).iterdir():
             text = path.read_text()
             assert "/Users/" not in text and "agent-report-standard.md" not in text, path
+
+
+def test_mock_app_tool_claims_have_primary_sources():
+    text = (ROOT / "skill" / "mock-app" / "SKILL.md").read_text()
+    sources = {
+        "OpenAPI": "https://spec.openapis.org/oas/v3.2.1.html",
+        "Prism": "https://github.com/stoplightio/prism",
+        "WireMock Cloud": "https://docs.wiremock.io/openAPI/swagger",
+        "Microcks": "https://microcks.io/documentation/references/artifacts/openapi-conventions/",
+        "Mockoon": "https://mockoon.com/docs/latest/openapi/import-export-openapi-format/",
+        "Pact": "https://docs.pact.io/",
+    }
+    for name, url in sources.items():
+        assert re.search(rf"^\| {re.escape(name)} \|.*{re.escape(url)}", text, re.M), name
+    examples = text.split("Mock servers from an OpenAPI file", 1)[1].split("- Contract tests", 1)[0]
+    assert "WireMock Cloud" in examples
