@@ -24,7 +24,7 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 def test_the_kit_ships_every_skill():
     assert [p.name for p in SKILLS] == ["adversarial-review", "agent-report", "app-architect", "build-mockup", "codex-arbiter", "dashboard",
-                                      "delivery-page", "document", "fix-defect", "mockup-to-page", "mockup-to-page-react", "sweep-stale", "test-ui",
+                                      "delivery-page", "document", "fix-defect", "houston-mayday", "mockup-to-page", "mockup-to-page-react", "sweep-stale", "test-ui",
                                       "tokensave-fork", "visual"]
 
 
@@ -180,7 +180,7 @@ def test_the_fork_skill_names_the_toolchain_folder_of_each_mac(machine, toolchai
 
 
 def test_no_new_skill_names_a_private_path():
-    for name in ("agent-report", "codex-arbiter", "fix-defect", "tokensave-fork"):
+    for name in ("agent-report", "codex-arbiter", "fix-defect", "houston-mayday", "tokensave-fork"):
         for path in sorted(p for p in (ROOT / "skill" / name).rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             text = path.read_text()
             assert "/Users/" not in text and "agent-report-standard.md" not in text, path
