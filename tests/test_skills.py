@@ -234,3 +234,14 @@ def test_the_patternfly_example_does_not_hide_a_fault_behind_retries():
 def test_the_patternfly_skill_maps_a_new_token_to_a_one_time_copy():
     text = (ROOT / "skill" / "mockup-to-page-react" / "SKILL.md").read_text()
     assert re.search(r"^\| A new token, shown one time \|.*`ClipboardCopy", text, re.M)
+
+
+def test_the_review_record_identifies_the_second_pass_sources():
+    record = (ROOT / "docs" / "reviews" / "pr-17.md").read_text()
+    heading = "## Second pass: F1 and F2"
+    assert heading in record
+    second_pass = record.split(heading, 1)[1]
+    assert "`d1d40cb`" in second_pass
+    for finding, source in (("F1", "tests/test_mockup_example.py"),
+                            ("F2", "skill/mockup-to-page/SKILL.md")):
+        assert f"### {finding}:" in second_pass and source in second_pass
