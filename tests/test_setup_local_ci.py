@@ -89,10 +89,12 @@ def env(tmp_path):
         info.size, info.mode = len(script), 0o755
         tar.addfile(info, io.BytesIO(script))
     (release / host_asset()).write_bytes(buf.getvalue())
-    x64_pin = "c" * 64
-    (release / f"gitleaks_{VERSION}_checksums.txt").write_text(
-        f"{x64_pin}  gitleaks_{VERSION}_linux_x64.tar.gz\n"
-        f"{hashlib.sha256(buf.getvalue()).hexdigest()}  {host_asset()}\n")
+    digest = hashlib.sha256(buf.getvalue()).hexdigest()
+    x64_asset = f"gitleaks_{VERSION}_linux_x64.tar.gz"
+    # On an x64 Linux host the native asset is the pinned asset, so the pin is its real hash and the file has one line.
+    x64_pin = digest if host_asset() == x64_asset else "c" * 64
+    lines = {x64_asset: x64_pin, host_asset(): digest}
+    (release / f"gitleaks_{VERSION}_checksums.txt").write_text("".join(f"{h}  {n}\n" for n, h in lines.items()))
 
     write_tool(bin_dir, "act", f'echo "$*" >> "{calls}/act"\n')
     write_tool(bin_dir, "podman", textwrap.dedent(f"""\
@@ -126,7 +128,7 @@ def env(tmp_path):
     subprocess.run([*git, "commit", "-qm", "head"], check=True)
 
     run_env = {**os.environ, "PATH": f"{bin_dir}:{os.environ['PATH']}", "DOCKER_HOST": "unix:///stand-in.sock"}
-    return {"repo": repo, "base": base, "calls": calls, "logs": tmp_path / "logs", "env": run_env}
+    return {"repo": repo, "base": base, "calls": calls, "logs": tmp_path / "logs", "env": run_env, "pin": x64_pin}
 
 
 def run(env, *extra):
@@ -176,7 +178,7 @@ def test_the_gitleaks_job_runs_natively_over_the_pull_request_range(env):
 
 def test_a_pin_that_is_not_in_the_release_checksum_file_stops_the_scan(env):
     ci = env["repo"] / ".github" / "workflows" / "ci.yml"
-    ci.write_text(ci.read_text().replace("c" * 64, "d" * 64))
+    ci.write_text(ci.read_text().replace(env["pin"], "d" * 64))
     subprocess.run(["git", "-C", str(env["repo"]), "-c", "user.name=t", "-c", "user.email=t@example.test",
                     "commit", "-qam", "another pin"], check=True)
     result = run(env, "-j", "secret-scan")
