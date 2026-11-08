@@ -181,6 +181,6 @@ def test_the_fork_skill_names_the_toolchain_folder_of_each_mac(machine, toolchai
 
 def test_no_new_skill_names_a_private_path():
     for name in ("agent-report", "codex-arbiter", "fix-defect", "tokensave-fork"):
-        for path in (ROOT / "skill" / name).iterdir():
+        for path in sorted(p for p in (ROOT / "skill" / name).rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             text = path.read_text()
             assert "/Users/" not in text and "agent-report-standard.md" not in text, path
