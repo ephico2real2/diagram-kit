@@ -46,6 +46,8 @@ A correct structure is easy to write. Do these steps yourself, because a report 
 6. Look for filler. A section that says only that nothing applies shows structure with no content.
 7. Make sure that each proof covers the claim. A pin in a local file does not establish what production runs.
 8. For a fix, apply the patch to a fresh clone. The test must fail before the patch and pass after it.
+9. File the defects. Read `verdicts.md`, `fixes.md` and `research.md` for each defect. Add each fault that your audit found, in the application or in the work of the agent. Search for a duplicate first. Each one gets an issue through `/fix-defect`. The audit is not finished until each defect has its issue number.
+10. For a job that tests an app, make sure that it followed the test loop in `/fix-defect`. After each fix, its log must show a restart from the first step. Its last full run on the final code must have 0 failures. Operate that last run again yourself. A job that fixed a defect and did not restart has not finished.
 
 Any failed step puts the whole report in doubt, and not only that claim. These steps do not measure the depth of a hard investigation, so read the research of the claims that matter.
 
@@ -69,6 +71,46 @@ The answers were right, and the agent did real work. It also spent real time on 
 Add this section to the definition of each agent that reads code:
 
 ```markdown
+## 6. Check each brief before the agent starts
+
+A pasted standard drifts. On 2026-11-08, a sweep of 48 briefs found 2 with no standard, 3 with placeholders left, and copies of an older text in briefs written after the final version. Thus a script checks each brief before the agent starts:
+
+```sh
+python3 ~/.claude/skills/agent-report/scripts/brief_check.py <job>/brief.md --plants ~/.claude/plants/<job>.md
+```
+
+It refuses a brief in these cases:
+
+- The first line names no role: `IMPLEMENTER`, `REVIEWER`, `RESEARCHER` or `TESTER`, alone or after `Role: `.
+- A line of `brief-standard.md` is missing or out of order, so the copy is not the current version.
+- A placeholder `<folder>`, `<job>` or `<graph_root>` is left, outside the instruction line of the standard.
+- The part above the standard gives no stop point, no browser rule or no rule against env files.
+- The planted answers do not have one `CONFIRMED`, one `REFUTED` and one `NOT REACHED` answer, or they are inside the job folder.
+
+Keep the planted answers in a folder outside the job folders, for example `~/.claude/plants/<job>.md`. A hook of the project can run the script before each agent or `codex exec` start, and refuse the start on exit 1.
+
+## Let a Codex job commit in its clone
+
+The test loop of the brief standard asks for one commit for each defect. Codex `--sandbox workspace-write` lets a job
+write files in its clone, but it keeps the `.git` folder of the clone read-only. Then `git add` fails with "Unable to
+create '.git/index.lock'", and the job leaves its work uncommitted.
+
+Give the job write access to that one folder:
+
+```sh
+codex exec --sandbox workspace-write --skip-git-repo-check -C <clone> --add-dir <clone>/.git --add-dir <report folder> - < brief.md
+```
+
+On 2026-11-08 (codex-cli 0.166.0), a job with no such access wrote its files but made no commit. A probe with
+`--add-dir <clone>/.git` made the commit. Nothing else outside the clone becomes writable, so do not use
+`danger-full-access` for this. If a later step clones the result of a job, commit what the job left first. If you do
+not, the next job reads an empty branch. The `approval_mode` settings of `~/.codex/config.toml` approve MCP tools only.
+They do not change this rule.
+
+## 7. The arbiter's own research
+
+Research that the arbiter does without an agent follows the same structure, because the next reader cannot tell a fact from an impression in a chat reply. Write it to `<topic>/arbiter/`: `research.md`, `tests.md` and `verdicts.md`, one heading per ID. Label each statement MEASURED, READ FROM CODE, WEB RESULT NOT TESTED or PROPOSAL NOT OPERATED. A short lookup by a fetch agent is a source of the arbiter: quote it with its URL and the date read.
+
 ## Read code through the graph
 
 If the project has `.tokensave/` or `.codegraph/`, read code through it, not through grep and whole files.
@@ -83,4 +125,5 @@ Report the graph calls and the shell calls in your final message.
 | Tell an agent to report as its last step | Tell it to write after each ID |
 | Accept a report because it has the right files | Plant answers, and operate the tests again |
 | Trust the call counts of the final message | Count the calls in the session log |
+| Ask a Codex job to commit with no write access to `.git` | Pass `--add-dir <clone>/.git` |
 | Ask for a section per ID in each file | Ask for a section only where there is something to say |
