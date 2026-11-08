@@ -73,12 +73,12 @@ PatternFly ships its fonts in `assets/fonts`, so the page needs no font CDN.
 | Paging | `Pagination` when the API can jump to a page; next and previous `Button`s with the range text when it pages by cursor, since `Pagination` expects any page to be reachable |
 | `kpi-tiles`, `card-grid` | `Gallery` of `Card`, or `Grid`; `DescriptionList` for label and value pairs |
 | `stat-strip` | One `Card` with `Flex` and `DescriptionList` |
-| `bar-list`, a usage meter | `Progress` with its `label` and `value`, in a `Table` or `Stack` |
+| `bar-list`, a usage meter | `Progress` with its `label`, `value` and `valueText`, in a `Table` or `Stack`. PatternFly hides the visible label from screen readers, so `valueText` carries it |
 | `time-series` | `@patternfly/react-charts`, with the values also in a table |
 | `heat-grid` | `Table` with `isStickyHeader`; each cell carries its value in text |
 | `callout` | `Alert`, with `CodeBlock` for a command |
 | Status words, tones, chips | `Label` with `status` or `color`; always with its word |
-| A form | `Form`, `FormGroup`, `TextInput`, `FormSelect`, `TextArea`, `DatePicker`, `FormHelperText` |
+| A form | `Form`, `FormGroup`, `TextInput`, `FormSelect`, `TextArea`, `DatePicker`, `FormHelperText`. `Form` sets `noValidate`: pass `noValidate={false}` where the mockup relies on `required`, `min`, `max`, `step` or `type="email"` |
 | A multi-step flow | `Wizard` only when the steps collect input; a read-only stepper is `ProgressStepper` |
 | Code, YAML, a diff | `CodeBlock` |
 | Empty, loading, error | `EmptyState`, `Skeleton` or `Spinner`, `Alert`; each list has all three |
@@ -143,9 +143,9 @@ of its own keeps it in that component. Keep the mockup's accessible names; Patte
 Run against both the mockup's render and the page, by the method in `/test-ui`. A difference is fixed, or listed and
 justified in the PR.
 
-1. **Content parity, per tab and state, in both directions.** Drive the mockup and the page to the same state. Compare
-   the visible text and the table rows, normalized for whitespace. Every string the mockup shows is on the page, and
-   every string the page shows is in the mockup, or is listed.
+1. **Content parity, per tab and state, in both directions.** Drive the mockup and the page to the same state. Every
+   string the mockup shows is on the page, and every string the page shows is in the mockup, or is listed. Text alone is
+   not enough: also compare tables cell by cell, status colours, selection, disabled buttons and meter values.
 2. **Behaviour parity.** The same scripted walk runs on both: each action, its result, and the states it leads to. No
    console errors.
 3. **Layout checks at 390, 820 and 1440 px, in each theme.** No sideways scroll on the page, no leftover placeholders,

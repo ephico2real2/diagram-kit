@@ -262,6 +262,24 @@ embed.**
 It needs the repository public (step 3), because `pip` fetches the tag anonymously. The tutorial walk installed it
 from a local clone (`TUTORIAL.md`).
 
+### The kit on an Intel Mac (2026-11-06)
+
+An Intel Core i9-9980HK, macOS 15.8.1, Python 3.14.7, Playwright 1.63.0. The README's "Intel Mac requirements" and "Prerequisite for documents" rest on these results.
+
+| Measured | Result |
+|---|---|
+| `uname -m`, and `brew --prefix` | `x86_64`, and `/usr/local` |
+| `file` on the venv's Python | `Mach-O 64-bit executable x86_64` |
+| The Chromium that Playwright installed | `chromium-1248/chrome-mac-x64` |
+| `diagram-template`, then `diagram-render` on that page | 2 PNGs written, so every check passed |
+| The README's macOS block, run by `bash -eu` in a throwaway `HOME` | `pandoc.zip: OK`, then `pandoc 3.12.1`, with the link to `pandoc-3.12.1-x86_64/bin/pandoc` |
+| `arm64` zip of the same release | The digest in the README passes, and its folder is `pandoc-3.12.1-arm64`. It was not run |
+| `tests/test_docx.py` with the `x86_64` pandoc 3.12.1 | The byte test ran and passed, so this build gives the hash that `ci.yml` checks on Linux |
+| `doc-docx` on one Markdown file | `.docx` written |
+| The tokensave fork from Homebrew's `rust` 1.98.1, commit `48a229cea` | Exit 0 in 19 min 51 s, with no rustup |
+
+The digests are the `digest` values that the GitHub API gives for the assets of the 3.12.1 release. LibreOffice, `pdftoppm` and `rsvg-convert` were not installed, so decks and an SVG in a document were not measured. The Linux block in the README was not run here; its `amd64` digest and its commands are those of `ci.yml`.
+
 ## 6. Connectors: curves, dashed arrows, one arrowhead
 
 Asked for on 2026-10-06: curved arrows to show traffic from every Envoy pod reaching every mongot pod, and dashed
@@ -420,6 +438,81 @@ output by hand.
 
 **Not in the kit yet**: the capture of a dashboard in the OpenShift console and in a Grafana fed by its sidecar,
 which the worked example does with its own scripts.
+
+## 8. Background agents: what a pilot of the report standard measured (2026-11-06)
+
+`skill/agent-report/SKILL.md` asks an arbiter to plant claims with known answers, because a correct report structure proves nothing about the work. One Codex job tested that audit: five claims about a private NestJS repository, under the brief standard. The claims were easy on purpose, so this says nothing about a hard investigation.
+
+| Measure | Result |
+|---|---|
+| Planted answers | 5 of 5 correct (2 true, 2 false, 1 that it could not test) |
+| Tests operated again from the recorded folder | 5 of 5 gave the recorded output, one after `brew install ripgrep` |
+| Graph and shell calls | 25 and 11 stated, 25 and 11 in the session log |
+| Job length, and time after the last evidence file | 555 s, and 151 s (27%), with an 89-line program to test its report format |
+| Report and evidence | 21 KB of reports, 140 KB of logs, 65,420 tokens |
+| Sections that say only that nothing applies | 3.4 KB in `fixes.md` and `recommendations.md` |
+
+The last two rows and the 151 seconds are why the standard now forbids that filler and that program. Those rules came after the pilot, so no measurement covers them yet. At the end of the job, all seven report files had the same modified time, so the skill tells the arbiter to read them during the run.
+
+### Does the agent use the graph, and does it read a whole file?
+
+`skill/tokensave-fork/tool-use-audit.py` answers this from the log of the agent, because the report of an agent cannot prove it. A call to `tokensave_read` also cannot prove it, because the default mode is `full`. The question was about one method in a private project, in a file of 927 lines and 69,921 bytes. Each row is one run with the 7.16.0 fork, from an empty folder.
+
+| Run | Audit | Log |
+|---|---|---|
+| Codex, open question with the brief standard | PASS | 7 graph calls, 1 shell call that read no code, 47 of 927 lines |
+| Cursor, open question with the brief standard | PASS | 7 graph calls, no shell call, 20 of 927 lines |
+| Codex, `tokensave_read` with no `mode` | FAIL | 15,298 characters, cut at line 234 |
+| Cursor, `tokensave_read` with no `mode` | FAIL | 15,298 characters, cut at line 234 |
+| Codex, told to operate `rg` and `cat` | FAIL | Both ran, and `cat` returned 69,921 bytes |
+| Cursor, told to use its native read | FAIL | The read succeeded, on the whole file |
+| Cursor, told to operate `rg` | FAIL | No graph call, and each shell call was refused, also `echo hello` |
+| Cursor job in its own folder, open question | PASS | 5 graph calls, no shell call, and the shell and native read cannot reach the project |
+| Claude, `claude -p`, open question, first run | FAIL | Tokensave for the code, and 26 of 927 lines of the file, but also `grep -n` in the project through Bash |
+| Claude, `claude -p`, open question, second run | PASS | 4 graph calls answered, no shell call, 20 of 927 lines of the file |
+| Claude subagent `ob1-lite`, with the brief standard | FAIL | 8 graph calls answered, also `sed -n` on a test file and test commands in the project. Its stated counts match the log |
+| Claude, `tokensave_read` with no `mode` | FAIL | 15,298 characters, cut at line 234 |
+| Claude, told to operate `rg`, `cat` and its Read tool | FAIL | All ran, and `cat` reached all 69,921 bytes |
+
+The two passes are one run each, so they show that an agent can follow the brief, and they do not show a rate. The refusals in the last row include a command that is not a search, so they came from the approval of the shell and not from the tokensave hook.
+
+A sandbox with `sandbox.readBoundary` set to `workspace` gave Cursor a shell and took away the other ways to read the project. `git`, `python3` and `rg` ran in the job folder with no prompt. `cat`, `rg` and the native read of the project failed with `Operation not permitted` or `Permission denied`, and tokensave still answered. In the main configuration, the same setting also stopped the native read of a plain call with no sandbox, so `skill/tokensave-fork/cursor-job-config.py` puts it in a second folder that one call selects.
+
+### Moving one Mac from Homebrew to the fork (2026-11-06)
+
+The fork at commit 9431b81, version 7.16.0, on macOS with zsh. Section 8 of `skill/tokensave-fork/SKILL.md` rests on these results.
+
+| Measured | Result |
+|---|---|
+| `cargo install` through the `stable` toolchain folder, with `rust-toolchain.toml` pinning 1.98.1 | Built with rustc 1.99.1 (`/rustc/58cf8f9c3`), exit 0, and no line in the last 6 lines of its output named the toolchain |
+| The same command through the `1.98.1` folder | `/rustc/48a229cea`, in 1 min 53 s |
+| `brew uninstall aovestdipaperino/tap/tokensave` | 2 files, 170.2 MB removed, exit 0. The tap stayed |
+| 5 MCP servers that were in operation from the removed file | All 5 still listed by `ps` after the removal |
+| `which tokensave` in `zsh -ic`, `zsh -c` and `zsh -lc`, with a clean environment | Found, not found, not found |
+| The same query from Claude, Codex and Cursor, from an empty folder | The same correct file from each, and 3 new rows in `savings_ledger`, all under the selected project |
+| `tokensave_str_replace` from Cursor | `User rejected MCP: tokensave-tokensave_str_replace`, and the file did not change |
+| `init` and `sync` in a throwaway repository with its own `HOME` | Exit 0 for each |
+| `claude -p --allowedTools <tool> "$P"` | `Input must be provided either through stdin or as a prompt argument`, because the flag took the prompt. With the prompt first, the query worked |
+
+Copilot has no CLI on that Mac, so no query from Copilot was measured. A git hook was not tested through a real commit.
+
+### Installing the fork from nothing on an Intel Mac (2026-11-06)
+
+The fork at commit 9431b81, version 7.16.0, on an Intel Core i9-9980HK with macOS and zsh, Homebrew in `/usr/local`. Steps 1 and 3 of `skill/tokensave-fork/SKILL.md` rest on these results.
+
+| Measured | Result |
+|---|---|
+| `uname -m` | `x86_64`, so the skill's `1.98.1-aarch64-apple-darwin` folder cannot exist here |
+| `rustc -vV` from Homebrew's `rust` | Release 1.98.1, `commit-hash` `48a229cea...`, host `x86_64-apple-darwin` |
+| `cargo install --locked --path .` through that `cargo`, with no rustup installed | Exit 0 in 19 min 51 s, with no `rust-objcopy` warning |
+| The built binary | `Mach-O 64-bit executable x86_64`, `/rustc/48a229cea`, `dashboard --help` succeeds, 170.9 MB |
+| `which cursor-agent` in an agent's shell | Not found. It is in `~/.local/bin`, and `cursor agent` runs it |
+| `cursor agent status`, then `cursor agent -p` | `Logged in (unable to fetch user details)`, then `Authentication required`. After `cursor agent login`, `-p` worked with the main configuration and with `~/.cursor-jobs` |
+| The same query from Claude, Codex and Cursor, from an empty folder | The same correct file from each |
+| `tool-use-audit.py`, open question on a file of 377 lines | Codex PASS, Cursor job PASS, Claude FAIL (it read all 34 lines of a small second file) |
+| `tool-use-audit.py`, Codex told to call `tokensave_read` with no `mode` | FAIL, as the control must |
+
+The rustup path on an Intel Mac and the `brew --prefix` form on Apple Silicon were not run. Codex and Cursor each wrote `Pipeline.view` for a method of `class Plan`, so the cause of that wrong name is not known.
 
 ## Appendix: every page
 

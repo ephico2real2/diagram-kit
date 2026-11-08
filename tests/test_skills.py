@@ -26,8 +26,9 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 
 def test_the_kit_ships_every_skill():
-    assert [p.name for p in SKILLS] == ["adversarial-review", "app-architect", "build-mockup", "dashboard", "document", "mockup-to-page",
-                                      "mockup-to-page-react", "test-ui", "visual"]
+    assert [p.name for p in SKILLS] == ["adversarial-review", "agent-report", "app-architect", "build-mockup", "codex-arbiter", "dashboard",
+                                      "delivery-page", "document", "fix-defect", "houston-mayday", "mockup-to-page", "mockup-to-page-react", "sweep-stale", "test-ui",
+                                      "tokensave-fork", "visual", "workbench"]
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
@@ -40,6 +41,28 @@ def test_a_skill_is_named_for_its_directory_and_says_when_to_use_it(skill):
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
 def test_the_readme_says_where_to_link_each_skill(skill):
     assert f"link `~/.claude/skills/{skill.name}` to this directory" in (ROOT / "README.md").read_text()
+
+
+def test_the_readme_installs_the_pandoc_that_ci_pins_on_each_platform():
+    readme = (ROOT / "README.md").read_text()
+    ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
+    version = re.search(r"name: Install pandoc (\S+)", ci).group(1)
+    digest = re.search(r'echo "([0-9a-f]{64})  \$RUNNER_TEMP/pandoc\.deb"', ci).group(1)
+    section = readme.split("### Prerequisite for documents: pandoc ", 1)[1].split("\n### ", 1)[0]
+    assert section.startswith(version)
+    assert f"amd64) ARCH=amd64; DIGEST={digest} ;;" in section
+    assert f"releases/download/{version}/pandoc-{version}-$ARCH-macOS.zip" in section
+    assert re.search(r"arm64\)  ARCH=arm64;  DIGEST=[0-9a-f]{64} ;;", section)
+    assert re.search(r"x86_64\) ARCH=x86_64; DIGEST=[0-9a-f]{64} ;;", section)
+    # An unpinned package is another version, and the byte test then skips.
+    assert "apt-get install -y pandoc" not in readme
+    assert "arm64-macOS.pkg" not in (ROOT / "skill" / "document" / "SKILL.md").read_text()
+
+
+def test_the_readme_says_what_an_intel_mac_needs():
+    section = (ROOT / "README.md").read_text().split("### Intel Mac requirements", 1)[1].split("\n### ", 1)[0]
+    for need in ("`/usr/local`", "`brew --prefix`", "`x86_64`", "pandoc", "Chromium", "tokensave"):
+        assert need in section, need
 
 
 def test_the_mockup_skills_are_one_standard():
@@ -245,3 +268,90 @@ def test_the_review_record_identifies_the_second_pass_sources():
     for finding, source in (("F1", "tests/test_mockup_example.py"),
                             ("F2", "skill/mockup-to-page/SKILL.md")):
         assert f"### {finding}:" in second_pass and source in second_pass
+
+
+def test_the_agent_report_skill_ships_its_brief_and_an_audit_of_real_work():
+    skill = (ROOT / "skill" / "agent-report" / "SKILL.md").read_text()
+    brief = (ROOT / "skill" / "agent-report" / "brief-standard.md").read_text()
+    assert "${CLAUDE_SKILL_DIR}/brief-standard.md" in skill
+    assert "Plant claims with known answers" in skill
+    assert "Operate the tests again" in skill
+    for report in ("plan.md", "research.md", "tests.md", "verdicts.md", "fixes.md", "recommendations.md", "resume.md"):
+        assert report in brief, report
+    assert "Do not write a program to test the format" in brief
+
+
+def test_the_brief_numbers_its_rules_once_each_and_keeps_the_audit_rules():
+    brief = (ROOT / "skill" / "agent-report" / "brief-standard.md").read_text()
+    rules = brief.split("\nRules:\n", 1)[1].lstrip("\n").split("\n\n", 1)[0]
+    numbers = [int(m) for m in re.findall(r"^(\d+)\. ", rules, re.M)]
+    assert numbers == list(range(1, len(numbers) + 1)), numbers
+    assert "If you cannot test a claim from where you operate, the claim is NOT REACHED." in brief
+    assert "stop each process that you started" in brief
+    assert "must not match its own command line" in brief
+    assert "Then restart from the first step, not from the failed step." in brief
+    skill = (ROOT / "skill" / "agent-report" / "SKILL.md").read_text()
+    assert "9. File the defects." in skill
+    assert "10. For a job that tests an app" in skill
+
+def test_the_defect_skill_and_the_fork_skill_use_the_brief_standard():
+    assert "`/agent-report`" in (ROOT / "skill" / "fix-defect" / "SKILL.md").read_text()
+    assert "`/agent-report`" in (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
+
+
+def test_the_fork_skill_installs_from_nothing_and_warns_about_upgrade():
+    skill = (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
+    assert "## Install from nothing" in skill
+    assert "${CLAUDE_SKILL_DIR}/cursor-allow.py" in skill
+    assert (ROOT / "skill" / "tokensave-fork" / "cursor-allow.py").is_file()
+    assert "Do not run `tokensave upgrade`" in skill
+    assert "brew install git rustup ripgrep" in skill
+
+
+def test_the_fork_skill_audits_the_log_and_the_brief_warns_about_the_default_read():
+    skill = (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
+    assert "${CLAUDE_SKILL_DIR}/tool-use-audit.py" in skill
+    assert (ROOT / "skill" / "tokensave-fork" / "tool-use-audit.py").is_file()
+    assert "${CLAUDE_SKILL_DIR}/cursor-job-config.py" in skill
+    assert (ROOT / "skill" / "tokensave-fork" / "cursor-job-config.py").is_file()
+    assert "`tool-use-audit.py`" in (ROOT / "skill" / "agent-report" / "SKILL.md").read_text()
+    assert "Its default reads the whole file" in (ROOT / "skill" / "agent-report" / "brief-standard.md").read_text()
+
+
+def test_the_fork_skill_builds_with_the_pinned_toolchain_and_moves_the_shell_before_it_removes_upstream():
+    skill = (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
+    # a direct toolchain path skips rustup, and a bare `cargo` is not on PATH with Homebrew's rustup. Homebrew's own
+    # `rust` is the other form: step 1 allows it only after its commit is compared with the pin.
+    builds = [line.strip() for line in skill.splitlines() if "cargo install --locked" in line or "cargo\" install --locked" in line]
+    assert builds and all(
+        line.startswith(('PATH="$HOME/.rustup/toolchains/1.98.1-', '"$(brew --prefix)/bin/cargo" install --locked'))
+        for line in builds
+    ), builds
+    assert "`commit-hash` that starts `48a229cea`" in skill
+    assert not re.search(r"gitRepos/tokensave(?!2)", skill)
+    assert "## 8. Put the fork on the shell PATH" in skill
+    assert skill.index('export PATH="$HOME/.cargo/bin:$PATH"') < skill.index("brew uninstall aovestdipaperino/tap/tokensave")
+    assert "`source ~/.zshrc`" in skill
+    assert "### How to know that it works" in skill
+
+
+@pytest.mark.parametrize(("machine", "toolchain"), [("arm64", "aarch64"), ("x86_64", "x86_64")])
+def test_the_fork_skill_names_the_toolchain_folder_of_each_mac(machine, toolchain):
+    skill = (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
+    # A folder or a Homebrew prefix for one architecture is a path that does not exist on the other.
+    assert "aarch64-apple-darwin" not in skill
+    assert "ls /opt/homebrew/bin/tokensave" not in skill
+    rustup_builds = [line.strip() for line in skill.splitlines() if ".rustup/toolchains/1.98.1-" in line]
+    assert rustup_builds and all(line.startswith('PATH="$HOME/.rustup/toolchains/1.98.1-$ARCH-apple-darwin/bin:') for line in rustup_builds)
+    sed_program = re.search(r"ARCH=\$\(uname -m \| sed '([^']+)'\)", skill)
+    assert sed_program, "the skill sets ARCH from uname -m"
+    # The program from the skill itself, on what uname -m prints on each Mac.
+    run = subprocess.run(["sed", sed_program.group(1)], input=machine, capture_output=True, text=True, check=True)
+    assert run.stdout.strip() == toolchain
+
+
+def test_no_new_skill_names_a_private_path():
+    for name in ("agent-report", "codex-arbiter", "fix-defect", "houston-mayday", "tokensave-fork", "workbench"):
+        for path in sorted(p for p in (ROOT / "skill" / name).rglob("*") if p.is_file() and "__pycache__" not in p.parts):
+            text = path.read_text()
+            assert "/Users/" not in text and "agent-report-standard.md" not in text, path

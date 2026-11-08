@@ -24,6 +24,8 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `diagram_kit/perses.py` | `perses-dashboard`: the Perses form of a Grafana dashboard, and the checks the conversion needs |
 | `diagram_kit/docx.py` | `doc-docx`: one Word document from Markdown files, with pandoc, the kit's palette, links kept inside the document, byte-reproducible |
 | `skill/document/SKILL.md` | the `/document` Claude Code skill: when a Word file is made, from what, and how it is checked; link `~/.claude/skills/document` to this directory |
+| `diagram_kit/delivery.py` | `delivery-page`: one page from a repository's tracker, handover and resume documents at one commit; it writes nothing when one of the three is missing, empty or still starter text |
+| `skill/delivery-page/SKILL.md` | the `/delivery-page` Claude Code skill: the three required documents, the render, and how the page is checked and published; link `~/.claude/skills/delivery-page` to this directory |
 | `skill/build-mockup/SKILL.md` | the `/build-mockup` Claude Code skill: an app mockup built as the contract for its page (target, tokens, state, typed data, section types, checks); link `~/.claude/skills/build-mockup` to this directory |
 | `skill/mockup-to-page/SKILL.md` | the `/mockup-to-page` Claude Code skill: that mockup translated one-to-one into React or Preact + TypeScript, and proven to match; link `~/.claude/skills/mockup-to-page` to this directory |
 | `skill/mockup-to-page-react/SKILL.md` | the `/mockup-to-page-react` Claude Code skill: a mockup translated into React, TypeScript, Vite and PatternFly, with PatternFly's look and the mockup's content, data and behaviour, proven by parity tests; link `~/.claude/skills/mockup-to-page-react` to this directory |
@@ -31,6 +33,19 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/app-architect/SKILL.md` | the `/app-architect` Claude Code skill: an application reviewed in its own forked agent, from inventories and a twelve-factor scorecard to a phased roadmap with a runnable proof per step; link `~/.claude/skills/app-architect` to this directory |
 | `skill/adversarial-review/SKILL.md` | the `/adversarial-review` Claude Code skill: a change attacked by two model families on a per-claim brief, every finding with its full fix and a failing-then-passing test, each decision written down; link `~/.claude/skills/adversarial-review` to this directory |
 | `skill/adversarial-review/brief-template.md`, `record-template.md` | the skeletons of a review's brief and of its record |
+| `skill/agent-report/SKILL.md` | the `/agent-report` Claude Code skill: how a background agent logs its research as it works, and an audit with planted claims that shows the work is real; link `~/.claude/skills/agent-report` to this directory |
+| `skill/agent-report/brief-standard.md` | the text to paste into the brief of every agent, of any kind |
+| `skill/agent-report/scripts/brief_check.py` | the check that refuses a brief without the current standard, with a placeholder left, without a stop point or the browser and env rules, or with planted answers that lack a verdict or sit in the job folder |
+| `skill/codex-arbiter/SKILL.md` | the `/codex-arbiter` Claude Code skill: background Codex agents review pending patches in disposable clones, and Claude rules on each finding and tests it; link `~/.claude/skills/codex-arbiter` to this directory |
+| `skill/fix-defect/SKILL.md` | the `/fix-defect` Claude Code skill: each defect logged at once as an issue under its parent, researched, reviewed and proven; link `~/.claude/skills/fix-defect` to this directory |
+| `skill/houston-mayday/SKILL.md` | the `/houston-mayday` Claude Code skill: low-token mode, where Claude writes each mission and its definition of done, Codex builds (high, or extra-high across layers) and a second Codex job reviews, Opus rules last, and work built from scratch gets labels for a later deep review; `make_brief.py` and `run-pair.sh` beside it; link `~/.claude/skills/houston-mayday` to this directory |
+| `skill/workbench/SKILL.md` | the `/workbench` Claude Code skill: the fixed place `$HOME/gitRepos/workbench/<project>/` for clones, worktrees and agent work that must outlive a session, never `/private/tmp` or a scratchpad; `move.sh` beside it moves folders in, skips a folder in use or mounted, and repairs each git worktree; link `~/.claude/skills/workbench` to this directory |
+| `skill/tokensave-fork/SKILL.md` | the `/tokensave-fork` Claude Code skill: install the tokensave2 fork with its dependencies, connect Codex, Cursor and Copilot, put it on the shell PATH, remove the upstream copy, and prove it with a real query; link `~/.claude/skills/tokensave-fork` to this directory |
+| `skill/tokensave-fork/cursor-allow.py` | adds the read tools of tokensave to the Cursor CLI allow list, and no tool that writes |
+| `skill/tokensave-fork/cursor-job-config.py` | makes a second Cursor configuration folder, so that one job gets a shell and reads only its own folder, and the main configuration does not change |
+| `skill/tokensave-fork/tool-use-audit.py` | reads the log of a Claude, Codex or Cursor agent, and shows whether the agent read through tokensave and whether it read a whole file |
+| `skill/sweep-stale/SKILL.md` | the `/sweep-stale` Claude Code skill: watch for stale background agents and the processes a session leaves behind, and end them on request; link `~/.claude/skills/sweep-stale` to this directory |
+| `skill/sweep-stale/sweep-stale.py` | reports stale background agents, Codex brokers, orphaned test and browser processes, zombies and leftover socket directories, as text or as a prompt hook; `--sweep` ends what it names |
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |
@@ -52,6 +67,59 @@ The repository is not published yet. Until it is, install from a local clone in 
 `.venv/bin/pip install <path-to-clone>`.
 `TUTORIAL.md` walks the whole path.
 
+### Prerequisite for documents: pandoc 3.12.1
+
+`doc-docx`, `delivery-page` and the decks need pandoc. `diagram-render` does not. A document's bytes depend on pandoc's version, so
+install the version that `ci.yml` pins, and check it against the digest that GitHub publishes for the file.
+`brew install pandoc` and `apt-get install pandoc` give another version, and the byte test then skips.
+
+On macOS, without `sudo`, for an Intel Mac or Apple Silicon. A Homebrew pandoc can stay installed:
+
+```sh
+case "$(uname -m)" in
+  arm64)  ARCH=arm64;  DIGEST=c2146cf33a583f3ac93eccddf1bb662371d5cfcce1aad1c87ad860cca1435d46 ;;
+  x86_64) ARCH=x86_64; DIGEST=81ed3e2cfecf096df15d407152f89a684fd65221082b919963f738e977fad3bc ;;
+esac
+curl -fsSL -o pandoc.zip "https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-$ARCH-macOS.zip"
+echo "$DIGEST  pandoc.zip" | shasum -a 256 -c -
+mkdir -p ~/.local/opt ~/.local/bin
+unzip -q pandoc.zip -d ~/.local/opt
+ln -s "$HOME/.local/opt/pandoc-3.12.1-$ARCH/bin/pandoc" ~/.local/bin/pandoc
+rm pandoc.zip
+```
+
+`~/.local/bin` must come before Homebrew on your `PATH`. In a new terminal, `which pandoc` prints
+`~/.local/bin/pandoc`, and `pandoc --version` prints `pandoc 3.12.1`.
+
+On Ubuntu or Debian, as `ci.yml` does it:
+
+```sh
+case "$(dpkg --print-architecture)" in
+  amd64) ARCH=amd64; DIGEST=b4217ac7c54067c442f9d4cd38bcd0c184a43f3e7053431a12263a6f92a33ba2 ;;
+  arm64) ARCH=arm64; DIGEST=38f44718c0cb15cb81fc31026bd68c33e8628ca5f7ab15ca86494a7f24f7b8e4 ;;
+esac
+curl -fsSL -o pandoc.deb "https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-1-$ARCH.deb"
+echo "$DIGEST  pandoc.deb" | sha256sum -c -
+sudo dpkg -i pandoc.deb
+rm pandoc.deb
+```
+
+### Intel Mac requirements
+
+The kit needs no extra package on an Intel Mac. These items differ from Apple Silicon. Measured on 2026-11-06 on an
+Intel Core i9-9980HK with macOS 15.8.1, Python 3.14.7 and Playwright 1.63.0 (`RESEARCH.md`, section 5).
+
+| Item | On an Intel Mac |
+| --- | --- |
+| Homebrew | The prefix is `/usr/local`, not `/opt/homebrew`. A command that names a Homebrew path takes it from `brew --prefix` |
+| The kit's venv | The commands in "Install and render" do not change, and they give a `x86_64` Python |
+| Chromium | `playwright install chromium` fetches the `chrome-mac-x64` build. `diagram-render` wrote its PNGs with it |
+| pandoc | The `x86_64` file in "Prerequisite for documents". It gave the same document bytes as `ci.yml`'s `.deb`, and the byte test passed |
+| The tokensave fork (`/tokensave-fork`) | Its Rust toolchain folder is `1.98.1-x86_64-apple-darwin`. Homebrew's `rust` 1.98.1, at commit `48a229cea`, built it with no rustup, in 19 min 51 s against 3 minutes on an M-series Mac |
+
+Not tested on an Intel Mac: decks, because LibreOffice and `pdftoppm` were not installed; an SVG in a document, because
+`rsvg-convert` was not installed; the rustup way to build the tokensave fork.
+
 ### Linux requirements
 
 Ubuntu/Debian packages (tested on Ubuntu 24.04):
@@ -59,8 +127,7 @@ Ubuntu/Debian packages (tested on Ubuntu 24.04):
 ```sh
 sudo apt-get install -y python3-venv          # the kit's venv
 sudo .venv/bin/playwright install-deps chromium   # Chromium's system libraries
-# documents built from the figures
-sudo apt-get install -y pandoc                # Markdown to .docx / .pptx
+# documents built from the figures: pandoc as "Prerequisite for documents" says, then
 sudo apt-get install -y libreoffice-impress   # .pptx to PDF, to look at slides before sharing
 sudo apt-get install -y poppler-utils         # pdftoppm: PDF pages to PNG
 sudo apt-get install -y podman                # optional: the Containerfile check
@@ -141,7 +208,7 @@ the source; it writes nothing when a check fails. `RESEARCH.md` §7 has what bot
 
 A Word document is made from Markdown, never edited by hand, the way a PNG is made from its page.
 `skill/document/SKILL.md` is the standard; `doc-docx` does the build (it needs pandoc, at the version your CI pins:
-the skill says where to get it):
+see "Prerequisite for documents"):
 
 ```sh
 # the guide, then the checklist, each after a page break, links between them kept inside the document
@@ -152,6 +219,22 @@ It refuses a link that would lead nowhere in the document, a link to a `.md` fil
 cannot find. The date is stamped on the file, so the same Markdown and the same pandoc give the same bytes on every
 machine; the kit's CI pins pandoc 3.12.1, and a repository that commits the `.docx` and compares it in CI pins the
 same version.
+
+## Delivery pages
+
+A delivery page is made from a repository's tracker, handover and resume documents, at one commit, and it names that
+commit. `skill/delivery-page/SKILL.md` is the standard, and `delivery-page` does the build. It needs git and pandoc.
+
+```sh
+# a starter for each document that does not exist; it never overwrites a file
+.venv/bin/delivery-page --init --repo .
+# the page, from what the default branch holds
+git fetch origin main
+.venv/bin/delivery-page delivery.html --repo . --ref refs/remotes/origin/main
+```
+
+The command refuses to write if one of the three documents is missing, empty or still starter text, and it names each
+one. Raw HTML in the Markdown shows as text, and a link with an unsafe scheme keeps only its words.
 
 ## Mockups
 
@@ -235,7 +318,7 @@ python3 -m venv .venv
 
 A `pytest` from your PATH fails at collection with `ModuleNotFoundError: No module named 'diagram_kit'` or `'playwright'`.
 That means the setup above has not been done, not that a test failed. `tests/test_skills.py` has no such imports, so it
-passes either way and proves nothing about the rest. The tests of `doc-docx` skip without `pandoc` on the PATH.
+passes either way and proves nothing about the rest. The tests of `doc-docx` skip without `pandoc` on the PATH, and its byte test skips on any version but 3.12.1.
 
 No test reaches the network. The browser tests inline a font from `tests/fixtures/fonts/` (Inter, SIL Open Font
 License 1.1, `tests/fixtures/fonts/OFL.txt`). The dashboard tests run no container and ask no Prometheus: they use a
