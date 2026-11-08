@@ -34,6 +34,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 
 SECTIONS = ["Context", "Done", "Now", "Next steps", "Running", "Temporary changes", "Open"]
 STATUSES = {"todo", "in progress", "blocked", "done"}
@@ -330,8 +331,9 @@ def cmd_precompact() -> int:
     files = facts.get("files")
     if files:
         stamp = utcnow().strftime("%Y%m%dT%H%M%SZ")
-        target = files["snapshots"] / f"{stamp}-{hook.get('trigger', 'unknown')}"
-        target.mkdir(parents=True, exist_ok=True)
+        files["snapshots"].mkdir(parents=True, exist_ok=True)
+        target = pathlib.Path(tempfile.mkdtemp(prefix=f"{stamp}-", suffix=f"-{hook.get('trigger', 'unknown')}",
+                                               dir=files["snapshots"]))
         for name in ("note", "tracker"):
             if files[name].is_file():
                 shutil.copy2(files[name], target / files[name].name)
