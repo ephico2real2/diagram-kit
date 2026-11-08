@@ -22,6 +22,17 @@ after the ruling.
 If a job changes more than one of these, it crosses layers: the schema, the API, the service code, the UI, the mobile
 app, the infrastructure. Round 1 of such a job uses `xhigh`.
 
+## Briefs: the existing standard, with no new format
+
+This skill changes who does the work, not the brief. Each Codex job gets the same agent brief as every other agent:
+
+- The brief standard of `/agent-report` follows the mission head, unchanged.
+- `brief_check.py` checks each brief, with the planted answers in a file outside the job folder.
+- If the project has a brief gate, the gate checks each start. A refusal stands: fix the brief.
+- `/codex-arbiter` gives the rules for the clones. `/fix-defect` gives the form of each defect that a round finds.
+
+The mission head below is the project part of that brief, above the standard.
+
 ## 2. Write the mission (Claude)
 
 Each round has one head file. The kit brief standard of `/agent-report` follows it unchanged. A head has these parts,
