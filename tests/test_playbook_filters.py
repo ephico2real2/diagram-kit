@@ -9,6 +9,7 @@ installs it): there a missing pandoc fails them.
 
 from __future__ import annotations
 
+from html.parser import HTMLParser
 import os
 import pathlib
 import re
@@ -93,3 +94,23 @@ def test_the_client_build_commands_use_the_shared_templates(tmp_path):
                        check=True, capture_output=True, text=True)
     for name in ("playbook.html", "playbook.pptx", "deck.html"):
         assert (tmp_path / name).stat().st_size > 0
+
+
+@needs_pandoc
+def test_the_deck_preserves_entity_text_in_figure_paths(tmp_path):
+    class Images(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.sources = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "img":
+                self.sources.append(dict(attrs)["src"])
+
+    text = "![Rate](figures/rate&amp;copy;.light.png)\n"
+    plain = Images()
+    plain.feed(build(tmp_path, text))
+    assert plain.sources == ["figures/rate&copy;.light.png"]
+    themed = Images()
+    themed.feed(build(tmp_path, text, "deck.lua"))
+    assert themed.sources == ["figures/rate&copy;.light.png", "figures/rate&copy;.dark.png"]
