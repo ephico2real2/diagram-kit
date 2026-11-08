@@ -28,8 +28,18 @@ go() { # round, effort, clone
 }
 
 r1=$J/wt/$job-r1/$name r2=$J/wt/$job-r2/$name
-mkdir -p ${r1:h} ${r2:h}
-mk $r1 $base $src && git -C $r1 switch -q -c $branch || exit 2
-go r1 $e1 $r1
-mk $r2 $branch $r1 || exit 2
-go r2 $e2 $r2
+# ROUNDS=r2 reruns only the review, on the round 1 clone that exists.
+if [[ ${ROUNDS:-r1 r2} == *r1* ]]; then
+  mkdir -p ${r1:h}
+  mk $r1 $base $src && git -C $r1 switch -q -c $branch || exit 2
+  go r1 $e1 $r1
+fi
+# The Codex sandbox keeps .git read-only, so round 1 cannot commit. Commit its work here, so round 2 sees it as commits.
+if [[ -n $(git -C $r1 status --porcelain) ]]; then
+  git -C $r1 add -A && git -C $r1 commit -q -m "ROUND 1: the uncommitted work of the Codex job" || exit 2
+fi
+if [[ ${ROUNDS:-r1 r2} == *r2* ]]; then
+  mkdir -p ${r2:h}
+  mk $r2 $branch $r1 || exit 2
+  go r2 $e2 $r2
+fi

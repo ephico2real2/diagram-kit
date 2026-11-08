@@ -46,7 +46,8 @@ in this order:
 5. Deliverables (round 1) or claims to attack (round 2), each with the file it changes.
 6. Definition of done: each item says how a test or a command shows it.
 7. Limits: a stop point (`stop after` the IDs, or a time limit), no browser, no `.env` file, no secret, no push, no
-   `gh` write, no install, no lockfile change, keep the line endings, one commit for each deliverable or fix.
+   `gh` write, no install, no lockfile change, keep the line endings. The sandbox keeps `.git` read-only, so the job
+   leaves its changes uncommitted and saves each fix as `patches/<ID>.patch`. `run-pair.sh` commits round 1 before round 2.
 
 Save each issue body to `inputs/` with `gh issue view <n> --json number,title,body > inputs/<repo>-<n>.json`, so that
 Codex needs no network and Claude does not read the body twice. Lint the head with the project's writing check, then
