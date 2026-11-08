@@ -71,6 +71,28 @@ The answers were right, and the agent did real work. It also spent real time on 
 Add this section to the definition of each agent that reads code:
 
 ```markdown
+## 6. Check each brief before the agent starts
+
+A pasted standard drifts. On 2026-11-08, a sweep of 48 briefs found 2 with no standard, 3 with placeholders left, and copies of an older text in briefs written after the final version. Thus a script checks each brief before the agent starts:
+
+```sh
+python3 ~/.claude/skills/agent-report/scripts/brief_check.py <job>/brief.md --plants ~/.claude/plants/<job>.md
+```
+
+It refuses a brief in these cases:
+
+- The first line names no role: `IMPLEMENTER`, `REVIEWER`, `RESEARCHER` or `TESTER`, alone or after `Role: `.
+- A line of `brief-standard.md` is missing or out of order, so the copy is not the current version.
+- A placeholder `<folder>`, `<job>` or `<graph_root>` is left, outside the instruction line of the standard.
+- The part above the standard gives no stop point, no browser rule or no rule against env files.
+- The planted answers do not have one `CONFIRMED`, one `REFUTED` and one `NOT REACHED` answer, or they are inside the job folder.
+
+Keep the planted answers in a folder outside the job folders, for example `~/.claude/plants/<job>.md`. A hook of the project can run the script before each agent or `codex exec` start, and refuse the start on exit 1.
+
+## 7. The arbiter's own research
+
+Research that the arbiter does without an agent follows the same structure, because the next reader cannot tell a fact from an impression in a chat reply. Write it to `<topic>/arbiter/`: `research.md`, `tests.md` and `verdicts.md`, one heading per ID. Label each statement MEASURED, READ FROM CODE, WEB RESULT NOT TESTED or PROPOSAL NOT OPERATED. A short lookup by a fetch agent is a source of the arbiter: quote it with its URL and the date read.
+
 ## Read code through the graph
 
 If the project has `.tokensave/` or `.codegraph/`, read code through it, not through grep and whole files.

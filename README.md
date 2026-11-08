@@ -36,6 +36,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/adversarial-review/brief-template.md`, `record-template.md` | the skeletons of a review's brief and of its record |
 | `skill/agent-report/SKILL.md` | the `/agent-report` Claude Code skill: how a background agent logs its research as it works, and an audit with planted claims that shows the work is real; link `~/.claude/skills/agent-report` to this directory |
 | `skill/agent-report/brief-standard.md` | the text to paste into the brief of every agent, of any kind |
+| `skill/agent-report/scripts/brief_check.py` | the check that refuses a brief without the current standard, with a placeholder left, without a stop point or the browser and env rules, or with planted answers that lack a verdict or sit in the job folder |
 | `skill/codex-arbiter/SKILL.md` | the `/codex-arbiter` Claude Code skill: background Codex agents review pending patches in disposable clones, and Claude rules on each finding and tests it; link `~/.claude/skills/codex-arbiter` to this directory |
 | `skill/fix-defect/SKILL.md` | the `/fix-defect` Claude Code skill: each defect logged at once as an issue under its parent, researched, reviewed and proven; link `~/.claude/skills/fix-defect` to this directory |
 | `skill/issue/SKILL.md` | the `/issue` Claude Code skill: one GitHub issue in agile form, with a milestone and one status label, grounded in the code and the measurements; link `~/.claude/skills/issue` to this directory |
