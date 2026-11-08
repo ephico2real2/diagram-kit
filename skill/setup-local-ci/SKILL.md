@@ -1,11 +1,21 @@
 ---
-name: act-local
-description: Run the jobs of a GitHub Actions workflow on a Mac with act and Podman, with no Docker Desktop. It gives the Homebrew tools, the Docker socket link and a runner image pinned by digest. Its act-ci.sh runs each job and each matrix entry alone, cleans up after a failure, and runs a gitleaks job natively. It lists the measured gotchas with their exact errors. Use when the user types /act-local or asks to run CI locally or with act. Also use it for CI that GitHub cannot run, for example during a billing block, and for an act run that fails under Podman.
+name: setup-local-ci
+description: Set up and run local CI for a project. It copies act-ci.sh and a pinned runner image into ci/local of the project. Then it runs the jobs of a GitHub Actions workflow on a Mac with act and Podman, with no Docker Desktop. act-ci.sh runs each job and each matrix entry alone, cleans up after a failure, and runs a gitleaks job natively. The skill lists the measured gotchas with their exact errors. Use when the user types /setup-local-ci, /act or /local-ci, or asks to run CI locally or with act. Also use it for CI that GitHub cannot run, for example during a billing block, and for an act run that fails under Podman.
 ---
 
-# /act-local: run GitHub Actions jobs locally with act and Podman
+# /setup-local-ci: run GitHub Actions jobs locally with act and Podman
 
-act (https://github.com/nektos/act) runs the jobs of a workflow in containers on your computer. This skill runs them under Podman on macOS. Docker Desktop is not necessary. `act-ci.sh` and `Dockerfile.runner` are beside this file.
+act (https://github.com/nektos/act) runs the jobs of a workflow in containers on your computer. This skill runs them under Podman on macOS. Docker Desktop is not necessary. `act-ci.sh`, `Dockerfile.runner` and `setup.sh` are beside this file. `/act` and `/local-ci` are aliases of this skill.
+
+## Set up a project
+
+`setup.sh` copies `act-ci.sh` and `Dockerfile.runner` into `ci/local/` of a project, and prints the next steps:
+
+```sh
+~/.claude/skills/setup-local-ci/setup.sh <project folder>
+```
+
+If a copy in the project differs from the kit, `setup.sh` keeps it and exits 1. Compare the two files, and pass `-f` only to replace the project copy. Commit `ci/local/` in the project, and add a short section to its README that points to this skill. Then do sections 1 to 4 below.
 
 Measured on 2026-11-08 with act 0.2.97, Podman 6.1.2 (a rootless machine on Apple silicon) and yq 4.53.6.
 
@@ -142,4 +152,4 @@ Two of these were first read as the wrong cause. The first `proxy already runnin
 
 ## 8. Change the script
 
-After each change of `act-ci.sh`, operate `shellcheck -S style act-ci.sh` and the tests of this kit (`python -m pytest tests/test_act_local.py`). The tests run the script with stand-in commands for `act`, `podman` and `gh`, so that they need no container engine.
+After each change of `act-ci.sh` or `setup.sh`, operate `shellcheck -S style act-ci.sh setup.sh` and the tests of this kit (`python -m pytest tests/test_setup_local_ci.py`). The tests run the script with stand-in commands for `act`, `podman` and `gh`, so that they need no container engine.

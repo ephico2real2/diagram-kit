@@ -1,7 +1,7 @@
 # SPDX-License-Identifier: MPL-2.0
 # This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
 # distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""act-ci.sh runs each job of a workflow under act with the settings that measured failures require (skill/act-local).
+"""act-ci.sh runs each job of a workflow under act with the settings that measured failures require (skill/setup-local-ci).
 
 The tests run the real script with stand-in commands for act, podman and gh, so they need no container engine.
 yq, git, perl, tar and shasum are the real tools."""
@@ -19,7 +19,8 @@ import textwrap
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-SCRIPT = ROOT / "skill" / "act-local" / "act-ci.sh"
+SCRIPT = ROOT / "skill" / "setup-local-ci" / "act-ci.sh"
+SETUP = ROOT / "skill" / "setup-local-ci" / "setup.sh"
 VERSION = "8.30.1"
 
 pytestmark = pytest.mark.skipif(not all(shutil.which(t) for t in ("yq", "git", "perl", "shasum")),
@@ -138,10 +139,11 @@ def act_calls(env):
     return path.read_text().splitlines() if path.exists() else []
 
 
-def test_the_script_passes_its_syntax_and_lint_checks():
-    subprocess.run(["bash", "-n", str(SCRIPT)], check=True)
-    if shutil.which("shellcheck"):
-        subprocess.run(["shellcheck", "-S", "style", str(SCRIPT)], check=True)
+def test_the_scripts_pass_their_syntax_and_lint_checks():
+    for path in (SCRIPT, SETUP):
+        subprocess.run(["bash", "-n", str(path)], check=True)
+        if shutil.which("shellcheck"):
+            subprocess.run(["shellcheck", "-S", "style", str(path)], check=True)
 
 
 def test_every_act_call_names_the_workflow_and_the_job_and_cleans_up(env):
@@ -200,3 +202,43 @@ def test_a_working_tree_with_changes_is_refused_unless_allowed(env):
 def test_no_arguments_print_the_usage():
     result = subprocess.run(["bash", str(SCRIPT)], capture_output=True, text=True)
     assert result.returncode == 2 and "usage: act-ci.sh" in result.stderr
+
+
+@pytest.fixture
+def project(tmp_path):
+    folder = tmp_path / "service"
+    folder.mkdir()
+    subprocess.run(["git", "-C", str(folder), "init", "-q"], check=True)
+    return folder
+
+
+def setup(*args):
+    return subprocess.run(["bash", str(SETUP), *map(str, args)], capture_output=True, text=True)
+
+
+def test_setup_copies_the_script_and_the_image_into_the_project(project):
+    result = setup(project)
+    assert result.returncode == 0, result.stderr
+    for name in ("act-ci.sh", "Dockerfile.runner"):
+        assert (project / "ci" / "local" / name).read_bytes() == (SETUP.parent / name).read_bytes()
+    assert os.access(project / "ci" / "local" / "act-ci.sh", os.X_OK)
+    assert "act-ci.sh -r <folder>/service -b <base commit>" in result.stdout
+    again = setup(project)
+    assert again.returncode == 0 and again.stdout.count("same     ci/local/") == 2
+
+
+def test_setup_keeps_a_project_copy_that_differs_unless_forced(project):
+    setup(project)
+    copy = project / "ci" / "local" / "act-ci.sh"
+    copy.write_text(copy.read_text() + "# a change of the project\n")
+    kept = setup(project)
+    assert kept.returncode == 1 and "differs  ci/local/act-ci.sh" in kept.stderr
+    assert copy.read_text().endswith("# a change of the project\n")
+    forced = setup("-f", project)
+    assert forced.returncode == 0 and copy.read_bytes() == (SETUP.parent / "act-ci.sh").read_bytes()
+
+
+def test_setup_refuses_a_folder_that_is_not_a_git_repository(tmp_path):
+    result = setup(tmp_path)
+    assert result.returncode == 2 and "is not a git repository" in result.stderr
+    assert not (tmp_path / "ci").exists()
