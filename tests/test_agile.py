@@ -175,3 +175,23 @@ def test_epic_feature_and_story_forms_ask_for_the_business_value(name):
     field = next(b for b in body if b.get("id") == "value")
     assert field["attributes"]["label"] == "Business value"
     assert "table of main innovations" in field["attributes"]["description"]
+
+
+CLASS_SUMMARIES = [
+    ROOT / "skill" / "delivery-playbook" / "DECK.md",
+    AGILE / "templates" / "bodies.md",
+    *[f for f in FORMS if "id: class" in f.read_text()],
+]
+
+
+@pytest.mark.parametrize("path", CLASS_SUMMARIES, ids=lambda p: p.name)
+def test_class_summaries_preserve_the_unmerged_work_exceptions(path):
+    text = path.read_text().replace("`", "")
+    assert "A defect in unmerged INV work stays INV." in text
+    assert "A defect in an unmerged fix with no class keeps no class." in text
+
+
+@pytest.mark.parametrize("path", [AGILE / "SKILL.md", ROOT / "skill" / "delivery-playbook" / "DECK.md"])
+def test_the_defect_class_table_allows_the_class_of_the_work(path):
+    row = next(line for line in path.read_text().splitlines() if line.startswith("| Defect |"))
+    assert "As the work" in row

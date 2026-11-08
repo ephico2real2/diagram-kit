@@ -37,7 +37,7 @@ Epic           a goal with exit criteria                                   label
 | Story | `Feature` | `story` | The finding ID, `INV-nn`, `TDT-nn`, or none | As the work | None | One |
 | Task | `Task` | `task` | The finding ID, `TDT-nn`, or none | As the work | None | One |
 | Spike | `Task` | `spike` | None | As the work | None | One |
-| Defect | `Bug` | `bug` | `SEC`, `BUG`, `PERF` or `UX` | `class:TDT` for a cause in debt | One `sev:` label | One |
+| Defect | `Bug` | `bug` | `SEC`, `BUG`, `PERF` or `UX` | As the work, including inherited classes | One `sev:` label | One |
 | Owner action | `Task` | `task` | `OA-nn` | None | None | `status:owner-action` |
 | Milestone | Not an issue | None | A short code, for example `B1` | None | None | Open or closed |
 
