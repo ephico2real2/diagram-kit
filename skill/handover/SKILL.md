@@ -120,7 +120,8 @@ user before you save it. The hooks run `scripts/handover.py`, through the link `
 | PostToolUse | It reads each Bash call. After a commit, a push, a merge, a pull request or a deploy, it tells the model to record the evidence |
 
 Each hook reads only, except for the snapshot copy. Each one takes well under a second (the kit test asserts under
-two). If all is well, each one is silent. Each one is also silent in a project that has no `claude-resumes/` folder.
+two). Stop is silent when the check passes. PostToolUse is silent outside milestones. PreCompact and SessionStart
+emit context for an active topic. Each hook is silent in a project that has no `claude-resumes/` folder.
 
 Facts from the Claude Code hooks reference (https://code.claude.com/docs/en/hooks, read on 2026-11-07):
 
