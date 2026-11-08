@@ -13,7 +13,7 @@ import shutil
 import subprocess
 
 import pytest
-import yaml
+from yaml_reader import safe_load
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 AGILE = ROOT / "skill" / "agile"
@@ -29,13 +29,13 @@ def table_column(text: str, header: str) -> list[str]:
 
 
 def test_there_is_a_form_for_each_item():
-    names = [yaml.safe_load(f.read_text())["name"] for f in FORMS]
+    names = [safe_load(f)["name"] for f in FORMS]
     assert names == ["Epic", "Feature", "Story", "Task", "Spike", "Defect", "Owner action", "Release milestone"]
 
 
 @pytest.mark.parametrize("form", FORMS, ids=lambda p: p.stem)
 def test_a_form_names_its_type_and_exactly_one_status(form):
-    data = yaml.safe_load(form.read_text())
+    data = safe_load(form)
     assert data["description"] and data["body"]
     assert data.get("type") in TYPES | ({None} if data["name"] == "Epic" else set())
     assert len([label for label in data["labels"] if label.startswith("status:")]) == 1
@@ -43,7 +43,7 @@ def test_a_form_names_its_type_and_exactly_one_status(form):
 
 @pytest.mark.parametrize("form", FORMS, ids=lambda p: p.stem)
 def test_a_form_asks_for_the_parent_and_each_dropdown_has_options(form):
-    body = yaml.safe_load(form.read_text())["body"]
+    body = safe_load(form)["body"]
     assert "parent" in [item.get("id") for item in body]
     for item in body:
         if item["type"] == "dropdown":
@@ -84,7 +84,7 @@ def test_the_stage_table_and_the_stage_field_name_the_same_stages():
 
 @pytest.mark.parametrize("name", ["3-story.yml", "4-task.yml"])
 def test_the_definition_of_done_of_a_form_names_each_stage(name):
-    form = yaml.safe_load((AGILE / "templates" / "ISSUE_TEMPLATE" / name).read_text())
+    form = safe_load(AGILE / "templates" / "ISSUE_TEMPLATE" / name)
     done = next(b for b in form["body"] if b.get("attributes", {}).get("label") == "Definition of done")
     value = done["attributes"]["value"]
     assert all(stage.lower() in value.lower() for stage in STAGES)
@@ -114,7 +114,7 @@ def test_the_agile_skill_requires_a_sweep_of_all_issues():
 
 @pytest.mark.parametrize("form", [f for f in FORMS if "id: class" in f.read_text()], ids=lambda p: p.stem)
 def test_each_class_dropdown_states_the_wide_rule(form):
-    field = next(b for b in yaml.safe_load(form.read_text())["body"] if b.get("id") == "class")
+    field = next(b for b in safe_load(form)["body"] if b.get("id") == "class")
     description = field["attributes"]["description"]
     assert "security control" in description and "No class only for a fix that restores existing behavior" in description
 
@@ -167,7 +167,7 @@ def test_the_agile_skill_asks_reports_to_highlight_innovations():
 
 @pytest.mark.parametrize("name", ["1-epic.yml", "2-feature.yml", "3-story.yml"])
 def test_epic_feature_and_story_forms_ask_for_the_business_value(name):
-    body = yaml.safe_load((AGILE / "templates" / "ISSUE_TEMPLATE" / name).read_text())["body"]
+    body = safe_load(AGILE / "templates" / "ISSUE_TEMPLATE" / name)["body"]
     field = next(b for b in body if b.get("id") == "value")
     assert field["attributes"]["label"] == "Business value"
     assert "table of main innovations" in field["attributes"]["description"]
