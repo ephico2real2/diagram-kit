@@ -22,7 +22,7 @@ go() { # round, effort, clone
   print "$job-$1 start $(date -u +%H:%M:%S)" >> $J/status.txt
   # macOS has no timeout(1): perl's alarm ends the job after 2 hours.
   perl -e 'alarm 7200; exec @ARGV' codex exec -m $model -c model_reasoning_effort=$effort \
-    --sandbox workspace-write --skip-git-repo-check -C $wt --add-dir $round \
+    --sandbox workspace-write --skip-git-repo-check -C $wt --add-dir $wt/.git --add-dir $round \
     -o $round/final.txt - < $round/brief.md > $round/logs/codex.log 2>&1
   print "$job-$1 exit=$? $(date -u +%H:%M:%S)" >> $J/status.txt
 }
@@ -34,7 +34,7 @@ if [[ ${ROUNDS:-r1 r2} == *r1* ]]; then
   mk $r1 $base $src && git -C $r1 switch -q -c $branch || exit 2
   go r1 $e1 $r1
 fi
-# The Codex sandbox keeps .git read-only, so round 1 cannot commit. Commit its work here, so round 2 sees it as commits.
+# The sandbox keeps .git read-only unless --add-dir names it (measured 2026-11-08). Commit what a job left, so round 2 sees commits.
 if [[ -n $(git -C $r1 status --porcelain) ]]; then
   git -C $r1 add -A && git -C $r1 commit -q -m "ROUND 1: the uncommitted work of the Codex job" || exit 2
 fi
