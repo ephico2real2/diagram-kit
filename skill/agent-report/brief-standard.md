@@ -18,6 +18,10 @@ If the project has `.tokensave/`, use tokensave to read code. If it has `.codegr
 8. If a tool is not available or fails, say so in your report with the exact error, and continue with the shell.
 9. Your final message states how many graph calls and how many shell calls you made.
 
+## Where you work
+
+Your clone and your report files are under `$HOME/gitRepos/workbench/<project>/` or the job folder that the brief names. Never write work to `/private/tmp`, `/tmp` or a scratchpad, because macOS deletes old files there.
+
 ## How you report
 
 Write to `<folder>/<job>/` as you work, so that a stop at any moment loses nothing. Keep research and tests apart from your opinions. An arbiter reads `verdicts.md` first, and opens the other files only for the claim it needs.
