@@ -70,6 +70,9 @@ def test_the_pull_request_template_asks_for_the_record():
     for need in ("Release milestone or hotfix", "Issues", "Class", "What changes, and why", "Proof"):
         assert need in headings, need
     assert "- [ ] INV: innovation." in template and "- [ ] TDT: tech debt." in template
+    release = template.split("## Release milestone or hotfix\n", 1)[1].split("\n## ", 1)[0]
+    choices = re.findall(r"^- \[ \] ([^:]+):", release, re.M)
+    assert len(choices) == 2 and all("milestone" in choice.lower() for choice in choices)
 
 
 STAGES = ["Mockup", "Draft", "Build", "Review", "Merged", "Released"]
