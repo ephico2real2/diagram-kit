@@ -59,8 +59,10 @@ SECRET_SHAPES = [
     (r"-----BEGIN [A-Z ]*PRIVATE KEY-----", "a private key"),
     (r"\bxox[abprs]-[A-Za-z0-9-]{10,}", "a Slack token"),
     (r"\beyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{10,}", "a JSON web token"),
+    (r"(?i)\b(?:password|passwd)\s*=\s*['\"]?(?![$`<])[^\s'\"`<>/]{8,}(?=['\"\s]|$)",
+     "a credential value"),
     # A value, not a place: no slash (a path or a store item), at least 8 characters and one digit.
-    (r"(?i)\b(?:password|passwd|secret|api[_-]?key|token)\s*[:=]\s*['\"]?(?=[^\s'\"`<>/]*\d)[^\s'\"`<>/]{8,}(?![^\s'\"`<>]*/)",
+    (r"(?i)\b(?:password|passwd|secret|api[_-]?key|token)\s*[:=]\s*['\"]?(?!\$)(?=[^\s'\"`<>/]*\d)[^\s'\"`<>/]{8,}(?![^\s'\"`<>]*/)",
      "a credential value"),
     (r"://[^/\s:@]+:[^/\s@]+@", "a password in a URL"),
 ]
