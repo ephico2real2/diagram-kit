@@ -367,7 +367,7 @@ def cmd_session_start() -> int:
     return 0
 
 
-MILESTONE = re.compile(r"\bgit\s+(?:-C\s+\S+\s+)?(?:commit|push|merge)\b|\bgh\s+pr\s+(?:create|merge)\b|"
+MILESTONE = re.compile(r"\bgit\s+(?:-C\s+\S+\s+)?(?:commit|push|merge)(?=[\s;&|()<>`]|$)|\bgh\s+pr\s+(?:create|merge)\b|"
                        r"\bgh\s+workflow\s+run\b|\bdeploy\S*\.sh\b|\b(?:helm|argocd)\s+(?:upgrade|install|sync)\b")
 
 
