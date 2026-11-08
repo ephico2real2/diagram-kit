@@ -184,6 +184,8 @@ The starter of each step depends on the target. The database stays managed on bo
 | Migration | A one-shot service, started once on the first host, before the rollout | A PreSync hook Job in a later wave, with the release image digest |
 | A failed migration | The workflow stops, and the old containers serve | Argo CD stops the sync, and the old pods serve |
 
+Hooks do not run during a selective sync. Do not use selective sync for a release that requires a migration. Source: [resource hooks](https://argo-cd.readthedocs.io/en/stable/user-guide/resource_hooks/#selective-sync).
+
 To move a product to new infrastructure, build the new environments beside the current one, and change nothing in the current one until the cutover:
 
 1. Bootstrap once: the owner makes the state store and the CI roles. After that, only CI applies infrastructure.
