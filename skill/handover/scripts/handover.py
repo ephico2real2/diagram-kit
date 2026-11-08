@@ -85,16 +85,16 @@ def root_of(hook: dict | None = None) -> pathlib.Path:
     return start
 
 
-def paths(root: pathlib.Path, topic: str | None = None) -> dict[str, pathlib.Path] | None:
+def paths(root: pathlib.Path, topic: str | None = None) -> dict[str, pathlib.Path | str] | None:
     folder = root / "claude-resumes"
     if topic is None:
         current = folder / "CURRENT"
         if not current.is_file():
             return None
-        topic = current.read_text().strip().splitlines()[0].strip() if current.read_text().strip() else ""
+        topic = current.read_text().strip()
     return {
         "folder": folder,
-        "topic": pathlib.Path(topic),
+        "topic": topic,
         "note": folder / f"HANDOVER-{topic}.md",
         "tracker": folder / f"TRACKER-{topic}.md",
         "snapshots": folder / ".snapshots",
