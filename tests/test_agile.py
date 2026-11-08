@@ -22,10 +22,15 @@ FORMS = sorted((AGILE / "templates" / "ISSUE_TEMPLATE").glob("[0-9]-*.yml"))
 TYPES = {"Feature", "Task", "Bug"}
 
 
-def table_column(text: str, header: str) -> list[str]:
-    """The first column of the Markdown table whose header row starts with `header`."""
+def table_rows(text: str, header: str) -> list[list[str]]:
+    """All cells of the Markdown table whose header row starts with `header`."""
     block = text.split(header, 1)[1].split("\n\n", 1)[0]
-    return [row.split("|")[1].strip() for row in block.splitlines()[2:] if row.startswith("|")]
+    return [[cell.strip() for cell in row.split("|")[1:-1]]
+            for row in block.splitlines()[2:] if row.startswith("|")]
+
+
+def table_column(text: str, header: str) -> list[str]:
+    return [row[0] for row in table_rows(text, header)]
 
 
 def test_there_is_a_form_for_each_item():
@@ -53,8 +58,23 @@ def test_a_form_asks_for_the_parent_and_each_dropdown_has_options(form):
 def test_the_playbook_legend_equals_the_standard_legend():
     legend = (AGILE / "LEGEND.md").read_text()
     playbook = (ROOT / "skill" / "delivery-playbook" / "PLAYBOOK.md").read_text().split("## 14. Legend", 1)[1]
-    for header in ("| Prefix |", "| Class |", "| Verdict |"):
-        assert table_column(playbook, header) == table_column(legend, header), header
+    tables = [
+        ("| Prefix |", "| Prefix |", False),
+        ("| Class |", "| Class |", False),
+        ("| Severity |", "| Severity |", True),
+        ("| Status |", "| Status |", True),
+        ("| Verdict |", "| Verdict |", False),
+        ("| Figure element |", "| Element |", False),
+    ]
+    for playbook_header, legend_header, omit_label in tables:
+        expected = table_rows(legend, legend_header)
+        if omit_label:
+            expected = [[row[0], row[2]] for row in expected]
+        actual = table_rows(playbook, playbook_header)
+        if playbook_header in {"| Prefix |", "| Class |", "| Verdict |"}:
+            assert actual == expected, playbook_header
+        else:
+            assert sorted(actual) == sorted(expected), playbook_header
     assert table_column(legend, "| Prefix |")[-2:] == ["`INV`", "`TDT`"]
 
 
