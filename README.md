@@ -44,6 +44,8 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/tokensave-fork/cursor-allow.py` | adds the read tools of tokensave to the Cursor CLI allow list, and no tool that writes |
 | `skill/tokensave-fork/cursor-job-config.py` | makes a second Cursor configuration folder, so that one job gets a shell and reads only its own folder, and the main configuration does not change |
 | `skill/tokensave-fork/tool-use-audit.py` | reads the log of a Claude, Codex or Cursor agent, and shows whether the agent read through tokensave and whether it read a whole file |
+| `skill/screenshot/SKILL.md` | the `/screenshot` Claude Code skill: a legible capture of a web page or console, zoomed to a region, cropped to content, in the theme of the UI, with the stage of the picture and its JSON file; link `~/.claude/skills/screenshot` to this directory |
+| `skill/screenshot/verify.py` | checks a capture before it ships: its size, the flat border at each edge and the dead area |
 | `skill/sweep-stale/SKILL.md` | the `/sweep-stale` Claude Code skill: watch for stale background agents and the processes a session leaves behind, and end them on request; link `~/.claude/skills/sweep-stale` to this directory |
 | `skill/sweep-stale/sweep-stale.py` | reports stale background agents, Codex brokers, orphaned test and browser processes, zombies and leftover socket directories, as text or as a prompt hook; `--sweep` ends what it names |
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
