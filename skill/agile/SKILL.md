@@ -213,6 +213,47 @@ gh issue list -R <owner>/<repository> --state all --limit 1000 --json number,tit
   --jq '.[] | select([.labels[].name] | index("class:INV")) | "\(.number) [\([.labels[].name | select(startswith("status:"))] | join(","))] \(.title)"'
 ```
 
+## 8. Show progress to the client: Done, In-Progress and Blocked
+
+A client sees the work in the issues, so the issues stay open until the default branch. The progress labels of `LEGEND.md` show how far each issue is. Each label comes with one comment that gives its evidence. Create the labels once in each repository:
+
+```sh
+gh label create Done        --color 0e8a16 --description "Work merged into the integration branch; the comment gives the pull request, the merge and the proof"
+gh label create In-Progress --color fbca04 --description "Work started and not complete; the comment gives the pull request or the job"
+gh label create Blocked     --color b60205 --description "Work cannot continue; the comment names the blocker and what unblocks it"
+```
+
+Give each open issue its label by these rules, in this order. The first rule that matches gives the label.
+
+1. Blocked: the issue waits for the owner (`status:owner-action`), or the owner named its blocker.
+2. Done: the issue has `status:fixed-on-review-branch`, and evidence is found. Look for the evidence in this order. First, a merged pull request that closes it, or a fix commit in the catalogue. Then a merged pull request or a commit on the integration branch that names it. If no evidence is found, the issue gets no label, and you find the evidence by hand.
+3. In-Progress: an open pull request closes the issue or carries part of it (`Part of #N`). A build job for it, a merged part, or `status:partly-fixed` also gives In-Progress.
+4. Blocked: GitHub lists an open issue that blocks it, and no rule above matched.
+5. No label: the work has not started.
+
+An epic takes its label from its children. If each child is Done, the epic is Done. If at least one child is Done or In-Progress, the epic is In-Progress.
+
+Rules for the labels and the comments:
+
+- Make a dry run first. Show the owner the counts by repository and by reason, and sample comments, before any label or comment reaches the client.
+- Each comment says why the label applies and gives each pull request with its merge commit, each commit, or each blocker. A Blocked comment names the blocker and what unblocks it.
+- Read every time in a comment from the clock, git or CI. Never write a time from memory.
+- Apply in a way that a second run is safe: add the label, remove the other two, and skip a comment that is already posted.
+- After each change, count the issues with more than one progress label. The count must be 0.
+- Keep the GitHub dependencies true. Read them with `blockedBy` and `blocking`. If a link no longer blocks the work, remove it with the owner's yes, and say why in a comment.
+
+  ```sh
+  gh api graphql -f query='query($o:String!,$r:String!,$n:Int!){repository(owner:$o,name:$r){issue(number:$n){id
+    blockedBy(first:20){nodes{number state repository{name}}} blocking(first:20){nodes{number state repository{name}}}}}}' \
+    -f o=<owner> -f r=<repo> -F n=<number>
+  gh api graphql -f query='mutation($i:ID!,$b:ID!){addBlockedBy(input:{issueId:$i,blockingIssueId:$b}){issue{number}}}' -f i=<issue id> -f b=<blocker id>
+  gh api graphql -f query='mutation($i:ID!,$b:ID!){removeBlockedBy(input:{issueId:$i,blockingIssueId:$b}){issue{number}}}' -f i=<issue id> -f b=<blocker id>
+  gh issue list --state all --limit 1000 --json number,labels \
+    --jq '[.[] | select(([.labels[].name | select(. == "Done" or . == "In-Progress" or . == "Blocked")] | length) > 1) | .number]'
+  ```
+
+- Update the labels after each merge, each new pull request and each owner decision, in the same work as the change. The build tracker shows a progress table by repository and a Blocked section with each blocker and what unblocks it.
+
 ## Anti-patterns
 
 | Do not | Do |
@@ -224,3 +265,6 @@ gh issue list -R <owner>/<repository> --state all --limit 1000 --json number,tit
 | File a feature with no acceptance criteria | Each criterion says how a test shows it |
 | Give a defect no class by default | Read its fix. A new control, test method or gate is `INV` |
 | Classify only the new issues | Sweep the classes of all issues after each change of the rule |
+| Close an issue to show the client that it is done | Keep it open until the default branch, and add `Done` with its evidence |
+| Tag an issue Done with no evidence | Find the pull request or the commit first, or leave the issue with no label |
+| Keep a blocker link after the work moved on | Remove it with the owner's yes, and say why in a comment |

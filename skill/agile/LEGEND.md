@@ -51,6 +51,16 @@ An open issue has exactly one `status:` label.
 | Owner action | `status:owner-action` | The work waits for the owner |
 | Closed | None: the issue is closed | The fix reached the default branch |
 
+## Progress
+
+The status label says where the fix is. The progress label tells a client how far the work is, while the issues stay open until the default branch. An issue has at most one progress label. An issue with no progress label is work that has not started.
+
+| Progress | Label | Meaning | The comment gives |
+|---|---|---|---|
+| Done | `Done` | The work is merged into the integration branch | The pull request and its merge commit, or the fix commit, with the proof |
+| In progress | `In-Progress` | The work started and is not complete | The open or draft pull request, the merged parts, or the running build job |
+| Blocked | `Blocked` | The work cannot continue | The issue or the owner decision that blocks it, and what unblocks it |
+
 ## Item types
 
 | Item | GitHub issue type | Type label |
