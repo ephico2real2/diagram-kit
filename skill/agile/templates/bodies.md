@@ -109,7 +109,12 @@ Part of #<parent>
 - [ ] <step>
 
 ## Definition of done
-- [ ] <check>
+- [ ] Mockup approved, or the work has no screen and no API shape
+- [ ] Draft pull request open
+- [ ] Build: tests fail before the change and pass after it
+- [ ] Review ruled
+- [ ] Merged with its proof
+- [ ] Released on the default branch
 
 ## Class
 INV, TDT, both, or no class.
@@ -156,7 +161,7 @@ Part of #<the issue under which it was found>
 
 **Solution (inline, not applied):**
 
-**Class:** INV if the fix adds a control or a method, or if the defect is in new work. TDT if the cause is debt. Both can apply. No class only if the fix restores existing behavior and adds nothing.
+**Class:** INV if the fix adds a control or a method. TDT if the cause is debt. Both can apply. No class only if the fix restores existing behavior and adds nothing, unless it inherits INV from unmerged work. A defect in unmerged INV work stays INV. A defect in an unmerged fix with no class keeps no class.
 ```
 
 ## Owner action

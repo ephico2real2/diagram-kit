@@ -151,7 +151,7 @@ date: "[date]"
 | Feature | Feature | Finding ID or `INV-nn` | `INV` |
 | Story | Feature | Finding ID, `INV-nn` or `TDT-nn` | As the work |
 | Task, spike | Task | Finding ID or `TDT-nn` | As the work |
-| Defect | Bug | `SEC`, `BUG`, `PERF`, `UX` | `TDT` for a cause in debt |
+| Defect | Bug | `SEC`, `BUG`, `PERF`, `UX` | As the work, including inherited classes |
 | Owner action | Task | `OA-nn` | None |
 
 ## Legend: findings
@@ -181,7 +181,9 @@ date: "[date]"
 
 - An item can have one class, both classes or none.
 - The prefix names the body of work, and the class names its kind: an `APM` task can be `INV`.
-- If the fix of a defect only restores existing behavior, the defect has no class.
+- If the fix of a defect only restores existing behavior, the defect has no class, unless it inherits a class from unmerged work.
+- A defect in unmerged INV work stays INV.
+- A defect in an unmerged fix with no class keeps no class.
 - Sweep the classes of all issues after each change of this rule.
 
 ## Legend: severity, status and verdicts

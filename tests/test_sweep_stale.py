@@ -131,6 +131,30 @@ def test_the_guard_overrides_the_orphan_finding(sweep, cmd):
     assert findings == [] and to_end == []
 
 
+def test_the_guard_reads_the_named_process_so_a_sweep_ends_its_guarded_child(sweep, monkeypatch):
+    """The skill and the docstring promise this behaviour, not protection of every process under /Applications."""
+    parent = broker()
+    parent["kids"] = [501]
+    procs = {500: parent, 501: process(501, 500, "/Applications/Foo.app/helper")}
+    assert sweep.protected(procs, 501) and not sweep.protected(procs, 500)
+    sent = []
+
+    def record(pid, sig):
+        if sig == 0:
+            raise ProcessLookupError(pid)
+        sent.append(pid)
+
+    monkeypatch.setattr(sweep.os, "kill", record)
+    monkeypatch.setattr(sweep.time, "sleep", lambda seconds: None)
+    monkeypatch.setattr(sweep, "snapshot", lambda: procs)
+    monkeypatch.setattr(sweep, "socket_holders", dict)
+    monkeypatch.setattr(sys, "argv", ["sweep-stale.py", "--sweep"])
+    assert sweep.main() == 0
+    assert sorted(sent) == [500, 501]
+    assert "ends the whole tree" in SCRIPT.with_name("SKILL.md").read_text()
+    assert "ends the whole tree" in sweep.__doc__
+
+
 def test_an_orphan_is_ended_only_past_its_grace_period(sweep):
     young, old = process(801, 1, "headless_shell", etime="05:00"), process(802, 1, "headless_shell", etime="25:00")
     _, to_end, _ = sweep.find({801: young, 802: old})
@@ -147,3 +171,11 @@ def test_the_script_never_ends_its_own_ancestors(sweep):
 @pytest.mark.parametrize(("etime", "expected"), [("05-15:39:27", 8139), ("10:34:59", 634), ("04:12", 4)])
 def test_ps_elapsed_time_becomes_whole_minutes(sweep, etime, expected):
     assert sweep.minutes(etime) == expected
+
+
+def test_the_skill_lists_every_app_the_guard_protects(sweep):
+    """The guard section is the list a person reads before a sweep, so each app that PROTECT names is in it."""
+    section = SCRIPT.with_name("SKILL.md").read_text().split("## What the guard protects", 1)[1].split("\n## ", 1)[0]
+    for app in ("Claude.app", "Cursor.app", "Code Helper"):
+        assert sweep.PROTECT.search(f"/opt/{app}/bin/x"), app
+        assert f"`{app}`" in section, app

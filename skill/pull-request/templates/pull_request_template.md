@@ -2,10 +2,10 @@
 
 ## Release milestone or hotfix
 
-Select one. Then set the same milestone in the Milestone box of this pull request.
+Select a release milestone or a dedicated hotfix milestone. Set that milestone in the Milestone box of this pull request.
 
 - [ ] Release milestone: <!-- the short code, for example R1 -->
-- [ ] Hotfix: <!-- the reason that this cannot wait for a milestone -->
+- [ ] Hotfix milestone: <!-- the short code and why this cannot wait for the next scheduled release -->
 
 ## Issues
 
