@@ -6,6 +6,7 @@ use it, and a README row that says where to link it. The two mockup skills are o
 
 from __future__ import annotations
 
+import hashlib
 import pathlib
 import re
 import subprocess
@@ -23,8 +24,9 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 
 def test_the_kit_ships_every_skill():
-    assert [p.name for p in SKILLS] == ["adversarial-review", "agent-report", "app-architect", "build-mockup", "codex-arbiter", "dashboard",
-                                      "delivery-page", "document", "fix-defect", "herdr-jobs", "houston-mayday", "mockup-to-page", "mockup-to-page-react", "sweep-stale", "test-ui",
+    assert [p.name for p in SKILLS] == ["act", "adversarial-review", "agent-report", "app-architect", "build-mockup", "codex-arbiter", "dashboard",
+                                      "delivery-page", "document", "fix-defect", "herdr-jobs", "houston-mayday", "local-ci", "mobile-app-designer",
+                                      "mockup-to-page", "mockup-to-page-react", "screenshot", "setup-local-ci", "sweep-stale", "test-ui",
                                       "tokensave-fork", "visual", "workbench"]
 
 
@@ -44,10 +46,16 @@ def test_the_readme_installs_the_pandoc_that_ci_pins_on_each_platform():
     readme = (ROOT / "README.md").read_text()
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
     version = re.search(r"name: Install pandoc (\S+)", ci).group(1)
-    digest = re.search(r'echo "([0-9a-f]{64})  \$RUNNER_TEMP/pandoc\.deb"', ci).group(1)
+    digest = re.search(r"amd64\) ARCH=amd64; DIGEST=([0-9a-f]{64}) ;;", ci).group(1)
     section = readme.split("### Prerequisite for documents: pandoc ", 1)[1].split("\n### ", 1)[0]
     assert section.startswith(version)
     assert f"amd64) ARCH=amd64; DIGEST={digest} ;;" in section
+    # The job installs the .deb of the runner's CPU, as the README does: under the local act CI on an arm64 Mac the
+    # runner is arm64, and an amd64 .deb stops the job before its tests.
+    arm64 = re.search(r"arm64\) ARCH=arm64; DIGEST=([0-9a-f]{64}) ;;", ci)
+    assert arm64 and f"arm64) ARCH=arm64; DIGEST={arm64.group(1)} ;;" in section
+    assert 'case "$(dpkg --print-architecture)" in' in ci
+    assert f"releases/download/{version}/pandoc-{version}-1-$ARCH.deb" in ci
     assert f"releases/download/{version}/pandoc-{version}-$ARCH-macOS.zip" in section
     assert re.search(r"arm64\)  ARCH=arm64;  DIGEST=[0-9a-f]{64} ;;", section)
     assert re.search(r"x86_64\) ARCH=x86_64; DIGEST=[0-9a-f]{64} ;;", section)
@@ -180,7 +188,25 @@ def test_the_fork_skill_names_the_toolchain_folder_of_each_mac(machine, toolchai
 
 
 def test_no_new_skill_names_a_private_path():
-    for name in ("agent-report", "codex-arbiter", "fix-defect", "houston-mayday", "tokensave-fork", "workbench"):
+    for name in ("agent-report", "codex-arbiter", "fix-defect", "houston-mayday", "mobile-app-designer", "tokensave-fork", "workbench"):
         for path in sorted(p for p in (ROOT / "skill" / name).rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             text = path.read_text()
             assert "/Users/" not in text and "agent-report-standard.md" not in text, path
+
+
+# The SHA-256 of each word that a public kit must not name (a firm or a client), so that this file does not name it.
+UNNAMED = {"f1d7bf6aaff7a93ba447e892150810efbd1c85dc020025c95a8b21ef30bf8b6e"}
+
+
+def test_no_skill_and_no_readme_names_an_unnamed_word():
+    for path in [ROOT / "README.md", *sorted(p for p in (ROOT / "skill").rglob("*") if p.is_file()
+                                             and not {"__pycache__", ".venv"} & set(p.parts))]:
+        words = set(re.findall(r"[a-z0-9]+", path.read_text(errors="ignore").lower()))
+        assert not {hashlib.sha256(w.encode()).hexdigest() for w in words} & UNNAMED, path
+
+
+def test_the_visual_skill_puts_the_state_before_first_and_the_renderer_checks_it():
+    skill = (ROOT / "skill" / "visual" / "SKILL.md").read_text()
+    standard = (ROOT / "STANDARD.md").read_text()
+    assert "**Before, then after.**" in skill and "later state first" in skill
+    assert "figure names that put a later state first" in standard

@@ -27,6 +27,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `diagram_kit/delivery.py` | `delivery-page`: one page from a repository's tracker, handover and resume documents at one commit; it writes nothing when one of the three is missing, empty or still starter text |
 | `skill/delivery-page/SKILL.md` | the `/delivery-page` Claude Code skill: the three required documents, the render, and how the page is checked and published; link `~/.claude/skills/delivery-page` to this directory |
 | `skill/build-mockup/SKILL.md` | the `/build-mockup` Claude Code skill: an app mockup built as the contract for its page (target, tokens, state, typed data, section types, checks); link `~/.claude/skills/build-mockup` to this directory |
+| `skill/mobile-app-designer/SKILL.md` | the `/mobile-app-designer` Claude Code skill: the screens of a mobile app after Apple's Human Interface Guidelines, with measured system colors, scripted contrast tests and a review page; link `~/.claude/skills/mobile-app-designer` to this directory |
 | `skill/mockup-to-page/SKILL.md` | the `/mockup-to-page` Claude Code skill: that mockup translated one-to-one into React or Preact + TypeScript, and proven to match; link `~/.claude/skills/mockup-to-page` to this directory |
 | `skill/mockup-to-page-react/SKILL.md` | the `/mockup-to-page-react` Claude Code skill: a mockup translated into React, TypeScript, Vite and PatternFly, with PatternFly's look and the mockup's content, data and behaviour, proven by parity tests; link `~/.claude/skills/mockup-to-page-react` to this directory |
 | `skill/test-ui/SKILL.md` | the `/test-ui` Claude Code skill: a UI tested against its reference with canonical DOM and pixels, recorded walks, content checked in both directions, mutations that prove the checks fail, and the installed browser; link `~/.claude/skills/test-ui` to this directory |
@@ -45,8 +46,15 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/tokensave-fork/cursor-allow.py` | adds the read tools of tokensave to the Cursor CLI allow list, and no tool that writes |
 | `skill/tokensave-fork/cursor-job-config.py` | makes a second Cursor configuration folder, so that one job gets a shell and reads only its own folder, and the main configuration does not change |
 | `skill/tokensave-fork/tool-use-audit.py` | reads the log of a Claude, Codex or Cursor agent, and shows whether the agent read through tokensave and whether it read a whole file |
+| `skill/screenshot/SKILL.md` | the `/screenshot` Claude Code skill: a legible capture of a web page or console, zoomed to a region, cropped to content, in the theme of the UI, with the stage of the picture and its JSON file; link `~/.claude/skills/screenshot` to this directory |
+| `skill/screenshot/verify.py` | checks a capture before it ships: its size, the flat border at each edge and the dead area |
 | `skill/sweep-stale/SKILL.md` | the `/sweep-stale` Claude Code skill: watch for stale background agents and the processes a session leaves behind, and end them on request; link `~/.claude/skills/sweep-stale` to this directory |
 | `skill/sweep-stale/sweep-stale.py` | reports stale background agents, Codex brokers, orphaned test and browser processes, zombies and leftover socket directories, as text or as a prompt hook; `--sweep` ends what it names |
+| `skill/setup-local-ci/SKILL.md` | the `/setup-local-ci` Claude Code skill: set up local CI in a project, and run the jobs of a GitHub Actions workflow on a Mac with act and Podman, with the Homebrew tools, the Docker socket link, a runner image pinned by digest and the measured gotchas; link `~/.claude/skills/setup-local-ci` to this directory |
+| `skill/setup-local-ci/act-ci.sh` | runs each job and each matrix entry of a workflow alone under act, cleans up after a failure, and runs a gitleaks job natively from the same release as its pin |
+| `skill/setup-local-ci/Dockerfile.runner` | the act runner image, pinned by digest, with a relative `/var/run` link for Podman and the Yarn version of the GitHub runner |
+| `skill/setup-local-ci/setup.sh` | copies `act-ci.sh` and `Dockerfile.runner` into `ci/local/` of a project, and keeps a project copy that differs |
+| `skill/act/SKILL.md`, `skill/local-ci/SKILL.md` | the `/act` and `/local-ci` aliases of `/setup-local-ci`; link `~/.claude/skills/act` to this directory, and link `~/.claude/skills/local-ci` to this directory |
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |
@@ -250,6 +258,10 @@ skills make one standard and change together:
 - **`skill/mockup-to-page/SKILL.md`** translates that mockup one-to-one: tokens to `tokens.css`, state to the URL
   or browser storage, datasets to typed API schemas, and each section type to one component. The page is then proven
   to match at the same widths in both themes, with an accessibility scan and contract tests in CI.
+- **`skill/mobile-app-designer/SKILL.md`** designs the screens of a mobile app on top of `/build-mockup`. It reads
+  Apple's Human Interface Guidelines, measures Apple's system colors on the simulator with `ios-color-probe.swift`,
+  makes the color tokens with a script that tests every contrast pair, chooses category colors by measured
+  separation, and publishes an interactive review page.
 - **`skill/mockup-to-page-react/SKILL.md`** translates a mockup into React, TypeScript, Vite and PatternFly for a
   console-style app. PatternFly replaces the look, so the page is proven on content, states and behaviour, not by a
   pixel diff against the mockup.
@@ -260,6 +272,7 @@ Link them to install them:
 ln -s "$PWD/skill/build-mockup" ~/.claude/skills/build-mockup
 ln -s "$PWD/skill/mockup-to-page" ~/.claude/skills/mockup-to-page
 ln -s "$PWD/skill/mockup-to-page-react" ~/.claude/skills/mockup-to-page-react
+ln -s "$PWD/skill/mobile-app-designer" ~/.claude/skills/mobile-app-designer
 ```
 
 The render and check tools they use live in Inkcast's `scripts/mockups/` (`render.js`, `check.py`), where the
