@@ -123,7 +123,7 @@ date: "[date]"
 | Feature | Feature | Finding ID or `INV-nn` | `INV` |
 | Story | Feature | Finding ID, `INV-nn` or `TDT-nn` | As the work |
 | Task, spike | Task | Finding ID or `TDT-nn` | As the work |
-| Defect | Bug | `SEC`, `BUG`, `PERF`, `UX` | `TDT` for a cause in debt |
+| Defect | Bug | `SEC`, `BUG`, `PERF`, `UX` | As the work, including inherited classes |
 | Owner action | Task | `OA-nn` | None |
 
 ## Legend: findings
@@ -146,7 +146,9 @@ date: "[date]"
 - Examples of `INV` are a feature, a service, a security control, a test method and a CI/CD gate.
 - `TDT`, label `class:TDT`: the setup works today, but an earlier shortcut makes it cost more to change.
 - An item can have one class, both classes or none.
-- If the fix of a defect only restores existing behavior, the defect has no class.
+- If the fix of a defect only restores existing behavior, the defect has no class, unless it inherits a class from unmerged work.
+- A defect in unmerged INV work stays INV.
+- A defect in an unmerged fix with no class keeps no class.
 - Sweep the classes of all issues after each change of this rule.
 
 ## Legend: severity, status and verdicts

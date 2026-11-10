@@ -76,10 +76,10 @@ Set the class with the questions of `/agile`. A defect does not get "no class" b
 
 ### One status label for each issue
 
-If the repository has `status:` labels, each issue has exactly one. On 2026-11-07, 16 issues had 2 status labels, because `--add-label` added the new status and kept `status:open`. Then the tracker did not show which status was true. Change a status in one command, and then count the issues with more than one:
+If the repository has `status:` labels, each issue has exactly one. On 2026-11-07, 16 issues had 2 status labels, because `--add-label` added the new status and kept `status:open`. Then the tracker did not show which status was true. Read the current status label from the issue. Use it for `<old status>` in this command. Then count the issues with more than one:
 
 ```sh
-gh issue edit <n> --add-label status:fixed-on-review-branch --remove-label status:open
+gh issue edit <n> --add-label status:fixed-on-review-branch --remove-label "<old status>"
 gh issue list --state all --limit 500 --json number,labels \
   --jq '[.[] | select(([.labels[].name | select(startswith("status:"))] | length) > 1) | .number]'
 ```
@@ -127,7 +127,7 @@ Reports are claims until tested. Before accepting anything, the main session:
 ## 5. Close it
 
 - A pull request says `Closes #N` for each defect, `Part of #parent`, and who wrote what.
-- A fix reaches a long-lived branch, such as a review branch, only through a pull request from a working branch. Owner rule, 2026-11-07. Fill a copy of the pull request template, and give it with `--body-file`. GitHub reads the template only for a pull request opened in the browser. Set `--milestone` to the train of the fix and `--label` to its type. Each issue in `Closes #` has the same milestone as the pull request.
+- A fix reaches a long-lived branch, such as a review branch, only through a pull request from a working branch. Owner rule, 2026-11-07. Fill a copy of the pull request template, and give it with `--body-file`. For a filled body, use `--body-file`. For an interactive draft, `gh pr create --template <file>` uses a template. Set `--milestone` to the train of the fix and `--label` to its type. Each issue in `Closes #` has the same milestone as the pull request.
 - `Closes #N` closes an issue only in a pull request to the default branch. After a merge to another branch, set the status label by hand, as in section 1.
 - Merge only after CI passes on the pull request, and tick the checklist of the template part for that branch.
 - Save the review record where the project keeps it.

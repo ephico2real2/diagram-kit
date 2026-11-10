@@ -16,7 +16,7 @@ A pull request is the record of one change. It names what ships it (the mileston
 
 ## 2. Open a pull request
 
-GitHub fills the template only for a pull request opened in the browser. From the command line, fill a copy and pass it as a file.
+From the command line, fill a copy and pass it with `--body-file`. For an interactive draft, `gh pr create --template <file>` uses a template.
 
 ```sh
 git switch -c work/<topic>
@@ -35,10 +35,10 @@ gh pr create --base <integration branch> --title "<what changes>" --body-file "$
 ## 3. Merge, and then set the status
 
 1. Merge only after CI passes and each box of the part for the target branch is ticked.
-2. `Closes #` closes an issue only on a merge to the default branch. After a merge to another branch, change the status of each fixed issue in one command:
+2. `Closes #` closes an issue only on a merge to the default branch. After a merge to another branch, read the current status label of each fixed issue. Use that label for `<old status>` in this command:
 
    ```sh
-   gh issue edit <n> --add-label status:fixed-on-review-branch --remove-label status:open
+   gh issue edit <n> --add-label status:fixed-on-review-branch --remove-label "<old status>"
    ```
 
 3. Update the build tracker in the same pull request as the work. If the merge changed a status, update it in the next pull request.

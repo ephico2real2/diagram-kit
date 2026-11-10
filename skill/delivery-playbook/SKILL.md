@@ -38,20 +38,23 @@ in this folder. They hold no firm name and no client data, because this reposito
 
 The Markdown is the source. Each other form is made from it and is never edited by hand.
 
+Run these commands from the client copy folder. Set `playbook_templates` to the absolute path of this skill folder.
+
 ```sh
+playbook_templates="<absolute path to this skill folder>"
 # The page: pandoc with the kit style. The figures folder sits beside the page.
 # The metadata block at the top gives the title, the subtitle, the byline and the date.
-pandoc PLAYBOOK.md --standalone --template page-template.html --toc --toc-depth=2 -H page-head.html -o playbook.html
+pandoc PLAYBOOK.md --standalone --template "$playbook_templates/page-template.html" --toc --toc-depth=2 -H "$playbook_templates/page-head.html" -o playbook.html
 # The deck: one slide for each level-2 heading of DECK.md.
 pandoc DECK.md --slide-level=2 -o playbook.pptx
 # The deck as a page: one card for each slide, light and dark figures, keyboard arrows. The figures folder sits beside it.
-pandoc DECK.md -t html5 --section-divs --lua-filter deck.lua --template deck-template.html \
+pandoc DECK.md -t html5 --section-divs --lua-filter "$playbook_templates/deck.lua" --template "$playbook_templates/deck-template.html" \
   -M hint="Use the arrow keys, or scroll. Each card is one slide." -o deck.html
 # To show the light render of each figure in both themes, add the filter, after deck.lua for the deck:
-pandoc PLAYBOOK.md --standalone --template page-template.html --toc --toc-depth=2 -H page-head.html \
-  --lua-filter figures-light.lua -o playbook.html
-pandoc DECK.md -t html5 --section-divs --lua-filter deck.lua --lua-filter figures-light.lua \
-  --template deck-template.html -M hint="Use the arrow keys, or scroll. Each card is one slide." -o deck.html
+pandoc PLAYBOOK.md --standalone --template "$playbook_templates/page-template.html" --toc --toc-depth=2 -H "$playbook_templates/page-head.html" \
+  --lua-filter "$playbook_templates/figures-light.lua" -o playbook.html
+pandoc DECK.md -t html5 --section-divs --lua-filter "$playbook_templates/deck.lua" --lua-filter "$playbook_templates/figures-light.lua" \
+  --template "$playbook_templates/deck-template.html" -M hint="Use the arrow keys, or scroll. Each card is one slide." -o deck.html
 # Look at each slide before it goes out, as the kit README says (LibreOffice and pdftoppm).
 soffice -env:UserInstallation=file://$PWD/.lo --headless --convert-to pdf playbook.pptx
 pdftoppm -r 50 -png playbook.pdf slide
