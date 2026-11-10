@@ -53,7 +53,7 @@ An open issue has exactly one `status:` label.
 
 ## Progress
 
-The status label says where the fix is. The progress label tells a client how far the work is, while the issues stay open until the default branch. Each open issue has exactly one progress label. An open issue with no progress label is an error. When the owner says "closed", it means the `Done` label.
+The status label says where the fix is. The progress label tells a client how far the work is, while the issues stay open until the default branch. Each open issue has exactly one work tag (Backlog, In-Progress, Blocked, In-QA, Done). An open issue with no work tag is an error. An issue that is Done can have one deploy tag, the furthest environment it reached. When the owner says "closed", it means the `Done` label.
 
 | Progress | Label | Meaning | The comment gives |
 |---|---|---|---|
@@ -61,6 +61,10 @@ The status label says where the fix is. The progress label tells a client how fa
 | Done | `Done` | The work is merged into the integration branch | The pull request and its merge commit, or the fix commit, with the proof |
 | In progress | `In-Progress` | The work started and is not complete | The open or draft pull request, the merged parts, or the running build job |
 | Blocked | `Blocked` | The work cannot continue | The issue or the owner decision that blocks it, and what unblocks it |
+| In QA | `In-QA` | A pull request that closes the issue is open, and its review and CI run | The open pull request and its review state |
+| Deployed locally | `Local-Deploy` | Done, and a walk on the local deploy passed | The test run and its screenshots |
+| Deployed to sandbox | `Sbx-Deploy` | Done, and the change runs on the sandbox | The deploy log, the CI run or the owner's word |
+| Live | `Go-Live` | The change runs in production from the default branch, and the issue closes | The release or the production deploy |
 
 ## Item types
 

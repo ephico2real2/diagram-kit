@@ -213,37 +213,55 @@ gh issue list -R <owner>/<repository> --state all --limit 1000 --json number,tit
   --jq '.[] | select([.labels[].name] | index("class:INV")) | "\(.number) [\([.labels[].name | select(startswith("status:"))] | join(","))] \(.title)"'
 ```
 
-## 8. Show progress to the client: Backlog, In-Progress, Blocked and Done
+## 8. Show progress to the client: work tags and deploy tags
 
 A client sees the work in the issues, so the issues stay open until the default branch. When the owner says that an issue is closed, it means that the issue has the `Done` label. It does not mean a closed GitHub issue. Report progress by the count of `Done` labels, never by the count of closed issues.
 
-The progress labels of `LEGEND.md` show how far each issue is. Each open issue has exactly one of the four. An issue with no progress label is an error, not a state, so a check can find a missed update. `Done`, `In-Progress` and `Blocked` each come with one comment that gives the evidence. `Backlog` has no comment, because it has no evidence to give. Create the labels once in each repository:
+The labels of `LEGEND.md` show how far each issue is, in two kinds:
+
+- Work tags: `Backlog`, `In-Progress`, `Blocked`, `In-QA` and `Done`. Each open issue has exactly one. An issue with no work tag is an error, not a state, so a check can find a missed update.
+- Deploy tags: `Local-Deploy`, `Sbx-Deploy` and `Go-Live`. They come after `Done`. An issue has at most one, the furthest environment that the change reached, and only when its work tag is `Done`. A closed issue with `Go-Live` needs no work tag.
+
+Each label except `Backlog` comes with one comment that gives the evidence. `Backlog` has no comment, because it has no evidence to give. Create the labels once in each repository:
 
 ```sh
 gh label create Backlog     --color c5def5 --description "Not started: the work waits in the backlog"
 gh label create Done        --color 0e8a16 --description "Work merged into the integration branch; the comment gives the pull request, the merge and the proof"
 gh label create In-Progress --color fbca04 --description "Work started and not complete; the comment gives the pull request or the job"
 gh label create Blocked     --color b60205 --description "Work cannot continue; the comment names the blocker and what unblocks it"
+gh label create In-QA        --color d4c5f9 --description "Pull request open to the integration branch: review rounds, ruling and CI running"
+gh label create Local-Deploy --color bfdadc --description "Done, and passed a walk on the local deploy, with screenshots"
+gh label create Sbx-Deploy   --color 5ebeff --description "Done, and running on the sandbox; a deploy log or the owner's word is the evidence"
+gh label create Go-Live      --color 0e8a16 --description "Running in production from the default branch; the issue closes"
 ```
 
 Give each open issue its label by these rules, in this order. The first rule that matches gives the label.
 
 1. Blocked: the issue waits for the owner (`status:owner-action`), or the owner named its blocker.
 2. Done: the issue has `status:fixed-on-review-branch`, and evidence is found. Look for the evidence in this order. First, a merged pull request that closes it, or a fix commit in the catalogue. Then a merged pull request or a commit on the integration branch that names it. If no evidence is found, the issue keeps its earlier label, and you find the evidence by hand.
-3. In-Progress: an open pull request closes the issue or carries part of it (`Part of #N`). A build job for it, a merged part, or `status:partly-fixed` also gives In-Progress.
-4. Blocked: GitHub lists an open issue that blocks it, and no rule above matched.
-5. Backlog: the work has not started. When you file a new issue, give it `Backlog`.
+3. In-QA: an open pull request that is ready for review closes the issue. The review rounds, the ruling and CI run before the merge.
+4. In-Progress: a draft pull request closes the issue, or an open pull request carries part of it (`Part of #N`). A build job for it, a merged part, or `status:partly-fixed` also gives In-Progress.
+5. Blocked: GitHub lists an open issue that blocks it, and no rule above matched.
+6. Backlog: the work has not started. When you file a new issue, give it `Backlog`.
 
-An epic takes its label from its children. If each child is Done, the epic is Done. If at least one child is Done or In-Progress, the epic is In-Progress. Otherwise the epic is Backlog. A new child of a Done epic moves the epic back to In-Progress.
+Give a deploy tag only with evidence, by hand:
+
+1. Local-Deploy: the change runs on the local deploy, and a walk through it passed: device tests for a mobile app, browser tests for a portal, or the owner's own test. The evidence is the run and its screenshots, each marked as taken on the local deploy.
+2. Sbx-Deploy: the change runs on the sandbox. The evidence is a deploy log, a CI run or the owner's word. Do not call the sandbox to prove it unless the owner allows it.
+3. Go-Live: the change runs in production from the default branch. Close the GitHub issue at this point, and only at this point.
+
+If a walk or a test on an environment fails, file the defect, remove the deploy tag, and move the issue back to In-Progress.
+
+An epic takes its label from its children. If each child is Done, the epic is Done. If at least one child is Done, In-QA or In-Progress, the epic is In-Progress. Otherwise the epic is Backlog. A new child of a Done epic moves the epic back to In-Progress.
 
 Rules for the labels and the comments:
 
 - Make a dry run first. Show the owner the counts by repository and by reason, and sample comments, before any label or comment reaches the client.
 - Each comment says why the label applies and gives each pull request with its merge commit, each commit, or each blocker. A Blocked comment names the blocker and what unblocks it.
 - Read every time in a comment from the clock, git or CI. Never write a time from memory.
-- Apply in a way that a second run is safe: add the label, remove the other three, and skip a comment that is already posted.
-- Never move an issue back to an earlier label without evidence. A rerun that proposes In-Progress or Blocked to Backlog is held for a review by hand.
-- After each change, count the open issues that do not have exactly one progress label. The count must be 0.
+- Apply in a way that a second run is safe: add the label, remove the other labels of its kind, and skip a comment that is already posted.
+- Never move an issue back to an earlier label without evidence. A rerun that proposes Backlog for an issue with another work tag keeps the tag it has. The only move back is a failed test, with its defect filed.
+- After each change, count the open issues that do not have exactly one work tag, and the issues with a deploy tag that are not Done. Both counts must be 0.
 - Keep the GitHub dependencies true. Read them with `blockedBy` and `blocking`. If a link no longer blocks the work, remove it with the owner's yes, and say why in a comment.
 
   ```sh
@@ -253,7 +271,9 @@ Rules for the labels and the comments:
   gh api graphql -f query='mutation($i:ID!,$b:ID!){addBlockedBy(input:{issueId:$i,blockingIssueId:$b}){issue{number}}}' -f i=<issue id> -f b=<blocker id>
   gh api graphql -f query='mutation($i:ID!,$b:ID!){removeBlockedBy(input:{issueId:$i,blockingIssueId:$b}){issue{number}}}' -f i=<issue id> -f b=<blocker id>
   gh issue list --state all --limit 1000 --json number,labels,state \
-    --jq '[.[] | select(.state == "OPEN") | select(([.labels[].name | select(. == "Backlog" or . == "In-Progress" or . == "Blocked" or . == "Done")] | length) != 1) | .number]'
+    --jq '[.[] | select(.state == "OPEN") | select(([.labels[].name | select(IN("Backlog", "In-Progress", "Blocked", "In-QA", "Done"))] | length) != 1) | .number]'
+  gh issue list --state all --limit 1000 --json number,labels \
+    --jq '[.[] | select(([.labels[].name] | any(IN("Local-Deploy", "Sbx-Deploy", "Go-Live"))) and (([.labels[].name] | index("Done")) | not)) | .number]'
   ```
 
 - Update the labels after each merge, each new pull request and each owner decision, in the same work as the change. The build tracker shows a progress table by repository and a Blocked section with each blocker and what unblocks it.
@@ -273,4 +293,5 @@ Rules for the labels and the comments:
 | Tag an issue Done with no evidence | Find the pull request or the commit first, or keep its earlier label |
 | Leave an open issue with no progress label | When you file an issue, give it `Backlog` |
 | Count closed issues as the progress | Count the `Done` labels |
+| Call merged work tested on a deployed stack | Add `Local-Deploy` only after a walk on the local deploy passed, with its screenshots |
 | Keep a blocker link after the work moved on | Remove it with the owner's yes, and say why in a comment |
