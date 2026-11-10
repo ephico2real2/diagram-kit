@@ -242,7 +242,8 @@ design as it is now approved: `design/as-built/README.md`. The owner asked for i
 1. Update it only after the owner approves a version. It never shows a version that waits for approval.
 2. Open it with the approval record: the version, the date, the owner's words and the link to the issue comment.
 3. Embed every screen of the approved version, in light and in dark, with the Android picture beside the iOS one where
-   they differ. The export script writes this catalogue from the screen list, so it cannot drift from the PNGs.
+   they differ. A script writes this catalogue between two markers, from a list of screens with captions. Its check
+   mode runs in CI, and it fails if the catalogue is stale or if a PNG of the version is left out.
 4. Add the flows as a `/visual` diagram, each component with its states, the tokens, the platform differences with
    their sources, and every decision with the version that made it.
 5. Link each version's design note for its history and its sources. Do not edit an approved version's note.
