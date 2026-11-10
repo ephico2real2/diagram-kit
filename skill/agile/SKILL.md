@@ -263,7 +263,7 @@ Rules for the labels and the comments:
 - Read every time in a comment from the clock, git or CI. Never write a time from memory.
 - Apply in a way that a second run is safe: add the label, remove the other labels of its kind, and skip a comment that is already posted.
 - Never move an issue back to an earlier label without evidence. A rerun that proposes Backlog for an issue with another work tag keeps the tag it has. The only move back is a failed test, with its defect filed.
-- After each change, count the open issues that do not have exactly one work tag, and the issues with a deploy tag that are not Done. Both counts must be 0.
+- After each change, count the open issues that do not have exactly one work tag, and the issues with a deploy tag that are not Done, other than a closed issue with `Go-Live`. Both counts must be 0.
 - Keep the GitHub dependencies true. Read them with `blockedBy` and `blocking`. If a link no longer blocks the work, remove it with the owner's yes, and say why in a comment.
 
   ```sh
@@ -274,8 +274,8 @@ Rules for the labels and the comments:
   gh api graphql -f query='mutation($i:ID!,$b:ID!){removeBlockedBy(input:{issueId:$i,blockingIssueId:$b}){issue{number}}}' -f i=<issue id> -f b=<blocker id>
   gh issue list --state all --limit 1000 --json number,labels,state \
     --jq '[.[] | select(.state == "OPEN") | select(([.labels[].name | select(IN("Backlog", "In-Progress", "Blocked", "In-QA", "Done"))] | length) != 1) | .number]'
-  gh issue list --state all --limit 1000 --json number,labels \
-    --jq '[.[] | select(([.labels[].name] | any(IN("Local-Deploy", "Sbx-Deploy", "Go-Live"))) and (([.labels[].name] | index("Done")) | not)) | .number]'
+  gh issue list --state all --limit 1000 --json number,labels,state \
+    --jq '[.[] | select(([.labels[].name] | any(IN("Local-Deploy", "Sbx-Deploy", "Go-Live"))) and (([.labels[].name] | index("Done")) | not) and ((.state == "CLOSED" and ([.labels[].name] | index("Go-Live"))) | not)) | .number]'
   ```
 
 - Update the labels after each merge, each new pull request and each owner decision, in the same work as the change. The build tracker shows a progress table by repository and a Blocked section with each blocker and what unblocks it.
