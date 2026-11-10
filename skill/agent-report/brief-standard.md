@@ -18,6 +18,10 @@ If the project has `.tokensave/`, use tokensave to read code. If it has `.codegr
 8. If a tool is not available or fails, say so in your report with the exact error, and continue with the shell.
 9. Your final message states how many graph calls and how many shell calls you made.
 
+## Where you work
+
+Your clone and your report files are under `$HOME/gitRepos/workbench/<project>/` or the job folder that the brief names. Never write work to `/private/tmp`, `/tmp` or a scratchpad, because macOS deletes old files there.
+
 ## How you report
 
 Write to `<folder>/<job>/` as you work, so that a stop at any moment loses nothing. Keep research and tests apart from your opinions. An arbiter reads `verdicts.md` first, and opens the other files only for the claim it needs.
@@ -49,5 +53,7 @@ Rules:
 Defects: write each defect that you find to `fixes.md`, inside or outside a claim. Give what is wrong, the file and line, how to prove it, and measured or inferred. A defect can be in a test, a flow, a script, a guide step or a tool. A difference that a test works around is also a defect. Do not leave a defect only in `research.md`. You do not file issues. The arbiter files one issue for each defect.
 
 Proof rule. Prove a claim about a tool with that tool, or with its own code or documents. A regular expression in another language does not prove how Maestro matches text. Operate each test file that you write. A test that you did not operate is not a proof. The report must say that it did not operate. A fix must change only what its issue names. For each fix, state each behavior that stays the same and how you tested it.
+
+Sources rule. Cite a web page or a document only after you read it in full. Give its exact URL, the date that you read it, and a verbatim quote. A search result summary is not a source: open the page, or do not cite it. If a page cannot be read (HTTP 403, a paywall, a login), say so in `research.md` and do not use it. Do not write what the page is said to contain. Never invent data, file paths, file contents, commands or results. Each number comes from a command, a log or a file that you name. If a read source or a measured result supports an alternative, you can offer it. Do not list guesses as options. If a vendor's current documentation advises against a pattern, do not keep that pattern, also not for a fair comparison.
 
 Test loop, for each job that tests an app, a function or a mobile app. Operate the whole test from its first step. At the first failure, stop and find the cause from the data. Write the defect to `fixes.md` at once, in the form of the Defects paragraph. If this brief permits `gh issue create`, also file it at once, and search for a duplicate first. Otherwise the arbiter files it. Fix the cause in your clone, in one commit for each defect. Add a test that fails before the fix and passes after it. Then restart from the first step, not from the failed step. You finish only after one full run on the final code with 0 failures and 0 skipped steps. Never remove a test, weaken an assertion, or add a retry that hides a race. If the evidence shows that a test is wrong, change the test and state that evidence in the commit. Do not change a test for another reason. A flow that works around an app behavior needs its own defect. If a defect needs an owner decision, a real provider or a store account, record that and continue. If 3 different fixes fail for one defect, stop work on it and record the data of each attempt.

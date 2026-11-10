@@ -18,9 +18,9 @@ the user has already said to create the issues without asking (for example "crea
    measurement output. Every claim in the issue is something you read or measured, with where.
 2. **One issue, one outcome.** If the title needs "and", split it. Cross-cutting work is an epic
    (`/epic`), not a long issue.
-3. **Work that is already done still gets an issue.** State it as done, cite the commits and the
-   evidence, tick every box that is true, and close the issue as completed (section 4). Never
-   write a solved issue as if the work were still open, and never tick a box that was not verified.
+3. **Work that is already done still gets an issue.** Cite the commits and the evidence, and tick
+   each box that is true. Close it only after the work reaches the default branch (section 4).
+   Record completed work on another branch as fixed there, with the issue still open.
 4. **No secrets, no personal data.** No keys, tokens, passwords, private hostnames or real names.
    Refer to people by role. Use the commit identity the repository already uses.
 
@@ -85,7 +85,10 @@ gh issue create --title "<title>" --body-file <file.md> --label "<type>" --label
 ```
 
 Write the body to a file in the scratchpad directory and pass `--body-file`; never inline a long
-body in the shell. For work that is already done, close it straight away with the evidence:
+body in the shell. For work that reaches the default branch, close it with the evidence.
+If the work is only on another branch, keep the issue open. If the repository uses `status:` labels,
+set `status:fixed-on-review-branch` in place of the old status. The close command applies only after
+that work reaches the default branch:
 
 ```sh
 gh issue close <number> --reason completed --comment "Done in <commit>. <one line of what was measured>."
