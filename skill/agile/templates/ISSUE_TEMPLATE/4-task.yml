@@ -3,6 +3,9 @@ description: "One job with no user story."
 type: "Task"
 labels: ["task", "status:open"]
 body:
+  - type: markdown
+    attributes:
+      value: "Start the title with the ID of the item, for example `APM-1: ` or `MA-1: `. The prefix names the body of work, and the class names its kind. The legend gives each prefix."
   - type: textarea
     id: why
     attributes:
