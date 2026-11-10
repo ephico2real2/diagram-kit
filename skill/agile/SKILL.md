@@ -37,7 +37,7 @@ Epic           a goal with exit criteria                                   label
 | Story | `Feature` | `story` | The finding ID, `INV-nn`, `TDT-nn`, or none | As the work | None | One |
 | Task | `Task` | `task` | The finding ID, `TDT-nn`, or none | As the work | None | One |
 | Spike | `Task` | `spike` | None | As the work | None | One |
-| Defect | `Bug` | `bug` | `SEC`, `BUG`, `PERF` or `UX` | `class:TDT` for a cause in debt | One `sev:` label | One |
+| Defect | `Bug` | `bug` | `SEC`, `BUG`, `PERF` or `UX` | As the work, including inherited classes | One `sev:` label | One |
 | Owner action | `Task` | `task` | `OA-nn` | None | None | `status:owner-action` |
 | Milestone | Not an issue | None | A short code, for example `B1` | None | None | Open or closed |
 
@@ -63,7 +63,9 @@ Decide the class with these questions, in this order:
 | `templates/bodies.md` | The body of each item, for `gh issue create --body-file` |
 | `templates/milestone.md` | The description of a milestone |
 
-Each form sets its issue type with the top-level `type` key, its type label and `status:open`. A form cannot set a milestone or a parent, so the form asks for both, and the person who files the issue sets them after. In a client copy, replace the milestone options with the milestones of the client.
+Each form sets its type label and one status label. The owner action form sets `status:owner-action`. The other forms set `status:open`. The Epic form omits `type`, because an organization can lack that type. The other forms use the top-level `type` key.
+
+A form cannot set a milestone or a parent. Each form asks for a parent. Forms for work that ships also ask for a milestone. The filer sets those values after creation. In a client copy, replace the milestone options with the milestones of the client.
 
 ## 4. Create the records, in this order
 

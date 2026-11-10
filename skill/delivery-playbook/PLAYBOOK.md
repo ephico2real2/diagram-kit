@@ -218,7 +218,7 @@ A dashboard starts with an inventory of each metric that the workload emits. The
 - The capacity follows the measured load. A managed service is an option, not a requirement.
 - On Kubernetes, the network layer is Cilium. It gives eBPF network policy from L3 to L7 and transparent encryption between nodes. Its service mesh uses a shared Envoy on each node, with no sidecar.
 - For more than one cluster, Cilium ClusterMesh joins them. A Service with the same name in each cluster and the annotation `service.cilium.io/global: "true"` balances across the clusters. The annotation `service.cilium.io/affinity: "local"` keeps traffic in the cluster while a local backend is healthy.
-- Hubble shows each flow, and its metrics go to Prometheus. With exemplars on, each HTTP metric carries its trace ID, so Grafana goes from a metric to the trace in Tempo. The `/dashboard` skill makes the Grafana dashboards for these metrics.
+- Hubble shows each flow, and its metrics go to Prometheus. With exemplars on, each HTTP metric carries its trace ID, so Grafana goes from a metric to the trace in Tempo. The `/dashboard` skill makes the Grafana dashboards for these metrics. Sources for trace export and the Grafana link: [trace setup](https://grafana.com/docs/tempo/latest/set-up-for-tracing/), [exemplar links](https://grafana.com/docs/grafana/latest/datasources/prometheus/configure/#exemplars).
 
 ## 12. Testing
 
@@ -286,7 +286,7 @@ A class says what kind of work an item is. Each item of any prefix can have one 
 | Status | Meaning |
 |---|---|
 | Open | No fix yet. A story describes the work |
-| Fixed on the review branch | The fix and its test are merged on the review branch. Nothing is deployed |
+| Fixed on the review branch | The fix and its test are merged on a branch that is not the default branch. Nothing is deployed |
 | Partly fixed | Part of the work is fixed. The rest is a story or an owner action |
 | Owner action | The work waits for the owner |
 | Closed | The fix reached the default branch |

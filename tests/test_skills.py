@@ -23,9 +23,11 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 
 def test_the_kit_ships_every_skill():
-    assert [p.name for p in SKILLS] == ["adversarial-review", "agent-report", "agile", "app-architect", "build-mockup", "build-tracker", "codex-arbiter", "dashboard",
-                                      "delivery-page", "delivery-playbook", "document", "epic", "fix-defect", "handover", "houston-mayday", "issue", "mock-app", "mockup-to-page", "mockup-to-page-react", "pull-request", "resume-work", "sweep-stale", "test-ui",
-                                      "tokensave-fork", "visual", "workbench"]
+    assert [p.name for p in SKILLS] == ["act", "adversarial-review", "agent-report", "agile", "app-architect", "build-mockup", "build-tracker",
+                                      "codex-arbiter", "dashboard", "delivery-page", "delivery-playbook", "document", "epic", "fix-defect",
+                                      "handover", "houston-mayday", "issue", "local-ci", "mock-app", "mockup-to-page", "mockup-to-page-react",
+                                      "pull-request", "resume-work", "screenshot", "setup-local-ci", "sweep-stale", "test-ui", "tokensave-fork",
+                                      "visual", "workbench"]
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
@@ -44,10 +46,16 @@ def test_the_readme_installs_the_pandoc_that_ci_pins_on_each_platform():
     readme = (ROOT / "README.md").read_text()
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
     version = re.search(r"name: Install pandoc (\S+)", ci).group(1)
-    digest = re.search(r'echo "([0-9a-f]{64})  \$RUNNER_TEMP/pandoc\.deb"', ci).group(1)
+    digest = re.search(r"amd64\) ARCH=amd64; DIGEST=([0-9a-f]{64}) ;;", ci).group(1)
     section = readme.split("### Prerequisite for documents: pandoc ", 1)[1].split("\n### ", 1)[0]
     assert section.startswith(version)
     assert f"amd64) ARCH=amd64; DIGEST={digest} ;;" in section
+    # The job installs the .deb of the runner's CPU, as the README does: under the local act CI on an arm64 Mac the
+    # runner is arm64, and an amd64 .deb stops the job before its tests.
+    arm64 = re.search(r"arm64\) ARCH=arm64; DIGEST=([0-9a-f]{64}) ;;", ci)
+    assert arm64 and f"arm64) ARCH=arm64; DIGEST={arm64.group(1)} ;;" in section
+    assert 'case "$(dpkg --print-architecture)" in' in ci
+    assert f"releases/download/{version}/pandoc-{version}-1-$ARCH.deb" in ci
     assert f"releases/download/{version}/pandoc-{version}-$ARCH-macOS.zip" in section
     assert re.search(r"arm64\)  ARCH=arm64;  DIGEST=[0-9a-f]{64} ;;", section)
     assert re.search(r"x86_64\) ARCH=x86_64; DIGEST=[0-9a-f]{64} ;;", section)
@@ -209,3 +217,25 @@ def test_the_architect_reviews_recovery_for_each_cloud_and_the_edge():
     # every fact that is not a research item names its source
     assert facts.count("](https://") >= 15
 
+
+def test_mock_app_tool_claims_have_primary_sources():
+    text = (ROOT / "skill" / "mock-app" / "SKILL.md").read_text()
+    sources = {
+        "OpenAPI": "https://spec.openapis.org/oas/v3.2.1.html",
+        "Prism": "https://github.com/stoplightio/prism",
+        "WireMock Cloud": "https://docs.wiremock.io/openAPI/swagger",
+        "Microcks": "https://microcks.io/documentation/references/artifacts/openapi-conventions/",
+        "Mockoon": "https://mockoon.com/docs/latest/openapi/import-export-openapi-format/",
+        "Pact": "https://docs.pact.io/",
+    }
+    for name, url in sources.items():
+        assert re.search(rf"^\| {re.escape(name)} \|.*{re.escape(url)}", text, re.M), name
+    examples = text.split("Mock servers from an OpenAPI file", 1)[1].split("- Contract tests", 1)[0]
+    assert "WireMock Cloud" in examples
+
+
+def test_the_visual_skill_puts_the_state_before_first_and_the_renderer_checks_it():
+    skill = (ROOT / "skill" / "visual" / "SKILL.md").read_text()
+    standard = (ROOT / "STANDARD.md").read_text()
+    assert "**Before, then after.**" in skill and "later state first" in skill
+    assert "figure names that put a later state first" in standard
