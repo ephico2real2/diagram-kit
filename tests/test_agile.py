@@ -87,6 +87,14 @@ def test_the_playbook_legend_equals_the_standard_legend():
     assert table_column(legend, "| Prefix |")[-2:] == ["`INV`", "`TDT`"]
 
 
+def test_migration_work_has_the_mg_prefix_after_the_owner_actions():
+    legend = (AGILE / "LEGEND.md").read_text()
+    prefixes = table_column(legend, "| Prefix |")
+    assert prefixes.index("`MG`") == prefixes.index("`OA`") + 1
+    deck = (ROOT / "skill" / "delivery-playbook" / "DECK.md").read_text().split("## Legend: findings", 1)[1]
+    assert "| `MG` | Migration |" in deck.split("## Legend: classes", 1)[0]
+
+
 def test_the_classes_have_their_labels_in_the_legend():
     legend = (AGILE / "LEGEND.md").read_text()
     for label in ("`class:INV`", "`class:TDT`", "`status:open`", "`status:owner-action`", "`sev:critical`"):

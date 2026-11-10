@@ -14,6 +14,7 @@ Each finding ID has a prefix and a number, for example `SEC-01`. The prefix give
 | `BP` | Best practice | A gap in how the team builds, tests, deploys or operates the code |
 | `UX` | User experience | A defect that a user sees on the screen |
 | `OA` | Owner action | Work that needs an account, a key, a plan or a decision that code cannot supply |
+| `MG` | Migration | A task that moves a schema, data or a whole environment to a new version or a new place: a migration, the copy before it, a data load or a cutover |
 | `INV` | Innovation | A new feature, design, idea or method that comes from no finding |
 | `TDT` | Tech debt | A debt item that comes from no finding |
 

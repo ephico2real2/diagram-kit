@@ -74,6 +74,15 @@ date: "[date]"
 - CI operates on each branch and each pull request of the branch flow.
 - On Kubernetes, Argo CD deploys from Git. With no Kubernetes, the deploy script operates on the target.
 
+## Migrations and the move to new environments
+
+- One migration run for each release, under a lock, after a snapshot of the managed database
+- Expand, then contract one release later. Each process refuses to serve below a schema floor
+- Compose: a one-shot service on the first host. Kubernetes: PreSync hook Jobs in sync waves
+- New environments beside the current one, from one module and a parameter file each
+- Staging with synthetic data. Pre-prod in safe mode, with repeated production loads
+- Cutover: lower the TTL, freeze, final load, migrate, switch DNS, hold, retire
+
 ## Identity, transport security and secrets
 
 - Sign-in: OIDC with PKCE. Keycloak is the standard. A cloud provider, for example Amazon Cognito, is an option.
@@ -138,6 +147,7 @@ date: "[date]"
 | `BP` | Best practice |
 | `UX` | User experience |
 | `OA` | Owner action |
+| `MG` | Migration |
 | `INV` | Innovation, from no finding |
 | `TDT` | Tech debt, from no finding |
 
