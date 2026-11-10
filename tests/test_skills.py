@@ -205,6 +205,20 @@ def test_the_kubernetes_network_layer_is_cilium_in_the_playbook_the_deck_and_app
     assert "httpV2:exemplars=true" in architect and "/dashboard" in playbook
 
 
+def test_the_architect_reviews_recovery_for_each_cloud_and_the_edge():
+    skill = (ROOT / "skill" / "app-architect" / "SKILL.md").read_text()
+    facts = (ROOT / "skill" / "app-architect" / "RESILIENCE.md").read_text()
+    assert "`RESILIENCE.md`" in skill
+    for heading in ("## 1. The order of the options", "## 2. Cilium on each cloud", "## 3. ClusterMesh",
+                    "## 4. The database", "## 5. The edge", "## 6. The drill"):
+        assert heading in facts, heading
+    for cloud in ("Google (GKE)", "Microsoft (AKS)", "Amazon (EKS)"):
+        assert cloud in facts, cloud
+    assert "A second region of the same cloud" in facts and "Cloudflare" in facts
+    # every fact that is not a research item names its source
+    assert facts.count("](https://") >= 15
+
+
 def test_mock_app_tool_claims_have_primary_sources():
     text = (ROOT / "skill" / "mock-app" / "SKILL.md").read_text()
     sources = {

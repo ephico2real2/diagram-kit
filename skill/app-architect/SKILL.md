@@ -151,6 +151,17 @@ Then:
     `httpV2:exemplars=true`, each HTTP metric carries the trace ID from the request headers, so Grafana goes from a
     metric to its trace in Tempo ([metrics](https://docs.cilium.io/en/stable/observability/metrics/)); Sources for trace export and the Grafana link: [trace setup](https://grafana.com/docs/tempo/latest/set-up-for-tracing/), [exemplar links](https://grafana.com/docs/grafana/latest/datasources/prometheus/configure/#exemplars).
   - the dashboards for these metrics are made with `/dashboard`, from its metrics inventory, like any other workload.
+- **Availability, recovery and the edge are reviewed for each cloud.** `RESILIENCE.md`, beside this file, holds the
+  facts with their sources and the research items. In short:
+  - The order is zones in one region, then a second region of the same cloud. The second region is the default for
+    disaster recovery. If a requirement names a second cloud, recommend it. Measure the RPO and the RTO of each
+    option in a drill.
+  - State which Cilium each cloud gives and who supports it. GKE Dataplane V2 and AKS manage their own Cilium.
+    Standard EKS needs a Cilium that you install and support.
+  - ClusterMesh needs pod ranges that do not overlap and a network path between the clusters. It copies no data, so
+    each database needs its own replication to the recovery site.
+  - The edge is a finding of its own. Compare the CDN of the cloud with Cloudflare (CDN, WAF, DDoS, load balancing
+    with health monitors, Tunnel). Record that the edge reads each request and becomes a dependency.
 - Working configuration lives in Helm (`/helm-first`, where installed): a `kubectl patch`, a hand-applied manifest or a
   post-edited render is a gap in the chart; the values files in git are the source, never `--reuse-values`.
 - Images from a registry (`/registry-first`, where installed): built outside the cluster, pushed under an immutable `sha-<commit>`
