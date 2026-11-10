@@ -59,6 +59,9 @@ If the project has `.tokensave/` or `.codegraph/`, read code through it, not thr
 ### 1. Inventory
 
 - The code: languages, frameworks, entry points, inbound and outbound calls, data stores, queues, schedulers.
+- Each external provider that the app calls, and whether it has a sandbox that the team can use. For each provider
+  with no sandbox, plan its mock with `/mock-app`: a mock that follows the public API documentation and contract of
+  the provider, with its authentication.
 - The tool stack: every tool and dependency with its version, licence, open-source status, CNCF status (graduated,
   incubating, sandbox or none), and a portable alternative.
 - How the app is built, run and deployed today.
