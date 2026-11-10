@@ -24,11 +24,11 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 
 def test_the_kit_ships_every_skill():
-    assert [p.name for p in SKILLS] == ["act", "adversarial-review", "agent-report", "agile", "app-architect", "build-mockup", "codex-arbiter",
-                                      "dashboard", "delivery-page", "delivery-playbook", "document", "epic", "fix-defect", "handover", "herdr-jobs",
-                                      "houston-mayday", "issue", "local-ci", "mobile-app-designer", "mockup-to-page", "mockup-to-page-react",
-                                      "pull-request", "screenshot", "setup-local-ci", "sweep-stale", "test-ui", "tokensave-fork", "visual",
-                                      "workbench"]
+    assert [p.name for p in SKILLS] == ["act", "adversarial-review", "agent-report", "agile", "app-architect", "build-mockup", "build-tracker",
+                                      "codex-arbiter", "dashboard", "delivery-page", "delivery-playbook", "document", "epic", "fix-defect",
+                                      "handover", "herdr-jobs", "houston-mayday", "issue", "local-ci", "mobile-app-designer", "mock-app",
+                                      "mockup-to-page", "mockup-to-page-react", "pull-request", "resume-work", "screenshot", "setup-local-ci",
+                                      "sweep-stale", "test-ui", "tokensave-fork", "visual", "workbench"]
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
@@ -193,6 +193,46 @@ def test_no_new_skill_names_a_private_path():
         for path in sorted(p for p in (ROOT / "skill" / name).rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             text = path.read_text()
             assert "/Users/" not in text and "agent-report-standard.md" not in text, path
+
+
+def test_the_kubernetes_network_layer_is_cilium_in_the_playbook_the_deck_and_app_architect():
+    playbook = (ROOT / "skill" / "delivery-playbook" / "PLAYBOOK.md").read_text().split("## 11. Runtime and scaling", 1)[1].split("\n## ", 1)[0]
+    deck = (ROOT / "skill" / "delivery-playbook" / "DECK.md").read_text().split("## Runtime and scaling", 1)[1].split("\n## ", 1)[0]
+    architect = (ROOT / "skill" / "app-architect" / "SKILL.md").read_text()
+    for text in (playbook, architect):
+        assert "Cilium" in text and '`service.cilium.io/global: "true"`' in text and "Tempo" in text
+    assert "Cilium" in deck and "ClusterMesh" in deck
+    assert "httpV2:exemplars=true" in architect and "/dashboard" in playbook
+
+
+def test_the_architect_reviews_recovery_for_each_cloud_and_the_edge():
+    skill = (ROOT / "skill" / "app-architect" / "SKILL.md").read_text()
+    facts = (ROOT / "skill" / "app-architect" / "RESILIENCE.md").read_text()
+    assert "`RESILIENCE.md`" in skill
+    for heading in ("## 1. The order of the options", "## 2. Cilium on each cloud", "## 3. ClusterMesh",
+                    "## 4. The database", "## 5. The edge", "## 6. The drill"):
+        assert heading in facts, heading
+    for cloud in ("Google (GKE)", "Microsoft (AKS)", "Amazon (EKS)"):
+        assert cloud in facts, cloud
+    assert "A second region of the same cloud" in facts and "Cloudflare" in facts
+    # every fact that is not a research item names its source
+    assert facts.count("](https://") >= 15
+
+
+def test_mock_app_tool_claims_have_primary_sources():
+    text = (ROOT / "skill" / "mock-app" / "SKILL.md").read_text()
+    sources = {
+        "OpenAPI": "https://spec.openapis.org/oas/v3.2.1.html",
+        "Prism": "https://github.com/stoplightio/prism",
+        "WireMock Cloud": "https://docs.wiremock.io/openAPI/swagger",
+        "Microcks": "https://microcks.io/documentation/references/artifacts/openapi-conventions/",
+        "Mockoon": "https://mockoon.com/docs/latest/openapi/import-export-openapi-format/",
+        "Pact": "https://docs.pact.io/",
+    }
+    for name, url in sources.items():
+        assert re.search(rf"^\| {re.escape(name)} \|.*{re.escape(url)}", text, re.M), name
+    examples = text.split("Mock servers from an OpenAPI file", 1)[1].split("- Contract tests", 1)[0]
+    assert "WireMock Cloud" in examples
 
 
 # The SHA-256 of each word that a public kit must not name (a firm or a client), so that this file does not name it.

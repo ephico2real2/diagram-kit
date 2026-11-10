@@ -125,6 +125,8 @@ date: "[date]"
 - Compose on virtual machines. Helm and Argo CD on Kubernetes.
 - KEDA scales each workload on a measured signal.
 - Capacity follows the measured load. Managed services are an option.
+- Kubernetes network: Cilium, with eBPF policy, encryption and a sidecar-free mesh
+- ClusterMesh global services across clusters. Hubble flows and metrics, linked to traces in Tempo
 
 ## Testing
 

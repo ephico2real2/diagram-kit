@@ -32,6 +32,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/mockup-to-page-react/SKILL.md` | the `/mockup-to-page-react` Claude Code skill: a mockup translated into React, TypeScript, Vite and PatternFly, with PatternFly's look and the mockup's content, data and behaviour, proven by parity tests; link `~/.claude/skills/mockup-to-page-react` to this directory |
 | `skill/test-ui/SKILL.md` | the `/test-ui` Claude Code skill: a UI tested against its reference with canonical DOM and pixels, recorded walks, content checked in both directions, mutations that prove the checks fail, and the installed browser; link `~/.claude/skills/test-ui` to this directory |
 | `skill/app-architect/SKILL.md` | the `/app-architect` Claude Code skill: an application reviewed in its own forked agent, from inventories and a twelve-factor scorecard to a phased roadmap with a runnable proof per step; link `~/.claude/skills/app-architect` to this directory |
+| `skill/mock-app/SKILL.md` | the `/mock-app` Claude Code skill: a mock app planned from the public documents of each provider, in its own forked agent. To install it, link `~/.claude/skills/mock-app` to this directory |
 | `skill/adversarial-review/SKILL.md` | the `/adversarial-review` Claude Code skill: a change attacked by two model families on a per-claim brief, every finding with its full fix and a failing-then-passing test, each decision written down; link `~/.claude/skills/adversarial-review` to this directory |
 | `skill/adversarial-review/brief-template.md`, `record-template.md` | the skeletons of a review's brief and of its record |
 | `skill/agent-report/SKILL.md` | the `/agent-report` Claude Code skill: how a background agent logs its research as it works, and an audit with planted claims that shows the work is real; link `~/.claude/skills/agent-report` to this directory |
@@ -41,7 +42,9 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/fix-defect/SKILL.md` | the `/fix-defect` Claude Code skill: each defect logged at once as an issue under its parent, researched, reviewed and proven; link `~/.claude/skills/fix-defect` to this directory |
 | `skill/issue/SKILL.md` | the `/issue` Claude Code skill: one GitHub issue in agile form, with a milestone and one status label, grounded in the code and the measurements; link `~/.claude/skills/issue` to this directory |
 | `skill/epic/SKILL.md` | the `/epic` Claude Code skill: a body of work broken into child issues that each end in a demonstration, with risks and exit criteria; link `~/.claude/skills/epic` to this directory |
-| `skill/handover/SKILL.md` | the `/handover` Claude Code skill: the state of long work recorded in the handover, the tracker, memory and a resume prompt, so that a new session resumes it alone; link `~/.claude/skills/handover` to this directory |
+| `skill/handover/SKILL.md` | the `/handover` Claude Code skill: the working note `claude-resumes/HANDOVER-<topic>.md`, kept current by four Claude Code hooks (Stop, PreCompact, SessionStart, PostToolUse) and the self-check `scripts/handover.py`, so that /compact, auto-compact and /clear lose nothing; also the handover of a long stop; link `~/.claude/skills/handover` to this directory |
+| `skill/build-tracker/SKILL.md` | the `/build-tracker` Claude Code skill: the progress of a topic in `claude-resumes/TRACKER-<topic>.md`, each unit with its SDLC phase, its status and its evidence, one unit in progress at a time; link `~/.claude/skills/build-tracker` to this directory |
+| `skill/resume-work/SKILL.md` | the `/resume-work` Claude Code skill: the restart after a new session, /compact, auto-compact or /clear, from the note and the tracker, checked against git, CI, the jobs and the environment; link `~/.claude/skills/resume-work` to this directory |
 | `skill/agile/SKILL.md` | the `/agile` Claude Code skill: how milestones, epics, features, stories, tasks, spikes, defects and owner actions relate, how to create each with its issue type and parent, and how each maps to the legend; link `~/.claude/skills/agile` to this directory |
 | `skill/agile/LEGEND.md`, `skill/agile/templates/` | the standard legend (ID prefixes, the INV and TDT classes, severity, status, verdicts), the GitHub issue forms, the issue bodies and the milestone description |
 | `skill/pull-request/SKILL.md` | the `/pull-request` Claude Code skill: a sample pull request template with the milestone, the issues, the class and a checklist for each target branch, and the rules to open and merge; link `~/.claude/skills/pull-request` to this directory |
@@ -295,6 +298,11 @@ before it and passes after. The skill runs in its own forked agent (`context: fo
 out of the conversation and only its report comes back. Its figures are made with `/visual` and its dashboards with
 `/dashboard`. Its worked example is Fabric Coffee, demo 57 of
 [cilium-implementation-poc](https://github.com/ephico2real2/cilium-implementation-poc).
+
+If a provider has no sandbox, **`skill/mock-app/SKILL.md`** plans a mock app for it. It runs in its own forked agent. It researches current practice online, reads the public API documentation
+and contract of each provider, and compares them with the calls of the client. The plan gives the build choice, and an
+OpenAPI contract and the authentication of each provider, with test values only. It also gives the contract tests
+and a phased plan with a proof for each step. `/app-architect` sends each provider with no sandbox to it.
 
 ```sh
 ln -s "$PWD/skill/app-architect" ~/.claude/skills/app-architect
