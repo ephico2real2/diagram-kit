@@ -6,7 +6,7 @@
 
     diagram-render <page.html> <out-dir> <name-1>,<name-2>,...      (installed)
     python diagram_kit/render.py <page.html> <out-dir> <name-1>,<name-2>,...
-    diagram-render --check <page.html>...                            (every check, no PNG: what a CI job runs)
+    diagram-render --check <page.html>...                            (page checks, no PNG: what a CI job runs)
 
 One name per .fig-scroll, in document order; each becomes <out-dir>/<name>.light.png and
 <name>.dark.png at 2x pixel density. The page may be a fragment (an Artifact page starts at
@@ -21,14 +21,16 @@ the defects a code review of the SVG text does not see:
   - a dashed arrow with no label beside it (a dashed arrow is a relationship, and names it);
   - figure text under 4.5:1 contrast with the box it sits in, in either theme (WCAG 1.4.3);
   - a name/figure count mismatch;
+  - names that put a later state before an earlier one: before, today or current, then after, then target or
+    proposed (a reader follows a change from the old state to the new one);
   - horizontal page scroll at 375 px;
   - a page that is not done in two minutes (a script on it that never ends).
 
 The browser runs in a process of its own for each page, which is ended at that limit.
 
-With --check every page given is put through the same checks and nothing is written: the figures are counted, not
-named, and a page with none fails. So does a page that cannot be read or loaded, and the pages after it are still
-checked. The exit status is non-zero when any page fails.
+With --check every page gets every check except name/figure count and state order, because no figure names are
+given. Nothing is written. A page with no figures fails. A page that cannot be read or loaded also fails. The
+remaining pages still get checked. The exit status is non-zero when any page fails.
 """
 
 from __future__ import annotations
@@ -36,6 +38,7 @@ from __future__ import annotations
 import json
 import os
 import pathlib
+import re
 import signal
 import subprocess
 import sys
@@ -268,9 +271,31 @@ def _stage_in_child(page_path: pathlib.Path, stage: pathlib.Path, wanted: int | 
     return json.loads(answer)
 
 
+# The state words of a figure name, in the order a reader must meet them: the old state, then the change, then the
+# goal. A gallery or a page sorted by file name puts "after" before "before", so the order is checked, never inferred.
+STATE_RANK = {"before": 0, "today": 0, "current": 0, "after": 1, "target": 2, "proposed": 2}
+
+
+def state_order(names: list[str]) -> list[str]:
+    """One failure for each figure name whose state comes before a name of an earlier state. A name with no state
+    word, or with more than one rank of them, is not compared."""
+    failures, latest = [], None
+    for name in names:
+        ranks = {STATE_RANK[word] for word in re.split(r"[^a-z]+", pathlib.PurePath(name).name.lower()) if word in STATE_RANK}
+        if len(ranks) != 1:
+            continue
+        rank = ranks.pop()
+        if latest is not None and rank < latest[1]:
+            failures.append(f"figure {name!r} comes after {latest[0]!r}: put before, today or current first, then after,"
+                            " then target or proposed")
+        if latest is None or rank >= latest[1]:
+            latest = (name, rank)
+    return failures
+
+
 def render_page(page: str | pathlib.Path, out_dir: pathlib.Path, names: list[str] | None) -> int:
-    """Check one page and write its figures under the names given. With no names (--check) the same checks run and
-    nothing is written. Whatever stops a page from being checked is that page's failure, in one line."""
+    """Check one page and write its figures under the names given. With no names (--check), run every check except
+    name/figure count and state order, and write nothing. Report each failure in one line."""
     shown, failures, count, width = os.path.relpath(page), [], 0, None
     try:
         page_path = pathlib.Path(page).resolve()
@@ -283,6 +308,8 @@ def render_page(page: str | pathlib.Path, out_dir: pathlib.Path, names: list[str
                 failures.append(answer["error"])
             else:
                 failures, count, width = answer["failures"], answer["count"], answer["width"]
+            if names is not None:
+                failures.extend(state_order(names))
             if not failures and names is not None:
                 staged = [(pathlib.Path(stage) / f"{i}.{theme}.png", out_dir / f"{name}.{theme}.png")
                           for theme in ("light", "dark") for i, name in enumerate(names)]

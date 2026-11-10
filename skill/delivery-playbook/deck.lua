@@ -9,6 +9,8 @@ end
 local function themed(src, alt)
   local dark = src:gsub("%.light%.png$", ".dark.png")
   alt = attr(alt)
+  src = attr(src)
+  dark = attr(dark)
   return pandoc.RawInline("html",
     '<img class="fig fig-light" src="' .. src .. '" alt="' .. alt .. '">' ..
     '<img class="fig fig-dark" src="' .. dark .. '" alt="' .. alt .. '">')

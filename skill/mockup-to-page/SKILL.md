@@ -75,9 +75,54 @@ the mockup's.
 2. The `/build-mockup` checks: no sideways scroll, background fills, no leftover placeholders.
 3. Accessibility scan (axe or equivalent) with no serious issues; keyboard through every control.
 4. All of it in CI (Playwright), with screenshots kept as artifacts.
+5. After the merge, capture the page on the deployed local stack with real data, and add the pictures with the stage
+   `deployed-local` (section 7). A render with the fixture is `built-mocked`.
 
 ## 6. Deliver
 
 One PR per story in the project's flow: an issue, a branch, failing tests first, the smallest change, the gates,
 review. Sample data stays in tests only. The PR lists every place the page differs from the mockup and why, and links
 the mockup.
+
+## 7. Label the stage of each picture
+
+Each picture tells the reader what it shows: a design, the real code with mocked data, or the deployed product. Each
+picture has one stage:
+
+| Stage | What made it |
+|---|---|
+| `mockup` | The design canvas of `/build-mockup` |
+| `built-mocked` | The real page code, with mocked or fixture replies (a dev server with route mocks, a unit render) |
+| `deployed-local` | The real stack on the local machine, behind its real edge, with data from the seed and a load run |
+
+A picture with mocked replies is never called deployed. A later stage for a shared environment uses its own name.
+
+1. The path names the stage: `<feature>/<stage>/<state>-<width or device>.png`.
+2. Each PNG has a JSON file beside it, with the same name:
+
+   ```json
+   {
+     "stage": "deployed-local",
+     "commits": {"api": "d118c21", "web": "ce28850"},
+     "stack": "the compose project and the start command",
+     "data": {"seed": "<hash of the seed file>", "load_run": "<id of the load run>"},
+     "width": 1440,
+     "captured_utc": "2026-11-09T23:30:00Z",
+     "command": "node scripts/capture-deployed.mjs --feature <feature>",
+     "test_case": "TC-<story>-<nn>"
+   }
+   ```
+
+   `captured_utc` comes from the clock (`date -u`), never from memory. A mobile picture names `device` in place of
+   `width`.
+3. Before a `deployed-local` capture, fill the screens with data. Operate the seed and a load run (for example a k6
+   profile) on the local stack. A screen with no data source is a defect to file, never a fake row.
+4. For each `deployed-local` picture, keep the API reply and the edge access log line of the same request. They prove
+   that the picture came from the deployed stack.
+5. The README of the mockups opens with a stage table: feature, design, mockup approved, built (pull request),
+   deployed locally (date and commits), and the newest picture with its stage.
+6. A history document (for example `UI-PROGRESS.md`) shows every picture of a feature in stage order: `mockup`, then
+   `built-mocked`, then `deployed-local`. It never deletes an old picture. Each picture has a caption with its stage,
+   its commits and its date.
+7. A check in the repository's CI finds each picture with no JSON file, with an unknown stage, or in the folder of
+   another stage. Each such picture makes the check fail.
