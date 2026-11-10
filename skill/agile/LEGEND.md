@@ -53,10 +53,11 @@ An open issue has exactly one `status:` label.
 
 ## Progress
 
-The status label says where the fix is. The progress label tells a client how far the work is, while the issues stay open until the default branch. An issue has at most one progress label. An issue with no progress label is work that has not started.
+The status label says where the fix is. The progress label tells a client how far the work is, while the issues stay open until the default branch. Each open issue has exactly one progress label. An open issue with no progress label is an error. When the owner says "closed", it means the `Done` label.
 
 | Progress | Label | Meaning | The comment gives |
 |---|---|---|---|
+| Backlog | `Backlog` | The work has not started | No comment |
 | Done | `Done` | The work is merged into the integration branch | The pull request and its merge commit, or the fix commit, with the proof |
 | In progress | `In-Progress` | The work started and is not complete | The open or draft pull request, the merged parts, or the running build job |
 | Blocked | `Blocked` | The work cannot continue | The issue or the owner decision that blocks it, and what unblocks it |
