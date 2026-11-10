@@ -15,12 +15,14 @@ Each finding ID has a prefix and a number, for example `SEC-01`. The prefix give
 | `UX` | User experience | A defect that a user sees on the screen |
 | `OA` | Owner action | Work that needs an account, a key, a plan or a decision that code cannot supply |
 | `MG` | Migration | A task that moves a schema, data or a whole environment to a new version or a new place: a migration, the copy before it, a data load or a cutover |
+| `MA` | Mock app | A story of a mock app: a stand-in for an external API, with its contract |
+| `APM` | Application performance monitoring | A story or task of error tracking and APM: the provider, the alerts, the KPIs and their view in the admin portal |
 | `INV` | Innovation | A new feature, design, idea or method that comes from no finding |
 | `TDT` | Tech debt | A debt item that comes from no finding |
 
 ## Classes
 
-A class says what kind of work an item is. Each item of any prefix can have one class, both classes or no class. The GitHub label carries the class.
+A class says what kind of work an item is. Each item of any prefix can have one class, both classes or no class. The GitHub label carries the class. The prefix names the body of work, and the class names its kind. For example, an `APM` task that adds a new alert collector has the class `INV`.
 
 | Class | Label | Meaning |
 |---|---|---|
