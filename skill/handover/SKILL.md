@@ -55,6 +55,24 @@ The probe of a Running line tells the hooks how to see whether the job is alive:
 - `pidfile <path>`: a file that holds the process ID. A long job writes it first, for example `echo $$ > claude-resumes/.pids/<id>; exec bash run.sh`.
 - `task`: a background task of Claude Code. No hook except Stop can see these tasks, so prefer a pidfile for a job that must survive /clear.
 
+### Tasks that an agent starts
+
+A background agent can start its own tasks: helper agents, test runs and watchers. Each one is a live task of the
+session, and the Stop hook checks it like a task that you started.
+
+- If the Stop hook names a task that you did not start, find its owner in the report folder of the agent: the memory
+  file or `resume.md`. Then add its line to Running.
+- The purpose names the owner: `started by the <job> lead: <what it does>`.
+- The restart names who restarts it. For a helper agent, the lead restarts it from the memory file. If the lead is
+  gone, start the same agent type with the same brief, its one item and the memory file.
+- For a small task of an agent, such as a watcher or a gate run, the restart is `none by Claude, the lead restarts it`.
+- Add the line at once. While a live task has no line, the Stop hook blocks the turn.
+
+```text
+- <agent id> | task | agent F2, helper of <job>: its own clone wt/<job>/F2/, stop at 18:05 UTC | restart: the lead restarts it from memory.md; if the lead is gone, start the same agent type with the brief, item F2 only, and memory.md
+- <task id> | task | started by the <job> lead: watches memory.md for new helper lines | restart: none by Claude, the lead restarts it
+```
+
 A short, current note is better than a full, stale one. Keep it under 6,000 characters, because the SessionStart hook
 puts it into a context that takes at most 10,000.
 
@@ -151,3 +169,4 @@ The note is for the next context. A person, or a session on another day, also ne
 | A helper script was first written in the session scratchpad, which the next session cannot see | Drafts and scripts go to the handoff folder |
 | A handover went out while CI still operated on its own pull requests | Each CI run is a Running line, and each pending item is a condition |
 | A handover that depends on the model remembering it is skipped under load | Four hooks make it automatic, and the self-check is a script |
+| A lead agent started 4 helper agents and 3 small tasks. The note listed none of them, and the Stop hook blocked 4 turns | Each task that an agent starts gets its Running line at once, with its owner and who restarts it |
