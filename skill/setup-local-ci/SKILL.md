@@ -98,7 +98,7 @@ git -C <folder>/<repository name> remote remove origin
 ./act-ci.sh -r <folder>/<repository name> -b <base commit> -j "verify migrations"
 ```
 
-`act-ci.sh` writes one log for each job, and `status.txt`, to `<folder>/act-logs`, or to the folder of `-o`. When each job exits 0, it exits 0. When the working tree has changes, it stops, but `-d` lets it continue. Never operate `act` with no arguments: it runs every workflow that runs on a push, and that can include a deploy workflow.
+`act-ci.sh` writes one log for each job, `status.txt` and the copy of the workflow that act ran, to `<folder>/act-logs`, or to the folder of `-o`. When each job exits 0, it exits 0. When the working tree has changes, it stops, but `-d` lets it continue. Never operate `act` with no arguments: it runs every workflow that runs on a push, and that can include a deploy workflow.
 
 | Setting or step | Why |
 | --- | --- |
@@ -107,7 +107,8 @@ git -C <folder>/<repository name> remote remove origin
 | `-P ubuntu-latest=act-runner:ubuntu-24.04` and `--pull=false` | The runner image is local, so act must not pull it (G9) |
 | `--container-architecture` of the host CPU | Emulated amd64 code can crash in the Podman machine (G7) |
 | `--container-daemon-socket -` | act does not mount the socket into the job container (G1). A job that needs a container engine does not work with this setting |
-| `--rm`, and a cleanup of the `act-<workflow name>-*` containers, networks and volumes before and after each call | A failed job keeps its containers, and its services keep their host ports (G11) |
+| `--rm`, and a cleanup of the `act-<run id>-*` containers, networks and volumes before and after each call | A failed job keeps its containers, and its services keep their host ports (G11) |
+| A copy of the workflow, `<log folder>/workflow-<run id>.yml`, whose name starts with the run id | act names each container after the workflow name and the job name only, so two runs of workflows with the same name remove each other's containers (G13) |
 | One call for each matrix entry, with `--matrix <key>:<value>` | act starts the entries together, and their services collide on one host port (G8) |
 | `-s GITHUB_TOKEN`, from `gh auth token` for each call | The actions download tools with it. act masks it in the logs. The script does not print it |
 | A job that installs gitleaks runs natively | See section 5 |
@@ -130,6 +131,7 @@ gitleaks does not scan a merge commit as a patch, so the number of commits is th
 - The runner image is not the GitHub image. A job that passes here can still fail on GitHub because of a tool that only one image has.
 - act gives service containers their own network. A step that connects to a service on `localhost` can behave differently.
 - The checkout step copies the local clone. It does not fetch from GitHub.
+- The workflow name starts with the run id, for example `r261110071500p4242-CI`. A step that reads `github.workflow` gets that name.
 
 ## 7. Gotchas, as measured
 
@@ -144,11 +146,12 @@ gitleaks does not scan a merge commit as a patch, so the number of commits is th
 | G7 | An x64 binary crashes in an amd64 job | `fatal error: lfstack.push` (Go runtime) | The Podman machine runs amd64 code through `qemu-x86_64-static`, and the Go runtime fails under it | Run the same release for the host CPU, as in section 5 |
 | G8 | One matrix entry fails in "Set up job" | `failed to start container: ... "proxy already running"` | act starts the matrix entries together, and the service of each entry publishes the same host port | One call for each entry, with `--matrix` |
 | G9 | Each run pulls the runner image again | none: the log shows `forcePull=true` | act pulls the image by default | A local image and `--pull=false` |
-| G10 | An interrupted run leaves a job container | `act-<workflow>-...` is `Up` | An interrupted act run does not clean up | Remove the `act-<workflow name>-*` containers |
-| G11 | The next job fails, but not for its own reason | `proxy already running`, and an `act-<workflow>-...` container still holds the port | act removes containers after a failure only with `--rm`, and `--rm` does not remove a container that did not start | `--rm`, and a cleanup before and after each call |
+| G10 | An interrupted run leaves a job container | `act-<run id>-...` is `Up` | An interrupted act run does not clean up | When that run has ended, remove its `act-<run id>-*` containers |
+| G11 | The next job fails, but not for its own reason | `proxy already running`, and an `act-...` container still holds the port | act removes containers after a failure only with `--rm`, and `--rm` does not remove a container that did not start | `--rm`, and a cleanup before and after each call |
 | G12 | A test that finds files by the repository folder fails | for example `path is outside the three repositories: <clone>/docs/...` | GitHub checks out to `<workspace>/<repository>/<repository>`, but act mounts the clone at its own path, with its own folder name | Name the clone folder after the repository |
+| G13 | A job of another project fails while a run of this project starts | `can only create exec sessions on running containers: container state improper` | Both workflows are named `CI`. act gives a job the same container name in both projects, and removes the container of the other run when it starts its own | `act-ci.sh` runs a copy of the workflow whose name starts with a run id, and cleans up only `act-<run id>-*` |
 
-Two of these were first read as the wrong cause. The first `proxy already running` came from G11, a service that a failed job left behind, and not from G8. Only a run on a clean engine showed that G8 was also real. Before you name the cause of an act failure, remove the `act-*` containers and run the job again.
+Two of these were first read as the wrong cause. The first `proxy already running` came from G11, a service that a failed job left behind, and not from G8. Only a run on a clean engine showed that G8 was also real. Before you name the cause of an act failure, remove the `act-*` containers of runs that have ended, and run the job again. Do not remove the containers of a run that is still active (G13).
 
 ## 8. Change the script
 

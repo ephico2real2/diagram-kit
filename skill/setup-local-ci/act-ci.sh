@@ -11,6 +11,8 @@
 #     collide with "proxy already running" (G8);
 #   - --rm and a cleanup before and after: a failed job keeps its containers, and its services keep their
 #     host ports, so the next job fails for a reason that is not its own (G11);
+#   - each run runs a copy of the workflow named <run id>-<name>: act names containers after the workflow and
+#     job names only, so two runs of workflows with the same name remove each other's containers (G13, #53);
 #   - a job that installs gitleaks runs the same gitleaks release natively for the host CPU, because the
 #     x64 Go binary crashes under qemu-user emulation in the Podman VM (G7).
 set -uo pipefail
@@ -66,10 +68,15 @@ case $(uname -m) in
 esac
 gl_os=$(uname -s | tr '[:upper:]' '[:lower:]')
 
-# act names its containers, networks and volumes act-<workflow name>-..., with each other character as '-'.
+# act names its containers, networks and volumes act-<workflow name>-<job>-<hash of both>, so two runs of workflows
+# with the same name share those names: one run removes the containers of the other (#53). Each run gives a copy of
+# the workflow a name that starts with its own run id, runs that copy, and cleans up only act-<run id>-*.
 name=$(yq -r '.name // ""' "$repo/$workflow")
 [[ -n $name ]] || fail "$workflow has no name: act names its containers after it, and the cleanup needs it"
-prefix="act-${name//[^A-Za-z0-9]/-}-"
+run_id=r$(date -u +%y%m%d%H%M%S)p$$
+prefix="act-$run_id-"
+run_workflow=$logs/workflow-$run_id.yml
+yq ".name = \"$run_id-\" + .name" "$repo/$workflow" > "$run_workflow" || fail "cannot write $run_workflow"
 clean() {
   local kind
   podman ps -a --format '{{.Names}}' | grep "^$prefix" | xargs -r podman rm -f >/dev/null
@@ -90,7 +97,7 @@ run_act() { # tag, job, extra act arguments
   clean
   record "$tag" start
   GITHUB_TOKEN=$(gh auth token) perl -e 'alarm shift; exec @ARGV' "$limit" \
-    act pull_request -W "$workflow" -j "$job" -e "$event" -P "ubuntu-latest=$image" --pull=false \
+    act pull_request -W "$run_workflow" -j "$job" -e "$event" -P "ubuntu-latest=$image" --pull=false \
     --container-architecture "$arch" --container-daemon-socket - --rm -s GITHUB_TOKEN "$@" \
     > "$logs/$tag.log" 2>&1
   code=$?

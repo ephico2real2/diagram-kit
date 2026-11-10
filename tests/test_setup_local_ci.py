@@ -154,7 +154,7 @@ def test_every_act_call_names_the_workflow_and_the_job_and_cleans_up(env):
     calls = act_calls(env)
     assert len(calls) == 3
     for call in calls:
-        assert call.startswith("pull_request -W .github/workflows/ci.yml -j ")
+        assert call.startswith(f"pull_request -W {env['logs']}/workflow-r") and ".yml -j " in call
         for flag in ("--rm", "--pull=false", "--container-daemon-socket -", "-s GITHUB_TOKEN",
                      "-P ubuntu-latest=act-runner:ubuntu-24.04"):
             assert flag in call
@@ -187,10 +187,38 @@ def test_a_pin_that_is_not_in_the_release_checksum_file_stops_the_scan(env):
     assert not (env["calls"] / "gitleaks").exists()
 
 
-def test_the_cleanup_removes_only_the_containers_of_this_workflow(env):
-    run(env, "-j", "verify")
+def test_the_cleanup_removes_only_the_containers_of_this_run(env):
+    """Two projects often both name their workflow CI (#53). The cleanup of one run must not remove the containers of
+    another run: neither those that act names after the workflow alone, nor those of another act-ci.sh run."""
+    logs = env["logs"]
+    write_tool(env["repo"].parent / "bin", "podman", textwrap.dedent(f"""\
+        echo "$*" >> "{env['calls']}/podman"
+        if [[ "$1 $2" == "ps -a" ]]; then
+          printf 'act-CI-verify-of-another-project\\nact-r261110000000p1-CI-verify-of-another-run\\nkeep-me\\n'
+          for copy in "{logs}"/workflow-*.yml; do
+            [[ -e $copy ]] && echo "act-$(basename "$copy" .yml | sed 's/^workflow-//')-CI-verify-of-this-run"
+          done
+        fi
+        exit 0
+        """))
+    assert run(env, "-j", "verify").returncode == 0
     removed = [line for line in (env["calls"] / "podman").read_text().splitlines() if line.startswith("rm -f")]
-    assert removed and all(line == "rm -f act-CI-left-from-a-failed-job" for line in removed)
+    assert removed and all(line.startswith("rm -f act-r") and line.endswith("-CI-verify-of-this-run") for line in removed)
+    assert not any("another" in line for line in removed)
+
+
+def test_each_run_names_its_workflow_copy_so_act_names_its_containers_apart(env):
+    """act names a container act-<workflow name>-<job>-<hash of both> (act v0.2.97, createContainerName), so two runs
+    of workflows with the same name share container names unless each run gives its copy a name of its own."""
+    run(env, "-j", "verify")
+    run(env, "-j", "verify")
+    copies = [call.split(" -W ", 1)[1].split(" ", 1)[0] for call in act_calls(env)]
+    assert len(copies) == 2 and copies[0] != copies[1]
+    original = (env["repo"] / ".github" / "workflows" / "ci.yml").read_text()
+    for copy in map(pathlib.Path, copies):
+        run_id = copy.stem.removeprefix("workflow-")
+        assert copy.parent == env["logs"] and run_id.startswith("r")
+        assert copy.read_text() == original.replace("name: CI\n", f"name: {run_id}-CI\n", 1)
 
 
 def test_a_working_tree_with_changes_is_refused_unless_allowed(env):
