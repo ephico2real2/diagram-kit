@@ -120,7 +120,7 @@ def test_each_record_says_that_the_prefix_and_the_class_are_separate(path):
 
 @pytest.mark.parametrize("name", ["3-story.yml", "4-task.yml"])
 def test_a_story_or_task_form_asks_for_the_id_prefix_in_the_title(name):
-    body = yaml.safe_load((AGILE / "templates" / "ISSUE_TEMPLATE" / name).read_text())["body"]
+    body = safe_load(AGILE / "templates" / "ISSUE_TEMPLATE" / name)["body"]
     assert body[0]["type"] == "markdown" and PREFIX_AND_CLASS in body[0]["attributes"]["value"]
 
 
