@@ -264,3 +264,19 @@ def test_class_summaries_preserve_the_unmerged_work_exceptions(path):
 def test_the_defect_class_table_allows_the_class_of_the_work(path):
     row = next(line for line in path.read_text().splitlines() if line.startswith("| Defect |"))
     assert "As the work" in row
+
+
+@pytest.mark.skipif(shutil.which("jq") is None, reason="needs jq, the same filter language as gh --jq")
+def test_the_deploy_tag_check_allows_a_closed_issue_with_go_live():
+    """Section 8: "A closed issue with `Go-Live` needs no work tag", and the check of deploy tags must count 0 then."""
+    skill = (AGILE / "SKILL.md").read_text()
+    line = next(l for l in skill.splitlines() if 'any(IN("Local-Deploy", "Sbx-Deploy", "Go-Live"))' in l)
+    program = re.search(r"--jq '(.*)'", line).group(1)
+    issues = [
+        {"number": 1, "state": "CLOSED", "labels": [{"name": "Go-Live"}]},
+        {"number": 2, "state": "OPEN", "labels": [{"name": "Sbx-Deploy"}]},
+        {"number": 3, "state": "OPEN", "labels": [{"name": "Done"}, {"name": "Local-Deploy"}]},
+        {"number": 4, "state": "CLOSED", "labels": [{"name": "Sbx-Deploy"}]},
+    ]
+    found = subprocess.run(["jq", "-c", program], input=json.dumps(issues), capture_output=True, text=True, check=True)
+    assert json.loads(found.stdout) == [2, 4]
