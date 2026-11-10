@@ -6,6 +6,7 @@ use it, and a README row that says where to link it. The two mockup skills are o
 
 from __future__ import annotations
 
+import hashlib
 import pathlib
 import re
 import subprocess
@@ -24,9 +25,9 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 def test_the_kit_ships_every_skill():
     assert [p.name for p in SKILLS] == ["act", "adversarial-review", "agent-report", "app-architect", "build-mockup", "codex-arbiter", "dashboard",
-                                      "delivery-page", "document", "fix-defect", "houston-mayday", "local-ci", "mockup-to-page",
-                                      "mockup-to-page-react", "screenshot", "setup-local-ci", "sweep-stale", "test-ui", "tokensave-fork", "visual",
-                                      "workbench"]
+                                      "delivery-page", "document", "fix-defect", "houston-mayday", "local-ci", "mobile-app-designer",
+                                      "mockup-to-page", "mockup-to-page-react", "screenshot", "setup-local-ci", "sweep-stale", "test-ui",
+                                      "tokensave-fork", "visual", "workbench"]
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
@@ -187,10 +188,21 @@ def test_the_fork_skill_names_the_toolchain_folder_of_each_mac(machine, toolchai
 
 
 def test_no_new_skill_names_a_private_path():
-    for name in ("agent-report", "codex-arbiter", "fix-defect", "houston-mayday", "tokensave-fork", "workbench"):
+    for name in ("agent-report", "codex-arbiter", "fix-defect", "houston-mayday", "mobile-app-designer", "tokensave-fork", "workbench"):
         for path in sorted(p for p in (ROOT / "skill" / name).rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             text = path.read_text()
             assert "/Users/" not in text and "agent-report-standard.md" not in text, path
+
+
+# The SHA-256 of each word that a public kit must not name (a firm or a client), so that this file does not name it.
+UNNAMED = {"f1d7bf6aaff7a93ba447e892150810efbd1c85dc020025c95a8b21ef30bf8b6e"}
+
+
+def test_no_skill_and_no_readme_names_an_unnamed_word():
+    for path in [ROOT / "README.md", *sorted(p for p in (ROOT / "skill").rglob("*") if p.is_file()
+                                             and not {"__pycache__", ".venv"} & set(p.parts))]:
+        words = set(re.findall(r"[a-z0-9]+", path.read_text(errors="ignore").lower()))
+        assert not {hashlib.sha256(w.encode()).hexdigest() for w in words} & UNNAMED, path
 
 
 def test_the_visual_skill_puts_the_state_before_first_and_the_renderer_checks_it():
