@@ -6,6 +6,7 @@ use it, and a README row that says where to link it. The two mockup skills are o
 
 from __future__ import annotations
 
+import hashlib
 import pathlib
 import re
 import subprocess
@@ -184,3 +185,14 @@ def test_no_new_skill_names_a_private_path():
         for path in sorted(p for p in (ROOT / "skill" / name).rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             text = path.read_text()
             assert "/Users/" not in text and "agent-report-standard.md" not in text, path
+
+
+# The SHA-256 of each word that a public kit must not name (a firm or a client), so that this file does not name it.
+UNNAMED = {"f1d7bf6aaff7a93ba447e892150810efbd1c85dc020025c95a8b21ef30bf8b6e"}
+
+
+def test_no_skill_and_no_readme_names_an_unnamed_word():
+    for path in [ROOT / "README.md", *sorted(p for p in (ROOT / "skill").rglob("*") if p.is_file()
+                                             and not {"__pycache__", ".venv"} & set(p.parts))]:
+        words = set(re.findall(r"[a-z0-9]+", path.read_text(errors="ignore").lower()))
+        assert not {hashlib.sha256(w.encode()).hexdigest() for w in words} & UNNAMED, path

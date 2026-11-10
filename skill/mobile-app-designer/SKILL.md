@@ -136,7 +136,7 @@ Follow `/build-mockup`. A native app adds these rules:
 ## 7. Render, test and look
 
 1. Render with Inkcast's `scripts/mockups/render.js` and test with its `check.py`, run in place from a clone of
-   Inkcast. They carry the PolyForm Shield license of ScalarOps, so never copy them into another repository.
+   Inkcast. They carry the PolyForm Shield license, so never copy them into another repository.
    `render.js` does not expand `<dc-import>`, so the phone and tablet frames work only on the canvas. `check.py` opens
    every variant at 390, 820 and 1440 px, which covers the same widths.
 2. Take a PNG of each screen at 390 x 844 and 820 x 1180, at device scale 2, in light and dark.
