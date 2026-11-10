@@ -125,7 +125,7 @@ Follow `/build-mockup`. A native app adds these rules:
 - The system font stack, `-apple-system, system-ui`. Never embed SF Pro. A brand serif is only for the wordmark.
 - Large titles of 34 pt, inset grouped lists, controls of at least 44 pt (or the project's own larger size), and a
   monochromatic tab bar on a translucent surface. The current tab takes the accent.
-- A switch that is on uses the good state color. A destructive action uses the stop color and opens a confirmation.
+- A switch that is on uses the good state color. A destructive action uses the stop color, and an alert asks the person before it acts.
 - A sheet or an alert sits on a `position: fixed` overlay. An overlay tied to the page height leaves the sheet below
   the first screen.
 - Every screen of a mockup with sample data shows a banner that says so.
@@ -143,8 +143,10 @@ Follow `/build-mockup`. A native app adds these rules:
 3. The design note has a table with three columns: the screen, what differs, and the source that forces it. A
    source is a platform rule or component that you read, with its URL and a quote. A difference with no source is a
    defect: draw the iOS behavior on both.
-4. Typical differences: the biometric prompt, the share sheet, the system back gesture, and the formatter of file
-   sizes ("KB" on iOS, "kB" on Android).
+4. Typical differences: the biometric prompt, the share sheet, the system back gesture, the volume slider of the
+   video player (section 9), and the formatter of file sizes ("KB" on iOS, "kB" on Android).
+5. If no source says what a control does, test it on a real device. Of the volume abilities, Apple's MPVolumeView
+   page says: "These abilities only work on a device."
 
 ## 8. Make the sample content real
 
@@ -174,8 +176,15 @@ The rules:
 
 1. A file opens in a viewer of its kind, inside the app. The app does not hand a file to another app to show it.
 2. A picture fits the screen. A pinch zooms, a double tap zooms in and out, and a drag moves a zoomed picture.
-3. A video plays in the system player at its original aspect ratio, and starts paused. The volume control follows
-   the system player of each platform. Draw it only from a source that you read.
+3. A video plays in the system player at its original aspect ratio, and starts paused. The volume control is the
+   one of the system player on each platform:
+   - iOS: the player has a mute button and a slider. The slider shows the system volume. Apple's MPVolumeView page
+     says that the slider "moves to reflect the new volume" at a press of the volume buttons. A test on an iPad in
+     2026 showed the same. The app draws no slider of its own.
+   - Android: the player has the same mute button. The side buttons change the media volume through the system
+     panel. Call `setVolumeControlStream(AudioManager.STREAM_MUSIC)` in `onResume()`.
+   - Android has no slider in the player. A slider like the iOS one sets the device volume. Android's page on audio
+     output says of those methods: "Avoid using them". This is a forced difference of section 7.
 4. A PDF shows its real pages in one scroll, with a label that names the page at the top.
 5. Text shows in full. Select and copy stay off until the project has a rule for plaintext on the clipboard.
 6. A swipe opens the next or the previous file of the list that the viewer came from, in that list's order. Arrows do
@@ -211,7 +220,7 @@ Load the `artifact-design` skill, then build one page from the rendered screens:
 Publish it as a private Artifact. Put its link in the issue, never in the repository.
 
 Before the owner approves, a model of another family reviews the mockup, for example Codex at the effort that the owner
-names. The brief carries the whole agent report standard (`/agent-report`), lists each claim to test with its file
+names. The brief carries the whole agent report standard (`/agent-report`). It lists each claim to test with its file
 and lines, and asks for a fix and a test for each defect. The arbiter rules on each finding. A review by a second
 model is not an independent audit, and the record never calls it one.
 
