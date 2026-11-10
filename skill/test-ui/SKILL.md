@@ -167,6 +167,8 @@ Keep the review ahead of the merge when you can: otherwise say plainly that the 
 - What the oracle was, and what it does not prove.
 - What was not tested, and why. A skipped check said out loud is worth more than a green run that hides it.
 - Where the page differs from the reference on purpose, with the reason.
+- The stage of each picture: `mockup`, `built-mocked` or `deployed-local`, with its JSON file (`/mockup-to-page`
+  section 7). A test that ran with mocked replies does not prove the deployed product. Say which one ran.
 
 ## Checklist
 

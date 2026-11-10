@@ -24,8 +24,9 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 def test_the_kit_ships_every_skill():
     assert [p.name for p in SKILLS] == ["act", "adversarial-review", "agent-report", "app-architect", "build-mockup", "codex-arbiter", "dashboard",
-                                      "delivery-page", "document", "fix-defect", "houston-mayday", "local-ci", "mockup-to-page", "mockup-to-page-react",
-                                      "setup-local-ci", "sweep-stale", "test-ui", "tokensave-fork", "visual", "workbench"]
+                                      "delivery-page", "document", "fix-defect", "houston-mayday", "local-ci", "mockup-to-page",
+                                      "mockup-to-page-react", "screenshot", "setup-local-ci", "sweep-stale", "test-ui", "tokensave-fork", "visual",
+                                      "workbench"]
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
