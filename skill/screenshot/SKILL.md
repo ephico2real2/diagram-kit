@@ -122,6 +122,15 @@ It reports dimensions, flags captures too small to be legible, and measures the
 uniform border — a large one means the region was too generous and should be
 tightened.
 
+The border check needs Pillow. `verify.py` uses the venv beside it when the
+Python that runs it has no Pillow. Without Pillow, each file is NOT RUN and the
+exit status is 1. Make the venv once:
+
+```sh
+python3 -m venv ~/.claude/skills/screenshot/.venv
+~/.claude/skills/screenshot/.venv/bin/pip install pillow==13.0.0
+```
+
 ## 7. Save and reference
 
 - `save_to_disk=true` returns a path under a temp directory. **Copy it into the

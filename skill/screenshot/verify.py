@@ -15,7 +15,7 @@ Exit status is non-zero if any file fails a check, so this can gate a commit.
 
 Dimensions come from PIL when it is installed and from `sips` (a macOS builtin)
 otherwise. The border and dead-area analysis needs PIL; without it those checks
-are skipped and reported as skipped rather than silently passing.
+do not run, and each file is reported as NOT RUN and counted as needing attention.
 """
 
 from __future__ import annotations
@@ -136,6 +136,10 @@ def check(path: pathlib.Path) -> bool:
         return False
 
     ok = True
+    if Image is None:
+        # The border is the gating check, and it needs PIL: a capture that it did not check is not ok.
+        print("  %-44s border check NOT RUN: PIL not installed (SKILL.md section 6)" % path.name)
+        ok = False
     size = None
     if Image is not None:
         with Image.open(path) as im:
@@ -160,7 +164,6 @@ def check(path: pathlib.Path) -> bool:
         print("      full-viewport `screenshot`, retake it with `zoom` + region.")
 
     if Image is None:
-        print("      (border and dead-area checks skipped: PIL not installed)")
         return ok
 
     with Image.open(path) as im:
