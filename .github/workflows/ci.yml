@@ -23,10 +23,16 @@ jobs:
           python -m playwright install --with-deps chromium
       # doc-docx drives pandoc, and a document's bytes depend on pandoc's version: one pinned release, checked
       # against the digest GitHub publishes for it, so the end-to-end tests run and a byte comparison means something.
+      # The .deb of the runner's CPU: GitHub's runner is amd64, the local act runner on an Apple silicon Mac is arm64.
       - name: Install pandoc 3.12.1
         run: |
-          curl -fsSL -o "$RUNNER_TEMP/pandoc.deb" https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-1-amd64.deb
-          echo "b4217ac7c54067c442f9d4cd38bcd0c184a43f3e7053431a12263a6f92a33ba2  $RUNNER_TEMP/pandoc.deb" | sha256sum -c -
+          case "$(dpkg --print-architecture)" in
+            amd64) ARCH=amd64; DIGEST=b4217ac7c54067c442f9d4cd38bcd0c184a43f3e7053431a12263a6f92a33ba2 ;;
+            arm64) ARCH=arm64; DIGEST=38f44718c0cb15cb81fc31026bd68c33e8628ca5f7ab15ca86494a7f24f7b8e4 ;;
+            *) echo "no pandoc .deb pinned for $(dpkg --print-architecture)" >&2; exit 1 ;;
+          esac
+          curl -fsSL -o "$RUNNER_TEMP/pandoc.deb" "https://github.com/jgm/pandoc/releases/download/3.12.1/pandoc-3.12.1-1-$ARCH.deb"
+          echo "$DIGEST  $RUNNER_TEMP/pandoc.deb" | sha256sum -c -
           sudo dpkg -i "$RUNNER_TEMP/pandoc.deb"
           pandoc --version | head -1
       - name: Tests (no network)

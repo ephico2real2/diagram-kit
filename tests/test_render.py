@@ -125,3 +125,42 @@ def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, 
         assert after == {name: b"png" for name in previous}, case
     else:
         assert after == previous, case  # the 375 px and dark-theme failures included, and no staging dir left
+
+
+@pytest.mark.parametrize(
+    ("names", "bad"),
+    [
+        (["before", "after", "target"], []),
+        (["cicd-before", "cicd-after", "cicd-target", "cicd-sandbox"], []),
+        (["route", "release"], []),
+        (["today", "after", "proposed"], []),
+        (["after", "before", "target"], ["before"]),
+        (["flow/after", "flow/before"], ["flow/before"]),
+        (["target", "current"], ["current"]),
+        (["before", "proposed", "after"], ["after"]),
+    ],
+)
+def test_a_later_state_never_comes_before_an_earlier_one(names, bad):
+    failures = _render().state_order(names)
+    assert [f.split("'")[1] for f in failures] == bad
+
+
+def test_a_page_whose_after_figure_comes_first_writes_nothing(monkeypatch, tmp_path):
+    render = _render()
+    page = tmp_path / "page.html"
+    page.write_text("<div class='fig-scroll'></div><div class='fig-scroll'></div>")
+
+    def staged(_page, stage, wanted):
+        # Every PNG a good render stages, so that only the order check can stop the write.
+        for i in range(wanted):
+            for theme in ("light", "dark"):
+                (stage / f"{i}.{theme}.png").write_bytes(b"png")
+        return {"failures": [], "count": wanted, "width": 375}
+
+    monkeypatch.setattr(render, "_stage_in_child", staged)
+    out = tmp_path / "out"
+    assert render.render_page(page, out, ["before", "after"]) == 0
+    assert sorted(p.name for p in out.glob("*.png")) == ["after.dark.png", "after.light.png", "before.dark.png", "before.light.png"]
+    reordered = tmp_path / "reordered"
+    assert render.render_page(page, reordered, ["after", "before"]) != 0
+    assert not list(reordered.glob("*.png"))
