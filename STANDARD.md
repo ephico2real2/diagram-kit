@@ -153,6 +153,7 @@ label past its box, and the light `--none` of the 30 pages made before this temp
 | a dashed arrow with no text within 16 px of it other than a box's own (a container around the arrow does not count as a box; a box the arrow starts inside, holding no other box, still does) | a relationship the reader cannot name, or a proposal that reads as traffic (§3, Connectors) |
 | figure text under 4.5:1 against the box under it, in either theme | WCAG 2.2 SC 1.4.3; one committed dark render ships black text on the dark ground |
 | a name/figure count mismatch | a PNG named for the wrong figure |
+| figure names that put a later state first: `before`, `today` or `current`, then `after`, then `target` or `proposed` | a reader meets the change before the state it changes. A gallery that sorts by file name puts `after` before `before` (review page, 2026-11-07) |
 | sideways page scroll at 375 px | a figure that widens the page on a phone |
 | a page not done in two minutes | a script on the page that never ends: the browser would wait for ever. Each page's browser runs in a process of its own, ended at that limit (0.2.4) |
 
