@@ -50,6 +50,7 @@ If the command of a process matches this list, the script does not end that proc
 
 - a command under `/Applications` or `/System`
 - editor extension hosts
+- the Claude, Cursor and VS Code apps wherever they are installed (`Claude.app`, `Cursor.app`, `Code Helper`)
 - CRC and container virtual machines (vfkit, qemu, hyperkit, colima, podman, docker)
 - launchd
 - the script and its ancestors

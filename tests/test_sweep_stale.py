@@ -171,3 +171,11 @@ def test_the_script_never_ends_its_own_ancestors(sweep):
 @pytest.mark.parametrize(("etime", "expected"), [("05-15:39:27", 8139), ("10:34:59", 634), ("04:12", 4)])
 def test_ps_elapsed_time_becomes_whole_minutes(sweep, etime, expected):
     assert sweep.minutes(etime) == expected
+
+
+def test_the_skill_lists_every_app_the_guard_protects(sweep):
+    """The guard section is the list a person reads before a sweep, so each app that PROTECT names is in it."""
+    section = SCRIPT.with_name("SKILL.md").read_text().split("## What the guard protects", 1)[1].split("\n## ", 1)[0]
+    for app in ("Claude.app", "Cursor.app", "Code Helper"):
+        assert sweep.PROTECT.search(f"/opt/{app}/bin/x"), app
+        assert f"`{app}`" in section, app
