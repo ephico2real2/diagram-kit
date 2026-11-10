@@ -44,10 +44,16 @@ def test_the_readme_installs_the_pandoc_that_ci_pins_on_each_platform():
     readme = (ROOT / "README.md").read_text()
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
     version = re.search(r"name: Install pandoc (\S+)", ci).group(1)
-    digest = re.search(r'echo "([0-9a-f]{64})  \$RUNNER_TEMP/pandoc\.deb"', ci).group(1)
+    digest = re.search(r"amd64\) ARCH=amd64; DIGEST=([0-9a-f]{64}) ;;", ci).group(1)
     section = readme.split("### Prerequisite for documents: pandoc ", 1)[1].split("\n### ", 1)[0]
     assert section.startswith(version)
     assert f"amd64) ARCH=amd64; DIGEST={digest} ;;" in section
+    # The job installs the .deb of the runner's CPU, as the README does: under the local act CI on an arm64 Mac the
+    # runner is arm64, and an amd64 .deb stops the job before its tests.
+    arm64 = re.search(r"arm64\) ARCH=arm64; DIGEST=([0-9a-f]{64}) ;;", ci)
+    assert arm64 and f"arm64) ARCH=arm64; DIGEST={arm64.group(1)} ;;" in section
+    assert 'case "$(dpkg --print-architecture)" in' in ci
+    assert f"releases/download/{version}/pandoc-{version}-1-$ARCH.deb" in ci
     assert f"releases/download/{version}/pandoc-{version}-$ARCH-macOS.zip" in section
     assert re.search(r"arm64\)  ARCH=arm64;  DIGEST=[0-9a-f]{64} ;;", section)
     assert re.search(r"x86_64\) ARCH=x86_64; DIGEST=[0-9a-f]{64} ;;", section)
