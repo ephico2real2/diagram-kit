@@ -26,9 +26,9 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 def test_the_kit_ships_every_skill():
     assert [p.name for p in SKILLS] == ["act", "adversarial-review", "agent-report", "agile", "app-architect", "build-mockup", "codex-arbiter",
                                       "dashboard", "delivery-page", "delivery-playbook", "document", "epic", "fix-defect", "handover", "herdr-jobs",
-                                      "houston-mayday", "issue", "local-ci", "mobile-app-designer", "mockup-to-page", "mockup-to-page-react",
-                                      "pull-request", "screenshot", "setup-local-ci", "sweep-stale", "test-ui", "tokensave-fork", "visual",
-                                      "workbench"]
+                                      "houston-mayday", "issue", "local-ci", "mobile-app-designer", "mock-app", "mockup-to-page",
+                                      "mockup-to-page-react", "pull-request", "screenshot", "setup-local-ci", "sweep-stale", "test-ui",
+                                      "tokensave-fork", "visual", "workbench"]
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
@@ -193,6 +193,22 @@ def test_no_new_skill_names_a_private_path():
         for path in sorted(p for p in (ROOT / "skill" / name).rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             text = path.read_text()
             assert "/Users/" not in text and "agent-report-standard.md" not in text, path
+
+
+def test_mock_app_tool_claims_have_primary_sources():
+    text = (ROOT / "skill" / "mock-app" / "SKILL.md").read_text()
+    sources = {
+        "OpenAPI": "https://spec.openapis.org/oas/v3.2.1.html",
+        "Prism": "https://github.com/stoplightio/prism",
+        "WireMock Cloud": "https://docs.wiremock.io/openAPI/swagger",
+        "Microcks": "https://microcks.io/documentation/references/artifacts/openapi-conventions/",
+        "Mockoon": "https://mockoon.com/docs/latest/openapi/import-export-openapi-format/",
+        "Pact": "https://docs.pact.io/",
+    }
+    for name, url in sources.items():
+        assert re.search(rf"^\| {re.escape(name)} \|.*{re.escape(url)}", text, re.M), name
+    examples = text.split("Mock servers from an OpenAPI file", 1)[1].split("- Contract tests", 1)[0]
+    assert "WireMock Cloud" in examples
 
 
 # The SHA-256 of each word that a public kit must not name (a firm or a client), so that this file does not name it.
