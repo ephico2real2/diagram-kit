@@ -96,6 +96,7 @@ ask again.
 Use `/mobile-app-designer`, on top of `/build-mockup`. iOS comes first, and Android gives the same experience. The
 mockup shows each platform where the two differ, and every sample file is real. A model of another family reviews the
 mockup before the owner sees it. The owner approves the mockup at the gate of section 1.
+After each approval, the as-built design document shows every approved screen (`/mobile-app-designer`, section 13).
 
 ## 6. Plan the work
 
@@ -153,6 +154,7 @@ The first version is done at the point that each item below holds:
 - [ ] The app runs on the owner's Android phone from a build of `main`, and on the iOS simulator.
 - [ ] CI passes on `main`, and local CI passes on a clean clone.
 - [ ] The decision records, the diagrams and the README describe what was built.
+- [ ] The as-built design document shows every approved screen, in light and dark, on both platforms.
 - [ ] The tracker shows each unit done with its evidence.
 - [ ] Each lesson of the app is in a pull request to this kit.
 

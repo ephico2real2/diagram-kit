@@ -234,6 +234,20 @@ model is not an independent audit, and the record never calls it one.
 - A progress comment in the issue, with the commit and the link. The issue stays In-Progress until the owner approves
   each screen in writing.
 
+## 13. Write the as-built design document after each approval
+
+The design note of each version is its history, so it stays as it was approved. One more document shows the whole
+design as it is now approved: `design/as-built/README.md`. The owner asked for it on 2026-11-10.
+
+1. Update it only after the owner approves a version. It never shows a version that waits for approval.
+2. Open it with the approval record: the version, the date, the owner's words and the link to the issue comment.
+3. Embed every screen of the approved version, in light and in dark, with the Android picture beside the iOS one where
+   they differ. The export script writes this catalogue from the screen list, so it cannot drift from the PNGs.
+4. Add the flows as a `/visual` diagram, each component with its states, the tokens, the platform differences with
+   their sources, and every decision with the version that made it.
+5. Link each version's design note for its history and its sources. Do not edit an approved version's note.
+6. Make the files again from the commands of section 12, and look at every embedded picture before the commit.
+
 ## Anti-patterns
 
 | Do not | Do |
@@ -246,4 +260,5 @@ model is not an independent audit, and the record never calls it one.
 | Send pictures from before the last fix | Render every screen again, then look, then send |
 | Draw only iOS and call it both | Show each platform where it differs, with the source |
 | Fill a document with gray lines | Show copies of the real sample files |
+| Leave the approved screens only in a review page | Embed every approved screen in the as-built document |
 | Ship content from a tool with a personal-use license | Read the license, and use content that allows commercial use |
