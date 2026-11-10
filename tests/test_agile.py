@@ -18,14 +18,28 @@ from yaml_reader import safe_load
 ROOT = pathlib.Path(__file__).resolve().parents[1]
 AGILE = ROOT / "skill" / "agile"
 FORMS = sorted((AGILE / "templates" / "ISSUE_TEMPLATE").glob("[0-9]-*.yml"))
-# The issue types that GitHub gives each organization. An epic has no type, because "Epic" is not a default type.
-TYPES = {"Feature", "Task", "Bug"}
+# The types of the supplied forms. Epic is optional in an organization, so its portable form omits the type.
+TYPES = {
+    "Epic": None,
+    "Feature": "Feature",
+    "Story": "Feature",
+    "Task": "Task",
+    "Spike": "Task",
+    "Defect": "Bug",
+    "Owner action": "Task",
+    "Release milestone": "Task",
+}
+
+
+def table_rows(text: str, header: str) -> list[list[str]]:
+    """All cells of the Markdown table whose header row starts with `header`."""
+    block = text.split(header, 1)[1].split("\n\n", 1)[0]
+    return [[cell.strip() for cell in row.split("|")[1:-1]]
+            for row in block.splitlines()[2:] if row.startswith("|")]
 
 
 def table_column(text: str, header: str) -> list[str]:
-    """The first column of the Markdown table whose header row starts with `header`."""
-    block = text.split(header, 1)[1].split("\n\n", 1)[0]
-    return [row.split("|")[1].strip() for row in block.splitlines()[2:] if row.startswith("|")]
+    return [row[0] for row in table_rows(text, header)]
 
 
 def test_there_is_a_form_for_each_item():
@@ -37,7 +51,7 @@ def test_there_is_a_form_for_each_item():
 def test_a_form_names_its_type_and_exactly_one_status(form):
     data = safe_load(form)
     assert data["description"] and data["body"]
-    assert data.get("type") in TYPES | ({None} if data["name"] == "Epic" else set())
+    assert data.get("type") == TYPES[data["name"]]
     assert len([label for label in data["labels"] if label.startswith("status:")]) == 1
 
 
@@ -53,8 +67,23 @@ def test_a_form_asks_for_the_parent_and_each_dropdown_has_options(form):
 def test_the_playbook_legend_equals_the_standard_legend():
     legend = (AGILE / "LEGEND.md").read_text()
     playbook = (ROOT / "skill" / "delivery-playbook" / "PLAYBOOK.md").read_text().split("## 14. Legend", 1)[1]
-    for header in ("| Prefix |", "| Class |", "| Verdict |"):
-        assert table_column(playbook, header) == table_column(legend, header), header
+    tables = [
+        ("| Prefix |", "| Prefix |", False),
+        ("| Class |", "| Class |", False),
+        ("| Severity |", "| Severity |", True),
+        ("| Status |", "| Status |", True),
+        ("| Verdict |", "| Verdict |", False),
+        ("| Figure element |", "| Element |", False),
+    ]
+    for playbook_header, legend_header, omit_label in tables:
+        expected = table_rows(legend, legend_header)
+        if omit_label:
+            expected = [[row[0], row[2]] for row in expected]
+        actual = table_rows(playbook, playbook_header)
+        if playbook_header in {"| Prefix |", "| Class |", "| Verdict |"}:
+            assert actual == expected, playbook_header
+        else:
+            assert sorted(actual) == sorted(expected), playbook_header
     assert table_column(legend, "| Prefix |")[-2:] == ["`INV`", "`TDT`"]
 
 
@@ -70,6 +99,9 @@ def test_the_pull_request_template_asks_for_the_record():
     for need in ("Release milestone or hotfix", "Issues", "Class", "What changes, and why", "Proof"):
         assert need in headings, need
     assert "- [ ] INV: innovation." in template and "- [ ] TDT: tech debt." in template
+    release = template.split("## Release milestone or hotfix\n", 1)[1].split("\n## ", 1)[0]
+    choices = re.findall(r"^- \[ \] ([^:]+):", release, re.M)
+    assert len(choices) == 2 and all("milestone" in choice.lower() for choice in choices)
 
 
 STAGES = ["Mockup", "Draft", "Build", "Review", "Merged", "Released"]
@@ -88,6 +120,10 @@ def test_the_definition_of_done_of_a_form_names_each_stage(name):
     done = next(b for b in form["body"] if b.get("attributes", {}).get("label") == "Definition of done")
     value = done["attributes"]["value"]
     assert all(stage.lower() in value.lower() for stage in STAGES)
+    bodies = (AGILE / "templates" / "bodies.md").read_text()
+    body = bodies.split(f"## {form['name']}\n", 1)[1].split("```markdown\n", 1)[1].split("\n```", 1)[0]
+    done = body.split("## Definition of done\n", 1)[1].split("\n## ", 1)[0]
+    assert all(stage.lower() in done.lower() for stage in STAGES)
 
 
 # The class rule is one rule in every file that states it. On 2026-11-07 a narrow reading left 102 issues of one
@@ -171,3 +207,23 @@ def test_epic_feature_and_story_forms_ask_for_the_business_value(name):
     field = next(b for b in body if b.get("id") == "value")
     assert field["attributes"]["label"] == "Business value"
     assert "table of main innovations" in field["attributes"]["description"]
+
+
+CLASS_SUMMARIES = [
+    ROOT / "skill" / "delivery-playbook" / "DECK.md",
+    AGILE / "templates" / "bodies.md",
+    *[f for f in FORMS if "id: class" in f.read_text()],
+]
+
+
+@pytest.mark.parametrize("path", CLASS_SUMMARIES, ids=lambda p: p.name)
+def test_class_summaries_preserve_the_unmerged_work_exceptions(path):
+    text = path.read_text().replace("`", "")
+    assert "A defect in unmerged INV work stays INV." in text
+    assert "A defect in an unmerged fix with no class keeps no class." in text
+
+
+@pytest.mark.parametrize("path", [AGILE / "SKILL.md", ROOT / "skill" / "delivery-playbook" / "DECK.md"])
+def test_the_defect_class_table_allows_the_class_of_the_work(path):
+    row = next(line for line in path.read_text().splitlines() if line.startswith("| Defect |"))
+    assert "As the work" in row

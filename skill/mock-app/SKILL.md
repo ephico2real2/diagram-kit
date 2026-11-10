@@ -38,6 +38,23 @@ provider. You plan the mock. You do not build it, and you change no branch.
 - If the project has a code index (tokensave or CodeGraph), read the code through it. Report your graph calls and
   your shell calls in your final message.
 
+## Sources for the tool examples
+
+These primary sources support the examples below. Read on 2026-11-07. Read the current documentation again before
+you choose a tool or a supported OpenAPI version.
+
+| Subject | Documented capability | Source |
+|---|---|---|
+| OpenAPI | Describes HTTP APIs, including operations and security schemes | [OpenAPI 3.2.1](https://spec.openapis.org/oas/v3.2.1.html) |
+| Prism | Provides mock servers and a validation proxy for OpenAPI 2 and 3 | [Prism overview](https://github.com/stoplightio/prism) |
+| WireMock Cloud | Generates mock APIs from imported Swagger and OpenAPI documents | [OpenAPI import](https://docs.wiremock.io/openAPI/swagger) |
+| Microcks | Uses OpenAPI examples to produce mocks and tests | [OpenAPI conventions](https://microcks.io/documentation/references/artifacts/openapi-conventions/) |
+| Mockoon | Imports OpenAPI 2 and 3 files, with partial feature compatibility | [OpenAPI import and export](https://mockoon.com/docs/latest/openapi/import-export-openapi-format/) |
+| Pact | Tests messages against a contract and supports consumer-driven contracts | [Pact introduction](https://docs.pact.io/) |
+
+The WireMock Cloud source describes that product's import feature. Do not assume that the same feature exists in
+WireMock OSS. These sources support tool capabilities. They do not replace the public documents of each provider.
+
 ## Steps
 
 1. List the calls. Find each external provider that the product calls. For each call, record the method, the path,
@@ -52,7 +69,7 @@ provider. You plan the mock. You do not build it, and you change no branch.
    document states is "not confirmed".
 4. Research what teams do now. Search the web on each topic below, and read at least two sources for each topic.
    Record each option, with the reason that you kept or rejected it.
-   - Mock servers from an OpenAPI file, for example Prism, WireMock, Microcks and Mockoon, and a mock that the team
+   - Mock servers from an OpenAPI file, for example Prism, WireMock Cloud, Microcks and Mockoon, and a mock that the team
      writes in the language of the project.
    - Contract tests and drift: OpenAPI comparisons in CI, consumer contracts such as Pact, and a comparison with the
      sandbox of the provider.
