@@ -53,7 +53,7 @@ project hasn't chosen, ask the owner before building.
   uses only `{{c.<token>}}`; no hex in markup outside the tables (except a wrapper frame's own background).
 - Required names, which become the CSS variables one-to-one: `bg surface raised border track control text muted accent
   accentFg`, series tokens (e.g. `spent saved`), states `okFg okBg warnFg warnBg infoFg infoBg stopFg stopBg`,
-  categories `cat.emerald cat.sky cat.amber cat.violet cat.coral cat.pink cat.teal cat.slate cat.brown`.
+  categories `cat.emerald cat.sky cat.amber cat.violet cat.coral cat.pink cat.teal cat.slate cat.brown cat.cyan cat.indigo`.
 - Category colours mark what a thing is (a tool, a role, a model) and keep their colour on every tab: map once
   (`TOOL`, `ROLE`, `MODEL`) and look up; never pick a colour inline. Icon tiles: the category colour tinted over
   `surface` (12% light, 16% dark).
