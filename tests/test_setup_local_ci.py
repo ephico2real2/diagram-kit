@@ -272,3 +272,16 @@ def test_setup_refuses_a_folder_that_is_not_a_git_repository(tmp_path):
     result = setup(tmp_path)
     assert result.returncode == 2 and "is not a git repository" in result.stderr
     assert not (tmp_path / "ci").exists()
+
+
+def test_the_gitleaks_job_runs_natively_when_more_steps_follow_the_scan(env):
+    # `yq ... | grep -q` under pipefail: grep exits at the first match, yq gets SIGPIPE on its next line, and the
+    # pipeline fails, so the job went to act. More steps after the match make that near certain.
+    git = ["git", "-C", str(env["repo"]), "-c", "user.name=t", "-c", "user.email=t@example.test"]
+    ci = env["repo"] / ".github" / "workflows" / "ci.yml"
+    ci.write_text(ci.read_text() + "".join(f"      - run: echo after {n}\n" for n in range(200)))
+    subprocess.run([*git, "commit", "-qam", "more steps"], check=True)
+    for _ in range(5):
+        result = run(env, "-j", "secret-scan")
+        assert result.returncode == 0, result.stdout + result.stderr
+        assert act_calls(env) == []

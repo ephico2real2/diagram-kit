@@ -133,7 +133,9 @@ scan_native() { # tag, job
 cd "$repo" || exit 2
 for job in $jobs; do
   yq -e ".jobs.\"$job\"" "$workflow" >/dev/null 2>&1 || { record "$job" "exit=2 no such job"; continue; }
-  if yq -r ".jobs.\"$job\".steps[].run // \"\"" "$workflow" | grep -q 'gitleaks'; then
+  # Read all the run lines first: `yq | grep -q` under pipefail fails when grep exits before yq has written them all.
+  runs=$(yq -r ".jobs.\"$job\".steps[].run // \"\"" "$workflow")
+  if grep -q 'gitleaks' <<<"$runs"; then
     scan_native "$job" "$job"
     continue
   fi
