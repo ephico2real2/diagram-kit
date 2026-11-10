@@ -184,3 +184,10 @@ def test_no_new_skill_names_a_private_path():
         for path in sorted(p for p in (ROOT / "skill" / name).rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             text = path.read_text()
             assert "/Users/" not in text and "agent-report-standard.md" not in text, path
+
+
+def test_the_visual_skill_puts_the_state_before_first_and_the_renderer_checks_it():
+    skill = (ROOT / "skill" / "visual" / "SKILL.md").read_text()
+    standard = (ROOT / "STANDARD.md").read_text()
+    assert "**Before, then after.**" in skill and "later state first" in skill
+    assert "figure names that put a later state first" in standard
