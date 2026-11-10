@@ -123,3 +123,14 @@ def test_an_unset_variable_is_refused_before_anything_runs(fake):
     done = run(fake, "--name", "x", "--env", "NOT_SET_ANYWHERE_42", "--", "true")
     assert done.returncode == 2
     assert not (fake / "state.json").exists()
+
+
+@pytest.mark.parametrize(("signal", "code"), [("HUP", 129), ("TERM", 143)])
+def test_a_job_whose_tab_is_closed_still_writes_its_status_line(fake, signal, code):
+    """Closing the tab sends HUP to the runner. With no status line, --wait would wait for ever."""
+    done = subprocess.run([sys.executable, str(SCRIPT), "--status", str(fake / "status.txt"), "--poll", "0.05",
+                           "--name", "closed", "--cwd", str(fake), "--wait", "--",
+                           "bash", "-c", f"kill -{signal} $PPID; sleep 0.2"],
+                          capture_output=True, text=True, timeout=20, check=False)
+    assert done.returncode == code
+    assert f" exit={code} " in (fake / "status.txt").read_text()

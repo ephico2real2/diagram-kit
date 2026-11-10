@@ -79,16 +79,23 @@ def workspace_id(session: str, label: str, cwd: str) -> str:
 
 def write_runner(path: pathlib.Path, name: str, run_id: str, cwd: str, env: dict[str, str], command: list[str],
                  status: pathlib.Path) -> None:
-    """Write the script that the tab runs. It deletes itself first, so an environment value does not stay on disk."""
+    """Write the script that the tab runs. It deletes itself first, so an environment value does not stay on disk.
+
+    A closed tab or a stopped server ends the runner with HUP or TERM. The traps still write the status line, with
+    128 plus the signal number, so a caller that waits does not wait for ever. A SIGKILL cannot be trapped."""
     lines = ["#!/bin/bash", 'rm -f -- "$0"']
+    lines += [
+        f"finish() {{ printf '%s %s exit=%s %s\\n' {shlex.quote(name)} {shlex.quote(run_id)} \"$1\" "
+        f"\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" >> {shlex.quote(str(status))}; exit \"$1\"; }}",
+        "trap 'finish 129' HUP",
+        "trap 'finish 130' INT",
+        "trap 'finish 143' TERM",
+    ]
     lines += [f"export {key}={shlex.quote(value)}" for key, value in env.items()]
     lines += [
-        f"cd -- {shlex.quote(cwd)} || exit 1",
+        f"cd -- {shlex.quote(cwd)} || finish 1",
         shlex.join(command),
-        "rc=$?",
-        f"printf '%s %s exit=%s %s\\n' {shlex.quote(name)} {shlex.quote(run_id)} \"$rc\" "
-        f"\"$(date -u +%Y-%m-%dT%H:%M:%SZ)\" >> {shlex.quote(str(status))}",
-        'exit "$rc"',
+        'finish "$?"',
     ]
     fd = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w") as handle:
