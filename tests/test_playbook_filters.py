@@ -9,6 +9,7 @@ installs it): there a missing pandoc fails them.
 
 from __future__ import annotations
 
+from html.parser import HTMLParser
 import os
 import pathlib
 import re
@@ -73,4 +74,44 @@ def test_the_page_shows_only_the_light_render_when_asked(tmp_path):
 @needs_pandoc
 def test_an_alt_text_with_a_quote_stays_inside_its_attribute(tmp_path):
     found = tags(build(tmp_path, DECK, "deck.lua"))
+    assert len(found) == 2
     assert all('alt="Rate &quot;p95&quot; of the API"' in t for t in found)
+
+
+@needs_pandoc
+def test_the_client_build_commands_use_the_shared_templates(tmp_path):
+    for name in ("PLAYBOOK.md", "DECK.md"):
+        shutil.copyfile(SKILL / name, tmp_path / name)
+    figures = tmp_path / "figures"
+    figures.mkdir()
+    for source in (SKILL / "figures").glob("*.png"):
+        shutil.copyfile(source, figures / source.name)
+    recipe = (SKILL / "SKILL.md").read_text().split("```sh\n", 1)[1].split("\n```", 1)[0]
+    commands = [line for line in recipe.replace("\\\n", "").splitlines() if line.startswith("pandoc ")]
+    assert len(commands) == 5
+    environment = dict(os.environ, playbook_templates=str(SKILL))
+    for command in commands:
+        subprocess.run(["/bin/sh", "-c", command], cwd=tmp_path, env=environment,
+                       check=True, capture_output=True, text=True)
+    for name in ("playbook.html", "playbook.pptx", "deck.html"):
+        assert (tmp_path / name).stat().st_size > 0
+
+
+@needs_pandoc
+def test_the_deck_preserves_entity_text_in_figure_paths(tmp_path):
+    class Images(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.sources = []
+
+        def handle_starttag(self, tag, attrs):
+            if tag == "img":
+                self.sources.append(dict(attrs)["src"])
+
+    text = "![Rate](figures/rate&amp;copy;.light.png)\n"
+    plain = Images()
+    plain.feed(build(tmp_path, text))
+    assert plain.sources == ["figures/rate&copy;.light.png"]
+    themed = Images()
+    themed.feed(build(tmp_path, text, "deck.lua"))
+    assert themed.sources == ["figures/rate&copy;.light.png", "figures/rate&copy;.dark.png"]

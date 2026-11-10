@@ -11,7 +11,9 @@ import pathlib
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-MPL_FILES = sorted([*ROOT.glob("diagram_kit/*.py"), *ROOT.glob("tests/*.py")])
+# A skill's own venv (skill/screenshot/.venv, made by its SKILL.md) is not the kit's code.
+MPL_FILES = sorted([*ROOT.glob("diagram_kit/*.py"), *ROOT.glob("tests/*.py"),
+                    *(p for p in ROOT.glob("skill/**/*.py") if ".venv" not in p.parts)])
 MIT0_FILES = sorted([ROOT / "diagram_kit" / "template.html", *ROOT.glob("examples/*/source.html")])
 
 
