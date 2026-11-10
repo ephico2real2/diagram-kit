@@ -134,3 +134,8 @@ def test_a_job_whose_tab_is_closed_still_writes_its_status_line(fake, signal, co
                           capture_output=True, text=True, timeout=20, check=False)
     assert done.returncode == code
     assert f" exit={code} " in (fake / "status.txt").read_text()
+
+
+def test_the_skill_states_the_name_rule_of_the_script():
+    skill = (ROOT / "skill/herdr-jobs/SKILL.md").read_text()
+    assert "starts with a lower-case letter" in skill  # NAME = [a-z][a-z0-9_.-]{0,63}: "1job" is refused

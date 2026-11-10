@@ -26,7 +26,7 @@ A named session keeps the jobs apart from the main Herdr session of the person. 
 python3 <kit>/skill/herdr-jobs/herdr_job.py --name <job> --cwd <folder> [--env VAR ...] --wait -- <command> <args>
 ```
 
-- `--name` is the tab label: lower case, a digit, `.`, `_` or `-`, at most 64 characters.
+- `--name` is the tab label. It starts with a lower-case letter, then lower-case letters, digits, `.`, `_` or `-`, at most 64 characters in all.
 - `--env VAR` passes one variable of the current environment to the job. The value goes into a runner file with mode 0600. At the start of the job, that file deletes itself. The value is never in a command line that `ps` shows.
 - With `--wait`, the script returns at the end of the job, with the exit code of the job. Run the whole command in the background (for example a Claude Code background shell), and the caller wakes on the end of the job. If the tab is closed or the server stops, the job ends with HUP or TERM, and the status line gets `exit=129` or `exit=143`. A job ended with SIGKILL writes no line, and `--wait` then does not return.
 - `--session` (default `jobs`, or `HERDR_JOBS_SESSION`) and `--workspace` (default `jobs`, or `HERDR_JOBS_WORKSPACE`) name where the tab goes. If the workspace does not exist, the script makes it.
