@@ -195,6 +195,16 @@ def test_no_new_skill_names_a_private_path():
             assert "/Users/" not in text and "agent-report-standard.md" not in text, path
 
 
+def test_the_kubernetes_network_layer_is_cilium_in_the_playbook_the_deck_and_app_architect():
+    playbook = (ROOT / "skill" / "delivery-playbook" / "PLAYBOOK.md").read_text().split("## 11. Runtime and scaling", 1)[1].split("\n## ", 1)[0]
+    deck = (ROOT / "skill" / "delivery-playbook" / "DECK.md").read_text().split("## Runtime and scaling", 1)[1].split("\n## ", 1)[0]
+    architect = (ROOT / "skill" / "app-architect" / "SKILL.md").read_text()
+    for text in (playbook, architect):
+        assert "Cilium" in text and '`service.cilium.io/global: "true"`' in text and "Tempo" in text
+    assert "Cilium" in deck and "ClusterMesh" in deck
+    assert "httpV2:exemplars=true" in architect and "/dashboard" in playbook
+
+
 def test_mock_app_tool_claims_have_primary_sources():
     text = (ROOT / "skill" / "mock-app" / "SKILL.md").read_text()
     sources = {
