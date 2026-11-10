@@ -135,3 +135,7 @@ Real `<button>`, `<a href>`, `<label>` + inputs; `aria-current` on the active ta
 When accepted, export each tab to self-contained HTML plus a PNG under the feature's `mockups/` folder (Inkcast:
 `docs/<area>/mockups/`, light screenshots unless the owner says), link them from the design doc with the `$target`
 table, and keep the canvas link in the issue.
+
+Each exported PNG has the stage `mockup` and a JSON file beside it (`/mockup-to-page` section 7). When the page is
+built and deployed, the mockup pictures stay. The history document shows them first, before the pictures of the built
+and the deployed page.

@@ -45,6 +45,13 @@ in this order:
    reached from the sandbox. The planted answers go in a file outside the job folder.
 5. Deliverables (round 1) or claims to attack (round 2), each with the file it changes.
 6. Definition of done: each item says how a test or a command shows it.
+   If the job changes a screen, the definition of done also has these items:
+   - the production build of the app passes, not only the type check and the unit tests.
+   - each new picture has its stage and its JSON file (`/mockup-to-page` section 7).
+   - the stage table of the mockups README and the history document have a row for the change.
+
+   The sandbox cannot start the deployed stack or a device. Thus the arbiter makes the `deployed-local` pictures
+   after the ruling, and the job marks them NOT REACHED.
 7. Limits: a stop point (`stop after` the IDs, or a time limit), no browser, no `.env` file, no secret, no push, no
    `gh` write, no install, no lockfile change, keep the line endings. The sandbox keeps `.git` read-only, so
    `run-pair.sh` adds the `.git` folder of the clone with `--add-dir`. The job then makes one commit for each deliverable
