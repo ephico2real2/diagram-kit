@@ -6,6 +6,7 @@ use it, and a README row that says where to link it. The two mockup skills are o
 
 from __future__ import annotations
 
+import hashlib
 import pathlib
 import re
 import subprocess
@@ -23,9 +24,11 @@ def frontmatter(path: pathlib.Path) -> dict[str, str]:
 
 
 def test_the_kit_ships_every_skill():
-    assert [p.name for p in SKILLS] == ["adversarial-review", "agent-report", "app-architect", "build-mockup", "codex-arbiter", "dashboard",
-                                      "delivery-page", "document", "fix-defect", "houston-mayday", "mockup-to-page", "mockup-to-page-react", "sweep-stale", "test-ui",
-                                      "tokensave-fork", "visual", "workbench"]
+    assert [p.name for p in SKILLS] == ["act", "adversarial-review", "agent-report", "agile", "app-architect", "build-mockup", "build-tracker",
+                                      "codex-arbiter", "dashboard", "delivery-page", "delivery-playbook", "document", "epic", "fix-defect",
+                                      "handover", "herdr-jobs", "houston-mayday", "issue", "local-ci", "mobile-app-designer", "mock-app",
+                                      "mockup-to-page", "mockup-to-page-react", "pull-request", "resume-work", "screenshot", "setup-local-ci",
+                                      "sweep-stale", "test-ui", "tokensave-fork", "visual", "workbench"]
 
 
 @pytest.mark.parametrize("skill", SKILLS, ids=lambda p: p.name)
@@ -44,10 +47,16 @@ def test_the_readme_installs_the_pandoc_that_ci_pins_on_each_platform():
     readme = (ROOT / "README.md").read_text()
     ci = (ROOT / ".github" / "workflows" / "ci.yml").read_text()
     version = re.search(r"name: Install pandoc (\S+)", ci).group(1)
-    digest = re.search(r'echo "([0-9a-f]{64})  \$RUNNER_TEMP/pandoc\.deb"', ci).group(1)
+    digest = re.search(r"amd64\) ARCH=amd64; DIGEST=([0-9a-f]{64}) ;;", ci).group(1)
     section = readme.split("### Prerequisite for documents: pandoc ", 1)[1].split("\n### ", 1)[0]
     assert section.startswith(version)
     assert f"amd64) ARCH=amd64; DIGEST={digest} ;;" in section
+    # The job installs the .deb of the runner's CPU, as the README does: under the local act CI on an arm64 Mac the
+    # runner is arm64, and an amd64 .deb stops the job before its tests.
+    arm64 = re.search(r"arm64\) ARCH=arm64; DIGEST=([0-9a-f]{64}) ;;", ci)
+    assert arm64 and f"arm64) ARCH=arm64; DIGEST={arm64.group(1)} ;;" in section
+    assert 'case "$(dpkg --print-architecture)" in' in ci
+    assert f"releases/download/{version}/pandoc-{version}-1-$ARCH.deb" in ci
     assert f"releases/download/{version}/pandoc-{version}-$ARCH-macOS.zip" in section
     assert re.search(r"arm64\)  ARCH=arm64;  DIGEST=[0-9a-f]{64} ;;", section)
     assert re.search(r"x86_64\) ARCH=x86_64; DIGEST=[0-9a-f]{64} ;;", section)
@@ -180,7 +189,65 @@ def test_the_fork_skill_names_the_toolchain_folder_of_each_mac(machine, toolchai
 
 
 def test_no_new_skill_names_a_private_path():
-    for name in ("agent-report", "codex-arbiter", "fix-defect", "houston-mayday", "tokensave-fork", "workbench"):
+    for name in ("agent-report", "codex-arbiter", "fix-defect", "houston-mayday", "mobile-app-designer", "tokensave-fork", "workbench"):
         for path in sorted(p for p in (ROOT / "skill" / name).rglob("*") if p.is_file() and "__pycache__" not in p.parts):
             text = path.read_text()
             assert "/Users/" not in text and "agent-report-standard.md" not in text, path
+
+
+def test_the_kubernetes_network_layer_is_cilium_in_the_playbook_the_deck_and_app_architect():
+    playbook = (ROOT / "skill" / "delivery-playbook" / "PLAYBOOK.md").read_text().split("## 11. Runtime and scaling", 1)[1].split("\n## ", 1)[0]
+    deck = (ROOT / "skill" / "delivery-playbook" / "DECK.md").read_text().split("## Runtime and scaling", 1)[1].split("\n## ", 1)[0]
+    architect = (ROOT / "skill" / "app-architect" / "SKILL.md").read_text()
+    for text in (playbook, architect):
+        assert "Cilium" in text and '`service.cilium.io/global: "true"`' in text and "Tempo" in text
+    assert "Cilium" in deck and "ClusterMesh" in deck
+    assert "httpV2:exemplars=true" in architect and "/dashboard" in playbook
+
+
+def test_the_architect_reviews_recovery_for_each_cloud_and_the_edge():
+    skill = (ROOT / "skill" / "app-architect" / "SKILL.md").read_text()
+    facts = (ROOT / "skill" / "app-architect" / "RESILIENCE.md").read_text()
+    assert "`RESILIENCE.md`" in skill
+    for heading in ("## 1. The order of the options", "## 2. Cilium on each cloud", "## 3. ClusterMesh",
+                    "## 4. The database", "## 5. The edge", "## 6. The drill"):
+        assert heading in facts, heading
+    for cloud in ("Google (GKE)", "Microsoft (AKS)", "Amazon (EKS)"):
+        assert cloud in facts, cloud
+    assert "A second region of the same cloud" in facts and "Cloudflare" in facts
+    # every fact that is not a research item names its source
+    assert facts.count("](https://") >= 15
+
+
+def test_mock_app_tool_claims_have_primary_sources():
+    text = (ROOT / "skill" / "mock-app" / "SKILL.md").read_text()
+    sources = {
+        "OpenAPI": "https://spec.openapis.org/oas/v3.2.1.html",
+        "Prism": "https://github.com/stoplightio/prism",
+        "WireMock Cloud": "https://docs.wiremock.io/openAPI/swagger",
+        "Microcks": "https://microcks.io/documentation/references/artifacts/openapi-conventions/",
+        "Mockoon": "https://mockoon.com/docs/latest/openapi/import-export-openapi-format/",
+        "Pact": "https://docs.pact.io/",
+    }
+    for name, url in sources.items():
+        assert re.search(rf"^\| {re.escape(name)} \|.*{re.escape(url)}", text, re.M), name
+    examples = text.split("Mock servers from an OpenAPI file", 1)[1].split("- Contract tests", 1)[0]
+    assert "WireMock Cloud" in examples
+
+
+# The SHA-256 of each word that a public kit must not name (a firm or a client), so that this file does not name it.
+UNNAMED = {"f1d7bf6aaff7a93ba447e892150810efbd1c85dc020025c95a8b21ef30bf8b6e"}
+
+
+def test_no_skill_and_no_readme_names_an_unnamed_word():
+    for path in [ROOT / "README.md", *sorted(p for p in (ROOT / "skill").rglob("*") if p.is_file()
+                                             and not {"__pycache__", ".venv"} & set(p.parts))]:
+        words = set(re.findall(r"[a-z0-9]+", path.read_text(errors="ignore").lower()))
+        assert not {hashlib.sha256(w.encode()).hexdigest() for w in words} & UNNAMED, path
+
+
+def test_the_visual_skill_puts_the_state_before_first_and_the_renderer_checks_it():
+    skill = (ROOT / "skill" / "visual" / "SKILL.md").read_text()
+    standard = (ROOT / "STANDARD.md").read_text()
+    assert "**Before, then after.**" in skill and "later state first" in skill
+    assert "figure names that put a later state first" in standard
