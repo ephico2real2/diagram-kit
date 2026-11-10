@@ -128,6 +128,9 @@ Then:
 ### 6. Portability and platform
 
 - Containerized, and runnable locally as a PoC (Compose or an equivalent) that mirrors production.
+- Creative use of open source: where a managed service lacks a feature, combine open-source components behind one port,
+  with an adapter for each store and one contract test suite that passes against each. Record the licence of each
+  component, open source or source-available, and its limits.
 - Helm charts that deploy on-premises or on any cloud; GitOps with Argo CD as the conduit, every switch a chart
   value.
 - Working configuration lives in Helm (`/helm-first`, where installed): a `kubectl patch`, a hand-applied manifest or a

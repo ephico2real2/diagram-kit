@@ -61,16 +61,21 @@ For a **bug**, replace Story with: `## What happens`, `## What should happen`, `
 
 ## 3. Labels, type and links
 
-- Type label: one of `story`, `task`, `bug`, `spike`, `documentation`. Create a missing label
+- Type label: one of `feature`, `story`, `task`, `bug`, `spike`, `documentation`. Create a missing label
   first: `gh label create <name> --color <hex> --description "<one line>"`.
+- Issue type and parent: `/agile` section 2 maps each item to its GitHub issue type (`Feature`, `Task`,
+  `Bug`), and section 4 sets the type and the sub-issue link through the GitHub API.
+- Class label: `class:INV` for innovation, `class:TDT` for tech debt, both, or none. `/agile` gives the
+  questions that decide it, and `LEGEND.md` beside it is the standard legend. A defect does not get "no class" by
+  default: read its fix, because a new control, test method or gate is `INV`.
 - Area label if the repository has them (`area:chart`, `area:docs`, `area:lab`, …).
 - Milestone, if the repository has milestones: the release or train that ships the work
   (`--milestone "<title>"`). If no release carries it yet, leave it empty and say so in a tracker.
 - Status label, if the repository has `status:` labels: exactly one. Change it in one command,
   `gh issue edit <n> --add-label <new> --remove-label <old>`, because `--add-label` alone keeps the
   old status and the issue then has two.
-- If the issue belongs to an epic: put `Part of #<epic>` as the first line of the body, and add
-  the issue to the epic's task list (`/epic` does this).
+- If the issue belongs to an epic or a feature: put `Part of #<parent>` as the first line of the body,
+  add it as a sub-issue of that parent, and add it to the task list of the parent (`/epic` does this).
 - Before creating, check for a duplicate: `gh issue list --state all --search "<key words>"`.
 
 ## 4. Create, and close what is done

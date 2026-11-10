@@ -66,6 +66,8 @@ The problem or the risk today, with where it was seen.
    repository has `status:` labels, each child has exactly one.
    Close only the children whose work reaches the default branch, with their evidence
    (`gh issue close <n> --reason completed --comment "…"`). Keep the other children open.
+   Add each child as a sub-issue of the epic, or of its feature, and set its issue type, as `/agile`
+   section 4 shows. Each child gets the class labels that `/agile` section 2 decides.
 4. Rewrite the epic's Issues section as a task list of the real numbers, ticked where the child
    is closed: `gh issue edit <epic> --body-file <epic.md>`. GitHub then shows the progress.
 5. Close the epic only when every exit criterion is met. If some children stay open, the epic

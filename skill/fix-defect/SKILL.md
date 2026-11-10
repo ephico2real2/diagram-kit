@@ -72,12 +72,14 @@ Project rules still apply to the issue: its language mode, its label set and its
 
 If the repository tracks releases with milestones, set the milestone of the release that carries the fix. A milestone names a thing that ships, such as a release or a train. A theme is a label, and a body of work is a parent issue. If the carrying release is not known yet, leave it empty and set it when the research names it. A defect found in a patch takes the milestone of the issues that the patch fixes, because it ships in the same change.
 
+Set the class with the questions of `/agile`. A defect does not get "no class" by default. If its fix adds a new control, the defect is `INV`. A defect in new `INV` work that is not merged is also `INV`. A defect in an unmerged fix that has no class keeps no class. If its cause is an earlier shortcut, it is also `TDT`.
+
 ### One status label for each issue
 
-If the repository has `status:` labels, each issue has exactly one. On 2026-11-07, 16 issues had 2 status labels, because `--add-label` added the new status and kept `status:open`. Then the tracker did not show which status was true. Change a status in one command, and then count the issues with more than one:
+If the repository has `status:` labels, each issue has exactly one. On 2026-11-07, 16 issues had 2 status labels, because `--add-label` added the new status and kept `status:open`. Then the tracker did not show which status was true. Read the current status label from the issue. Use it for `<old status>` in this command. Then count the issues with more than one:
 
 ```sh
-gh issue edit <n> --add-label status:fixed-on-review-branch --remove-label status:open
+gh issue edit <n> --add-label status:fixed-on-review-branch --remove-label "<old status>"
 gh issue list --state all --limit 500 --json number,labels \
   --jq '[.[] | select(([.labels[].name | select(startswith("status:"))] | length) > 1) | .number]'
 ```
@@ -125,7 +127,7 @@ Reports are claims until tested. Before accepting anything, the main session:
 ## 5. Close it
 
 - A pull request says `Closes #N` for each defect, `Part of #parent`, and who wrote what.
-- A fix reaches a long-lived branch, such as a review branch, only through a pull request from a working branch. Owner rule, 2026-11-07. Fill a copy of the pull request template, and give it with `--body-file`. GitHub reads the template only for a pull request opened in the browser. Set `--milestone` to the train of the fix and `--label` to its type. Each issue in `Closes #` has the same milestone as the pull request.
+- A fix reaches a long-lived branch, such as a review branch, only through a pull request from a working branch. Owner rule, 2026-11-07. Fill a copy of the pull request template, and give it with `--body-file`. For a filled body, use `--body-file`. For an interactive draft, `gh pr create --template <file>` uses a template. Set `--milestone` to the train of the fix and `--label` to its type. Each issue in `Closes #` has the same milestone as the pull request.
 - `Closes #N` closes an issue only in a pull request to the default branch. After a merge to another branch, set the status label by hand, as in section 1.
 - Merge only after CI passes on the pull request, and tick the checklist of the template part for that branch.
 - Save the review record where the project keeps it.
