@@ -41,8 +41,9 @@ if [[ -z $KEEP_AUTHOR ]]; then
   name=$(git config --global user.name) email=$(git config --global user.email)
   [[ -n $name && -n $email ]] || fail "no global git identity; set it or KEEP_AUTHOR=1"
   old=($(git -C $C rev-list --reverse $from..HEAD))
+  # --allow-empty: an agent can record a step in an empty commit, and the amend refuses one without it.
   git -C $C -c user.name="$name" -c user.email="$email" rebase -q --rebase-merges --exec \
-    "git -c user.name='$name' -c user.email='$email' commit -q --amend --no-edit --reset-author" $from \
+    "git -c user.name='$name' -c user.email='$email' commit -q --amend --no-edit --allow-empty --reset-author" $from \
     || { git -C $C rebase --abort 2>/dev/null; fail "author rewrite failed"; }
   new=($(git -C $C rev-list --reverse $from..HEAD))
   for i in {1..$#old}; do print "${old[$i]:0:8} -> ${new[$i]:0:8}"; done > $J/draft-sha-map.txt

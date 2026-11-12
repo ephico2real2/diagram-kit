@@ -116,3 +116,16 @@ def test_draft_refuses_a_branch_with_no_new_commit(job):
 def test_draft_refuses_missing_arguments():
     result = subprocess.run(["zsh", SCRIPT, "a"], capture_output=True, text=True)
     assert result.returncode == 2 and "usage" in result.stderr
+
+
+def test_draft_keeps_an_empty_commit_and_gives_it_the_owner_authorship(job):
+    # An agent can record a step with "git commit --allow-empty" when its report stays outside the repository.
+    # On 2026-11-12 two such commits stopped the author rewrite: "commit --amend" refuses an empty commit.
+    clone, folder, env = job
+    git(clone, "commit", "-q", "--allow-empty", "-m", "D2: record research outside the repository", env=env)
+    result = run(clone, folder, env)
+    assert result.returncode == 0, result.stderr
+    subjects = git(clone, "log", "--format=%s", "main..HEAD", env=env).splitlines()
+    assert subjects == ["D2: record research outside the repository", "D1: add sum with its test"]
+    authors = set(git(clone, "log", "--format=%an <%ae>", "main..HEAD", env=env).splitlines())
+    assert authors == {"Owner Person <owner@example.com>"}
