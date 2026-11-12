@@ -1,6 +1,6 @@
 ---
 name: mobile-app-designer
-description: Design the screens of a mobile app for iOS and Android after Apple's Human Interface Guidelines. Read the guidelines first and measure Apple's system colors on the simulator. A script makes every color token and tests each contrast pair in light, dark and increased contrast. Category colors come from measured separation. The mockup follows /build-mockup, every screen is rendered and looked at, and an interactive review page goes to the owner. Use when the user types /mobile-app-designer, or asks for the design, the colors, the theme, the look or the mockup of a mobile app.
+description: Design the screens of a mobile app for iOS and Android after Apple's Human Interface Guidelines. iOS comes first, and Android gives the same experience, with a mockup view of each screen that differs. Read the guidelines first and measure Apple's system colors on the simulator. A script makes every color token and tests each contrast pair in light, dark and increased contrast. Category colors come from measured separation. Sample content is made from real files with a license check, and files open in viewers inside the app. The mockup follows /build-mockup, every screen is rendered and looked at, a second model reviews it, and an interactive review page goes to the owner. Use when the user types /mobile-app-designer, or asks for the design, the colors, the theme, the look or the mockup of a mobile app.
 ---
 
 # /mobile-app-designer: screens that look native and pass every contrast test
@@ -41,8 +41,11 @@ For a rule of Android, read the Android developer page that states it before you
 
 Ask only what the code and the guidelines cannot decide. Record each answer with its date and the owner's words.
 
-1. The look on Android. Apple design on both platforms keeps one design. Some behavior stays native on each
-   platform: the system back gesture, the share sheet and the biometric prompt.
+1. iOS first, the same experience on Android. This is the owner's standing rule: "Anything we do for ios is going to
+   benefit our Android as well. The same user experience". Design each screen and control from the iOS system
+   behavior and Apple's guidelines. Then give Android the same experience. Some behavior stays native on each
+   platform, for example the system back gesture, the share sheet and the biometric prompt. Section 7 shows each
+   such difference.
 2. Brand screens and working screens. A brand color fills the welcome and lock screens and the wordmark. The working
    screens use the system backgrounds.
 3. The accent. A brand accent needs a darker variant for light mode and an increased-contrast variant for each mode.
@@ -122,7 +125,7 @@ Follow `/build-mockup`. A native app adds these rules:
 - The system font stack, `-apple-system, system-ui`. Never embed SF Pro. A brand serif is only for the wordmark.
 - Large titles of 34 pt, inset grouped lists, controls of at least 44 pt (or the project's own larger size), and a
   monochromatic tab bar on a translucent surface. The current tab takes the accent.
-- A switch that is on uses the good state color. A destructive action uses the stop color and opens a confirmation.
+- A switch that is on uses the good state color. A destructive action uses the stop color, and an alert asks the person before it acts.
 - A sheet or an alert sits on a `position: fixed` overlay. An overlay tied to the page height leaves the sheet below
   the first screen.
 - Every screen of a mockup with sample data shows a banner that says so.
@@ -133,7 +136,66 @@ Follow `/build-mockup`. A native app adds these rules:
   copy has no protection.
 - Draw simple outline icons of your own, as paths. The app uses the platform symbols.
 
-## 7. Render, test and look
+## 7. Show each platform where it differs
+
+1. The artboard has a `platform` switch: `ios` by default, and `android`. It changes only the parts that differ.
+2. The export adds `<screen>-android-light.png` and `<screen>-android-dark.png`, only for the screens that differ.
+3. The design note has a table with three columns: the screen, what differs, and the source that forces it. A
+   source is a platform rule or component that you read, with its URL and a quote. A difference with no source is a
+   defect: draw the iOS behavior on both.
+4. Typical differences: the biometric prompt, the share sheet, the system back gesture, the volume slider of the
+   video player (section 9), and the formatter of file sizes ("KB" on iOS, "kB" on Android).
+5. If no source says what a control does, test it on a real device. Of the volume abilities, Apple's MPVolumeView
+   page says: "These abilities only work on a device."
+
+## 8. Make the sample content real
+
+1. Each sample item is one real file that a script makes: pictures and video drawn in code, documents and text
+   written in code. The file holds no photo of a person and no personal data, and it says that it is a sample.
+2. Check the license of every tool that makes content that ships. For example, the macOS license allows the system
+   voices only "to create your own original content and projects for your personal, non-commercial use". So a voice
+   for a commercial app comes from a voice whose model and training data allow commercial use, or from the owner.
+3. Counts and sizes come from the files. A build task records the size of each file, and a test compares it with the
+   sample data. CI compares each file in the built app with its source, byte for byte.
+4. Some encoders write the time into the file, for example the MP4 header. Then the committed file is the source,
+   and the note says so.
+5. The mockup shows copies of the real files, made by a script with its commands in the note. It never shows gray
+   lines in place of a document.
+
+## 9. Open every file inside the app
+
+Read the guideline page of each viewer first. These quotes were read on 2026-11-10:
+
+- playing-video: "Use the system video player to give people a familiar and convenient experience." "Always display
+  video content at its original aspect ratio."
+- gestures (the iOS table): double tap, "Zoom in" and "zoom out if already zoomed in". Swipe, "Reveal actions and
+  controls", "dismiss views" and "scroll".
+- file-management: Quick Look lets people "view them within your app and in some cases interact with them".
+
+The rules:
+
+1. A file opens in a viewer of its kind, inside the app. The app does not hand a file to another app to show it.
+2. A picture fits the screen. A pinch zooms, a double tap zooms in and out, and a drag moves a zoomed picture.
+3. A video plays in the system player at its original aspect ratio, and starts paused. The volume control is the
+   one of the system player on each platform:
+   - iOS: the player has a mute button and a slider. The slider shows the system volume. Apple's MPVolumeView page
+     says that the slider "moves to reflect the new volume" at a press of the volume buttons. A test on an iPad in
+     2026 showed the same. The app draws no slider of its own.
+   - Android: the player has the same mute button. The side buttons change the media volume through the system
+     panel. Call `setVolumeControlStream(AudioManager.STREAM_MUSIC)` in `onResume()`.
+   - Android has no slider in the player. A slider like the iOS one sets the device volume. Android's page on audio
+     output says of those methods: "Avoid using them". This is a forced difference of section 7.
+4. A PDF shows its real pages in one scroll, with a label that names the page at the top.
+5. Text shows in full. Select and copy stay off until the project has a rule for plaintext on the clipboard.
+6. A swipe opens the next or the previous file of the list that the viewer came from, in that list's order. Arrows do
+   the same for people who cannot swipe, and they name the position, for example "2 of 4 in Travel".
+7. The details go to an Info sheet. The app switcher shows a cover, never the file.
+8. In the mockup, the viewer screen is exactly as high as the phone, and each viewer scrolls inside itself. A page
+   that grows with its content pushes the action bar and the arrows off the screen.
+9. Measure the contrast of controls that sit on media over the real frames. Blend the control's ground over the
+   brightest pixel under each control, then compute the ratio.
+
+## 10. Render, test and look
 
 1. Render with Inkcast's `scripts/mockups/render.js` and test with its `check.py`, run in place from a clone of
    Inkcast. They carry the PolyForm Shield license, so never copy them into another repository.
@@ -144,7 +206,7 @@ Follow `/build-mockup`. A native app adds these rules:
    no picture shows the state before the fix.
 4. Search the source for each claim word, and accept a hit only in the sample banner.
 
-## 8. Publish a review page
+## 11. Publish a review page
 
 Load the `artifact-design` skill, then build one page from the rendered screens:
 
@@ -157,7 +219,12 @@ Load the `artifact-design` skill, then build one page from the rendered screens:
 
 Publish it as a private Artifact. Put its link in the issue, never in the repository.
 
-## 9. Deliver into the repository
+Before the owner approves, a model of another family reviews the mockup, for example Codex at the effort that the owner
+names. The brief carries the whole agent report standard (`/agent-report`). It lists each claim to test with its file
+and lines, and asks for a fix and a test for each defect. The arbiter rules on each finding. A review by a second
+model is not an independent audit, and the record never calls it one.
+
+## 12. Deliver into the repository
 
 - The source canvas (`Main.dc.html`, `Colors.dc.html`, the frames and `canvas.json`), the new token file beside the old
   one, the probe and its output, and the two scripts.
@@ -166,6 +233,21 @@ Publish it as a private Artifact. Put its link in the issue, never in the reposi
   the points for review, the Android note, the sources with quotes, and the commands that make every file again.
 - A progress comment in the issue, with the commit and the link. The issue stays In-Progress until the owner approves
   each screen in writing.
+
+## 13. Write the as-built design document after each approval
+
+The design note of each version is its history, so it stays as it was approved. One more document shows the whole
+design as it is now approved: `design/as-built/README.md`. The owner asked for it on 2026-11-10.
+
+1. Update it only after the owner approves a version. It never shows a version that waits for approval.
+2. Open it with the approval record: the version, the date, the owner's words and the link to the issue comment.
+3. Embed every screen of the approved version, in light and in dark, with the Android picture beside the iOS one where
+   they differ. A script writes this catalogue between two markers, from a list of screens with captions. Its check
+   mode runs in CI, and it fails if the catalogue is stale or if a PNG of the version is left out.
+4. Add the flows as a `/visual` diagram, each component with its states, the tokens, the platform differences with
+   their sources, and every decision with the version that made it.
+5. Link each version's design note for its history and its sources. Do not edit an approved version's note.
+6. Make the files again from the commands of section 12, and look at every embedded picture before the commit.
 
 ## Anti-patterns
 
@@ -177,3 +259,7 @@ Publish it as a private Artifact. Put its link in the issue, never in the reposi
 | Leave a translucent label untested | Composite it over each ground before the ratio |
 | Draw a proposed feature as built | Dashed outline, a "Proposed" label, and the off state |
 | Send pictures from before the last fix | Render every screen again, then look, then send |
+| Draw only iOS and call it both | Show each platform where it differs, with the source |
+| Fill a document with gray lines | Show copies of the real sample files |
+| Leave the approved screens only in a review page | Embed every approved screen in the as-built document |
+| Ship content from a tool with a personal-use license | Read the license, and use content that allows commercial use |
