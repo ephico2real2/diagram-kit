@@ -113,7 +113,7 @@ Owner mandate of 2026-11-12: work that stays in a background clone gets lost. So
 job ends, or stops early, the runner operates `draft_pr.sh` before the audit and before any other step:
 
 ```sh
-LABELS="bug" MILESTONE="<milestone>" ${CLAUDE_SKILL_DIR}/scripts/draft_pr.sh <clone> <owner/repo> <branch> <base> <folder>/<job> "<title>"
+LABELS="bug" MILESTONE="<milestone>" PART_OF="#<parent>" ${CLAUDE_SKILL_DIR}/scripts/draft_pr.sh <clone> <owner/repo> <branch> <base> <folder>/<job> "<title>"
 ```
 
 The script does these steps, in this order:
@@ -127,7 +127,9 @@ The script does these steps, in this order:
 4. It pushes the branch, with no force. It opens the draft once. A later round of the same branch only pushes and
    adds a comment.
 
-`DRY_RUN=1` writes the body and makes no push and no `gh` call. The agent itself never pushes: its sandbox has no
+`PART_OF` opens the body with `Part of #<parent>.`, for a project flow that asks each pull request for its parent.
+The script refuses a value that is not `#<n>` or `owner/repo#<n>`, before it changes the clone. `DRY_RUN=1` writes the
+body and makes no push and no `gh` call. The agent itself never pushes: its sandbox has no
 network write and no `gh`.
 
 After the draft exists, every later round works on that branch: the adversarial review, the fix rounds, the arbiter's
