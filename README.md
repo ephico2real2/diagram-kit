@@ -1,8 +1,8 @@
 # diagram-kit
 
 One renderer, one template and one standard for the figures in our repositories; since 0.2.0, one standard and
-two commands for their dashboards, the figures that move; and, since 0.2.5, one command for a Word document made from
-Markdown.
+two commands for their dashboards, the figures that move; since 0.2.5, one command for a Word document made from
+Markdown; and, since 0.2.6, one command for a page made from a repository's tracker, handover and resume documents.
 
 Each diagram has a `source.html` page, started by `diagram-template` from the template the kit ships. `diagram-render`
 turns every figure on it into a light and a dark PNG, and refuses the defects a review of the SVG text does not see:
@@ -27,10 +27,13 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `diagram_kit/delivery.py` | `delivery-page`: one page from a repository's tracker, handover and resume documents at one commit; it writes nothing when one of the three is missing, empty or still starter text |
 | `skill/delivery-page/SKILL.md` | the `/delivery-page` Claude Code skill: the three required documents, the render, and how the page is checked and published; link `~/.claude/skills/delivery-page` to this directory |
 | `skill/build-mockup/SKILL.md` | the `/build-mockup` Claude Code skill: an app mockup built as the contract for its page (target, tokens, state, typed data, section types, checks); link `~/.claude/skills/build-mockup` to this directory |
+| `skill/mobile-app-delivery/SKILL.md` | the `/mobile-app-delivery` Claude Code skill: a new mobile app from one round of questions to a build on the owner's phone, with research, decisions, diagrams, design, backlog, repositories, CI and device tests, each through a kit skill; link `~/.claude/skills/mobile-app-delivery` to this directory |
+| `skill/mobile-app-designer/SKILL.md` | the `/mobile-app-designer` Claude Code skill: the screens of a mobile app after Apple's Human Interface Guidelines, with measured system colors, scripted contrast tests and a review page; link `~/.claude/skills/mobile-app-designer` to this directory |
 | `skill/mockup-to-page/SKILL.md` | the `/mockup-to-page` Claude Code skill: that mockup translated one-to-one into React or Preact + TypeScript, and proven to match; link `~/.claude/skills/mockup-to-page` to this directory |
 | `skill/mockup-to-page-react/SKILL.md` | the `/mockup-to-page-react` Claude Code skill: a mockup translated into React, TypeScript, Vite and PatternFly, with PatternFly's look and the mockup's content, data and behaviour, proven by parity tests; link `~/.claude/skills/mockup-to-page-react` to this directory |
 | `skill/test-ui/SKILL.md` | the `/test-ui` Claude Code skill: a UI tested against its reference with canonical DOM and pixels, recorded walks, content checked in both directions, mutations that prove the checks fail, and the installed browser; link `~/.claude/skills/test-ui` to this directory |
 | `skill/app-architect/SKILL.md` | the `/app-architect` Claude Code skill: an application reviewed in its own forked agent, from inventories and a twelve-factor scorecard to a phased roadmap with a runnable proof per step; link `~/.claude/skills/app-architect` to this directory |
+| `skill/mock-app/SKILL.md` | the `/mock-app` Claude Code skill: a mock app planned from the public documents of each provider, in its own forked agent. To install it, link `~/.claude/skills/mock-app` to this directory |
 | `skill/adversarial-review/SKILL.md` | the `/adversarial-review` Claude Code skill: a change attacked by two model families on a per-claim brief, every finding with its full fix and a failing-then-passing test, each decision written down; link `~/.claude/skills/adversarial-review` to this directory |
 | `skill/adversarial-review/brief-template.md`, `record-template.md` | the skeletons of a review's brief and of its record |
 | `skill/agent-report/SKILL.md` | the `/agent-report` Claude Code skill: how a background agent logs its research as it works, and an audit with planted claims that shows the work is real; link `~/.claude/skills/agent-report` to this directory |
@@ -38,14 +41,31 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/agent-report/scripts/brief_check.py` | the check that refuses a brief without the current standard, with a placeholder left, without a stop point or the browser and env rules, or with planted answers that lack a verdict or sit in the job folder |
 | `skill/codex-arbiter/SKILL.md` | the `/codex-arbiter` Claude Code skill: background Codex agents review pending patches in disposable clones, and Claude rules on each finding and tests it; link `~/.claude/skills/codex-arbiter` to this directory |
 | `skill/fix-defect/SKILL.md` | the `/fix-defect` Claude Code skill: each defect logged at once as an issue under its parent, researched, reviewed and proven; link `~/.claude/skills/fix-defect` to this directory |
+| `skill/issue/SKILL.md` | the `/issue` Claude Code skill: one GitHub issue in agile form, with a milestone and one status label, grounded in the code and the measurements; link `~/.claude/skills/issue` to this directory |
+| `skill/epic/SKILL.md` | the `/epic` Claude Code skill: a body of work broken into child issues that each end in a demonstration, with risks and exit criteria; link `~/.claude/skills/epic` to this directory |
+| `skill/handover/SKILL.md` | the `/handover` Claude Code skill: the working note `claude-resumes/HANDOVER-<topic>.md`, kept current by four Claude Code hooks (Stop, PreCompact, SessionStart, PostToolUse) and the self-check `scripts/handover.py`, so that /compact, auto-compact and /clear lose nothing; also the handover of a long stop; link `~/.claude/skills/handover` to this directory |
+| `skill/build-tracker/SKILL.md` | the `/build-tracker` Claude Code skill: the progress of a topic in `claude-resumes/TRACKER-<topic>.md`, each unit with its SDLC phase, its status and its evidence, one unit in progress at a time; link `~/.claude/skills/build-tracker` to this directory |
+| `skill/resume-work/SKILL.md` | the `/resume-work` Claude Code skill: the restart after a new session, /compact, auto-compact or /clear, from the note and the tracker, checked against git, CI, the jobs and the environment; link `~/.claude/skills/resume-work` to this directory |
+| `skill/agile/SKILL.md` | the `/agile` Claude Code skill: how milestones, epics, features, stories, tasks, spikes, defects and owner actions relate, how to create each with its issue type and parent, and how each maps to the legend; link `~/.claude/skills/agile` to this directory |
+| `skill/agile/LEGEND.md`, `skill/agile/templates/` | the standard legend (ID prefixes, the INV and TDT classes, severity, status, verdicts), the GitHub issue forms, the issue bodies and the milestone description |
+| `skill/pull-request/SKILL.md` | the `/pull-request` Claude Code skill: a sample pull request template with the milestone, the issues, the class and a checklist for each target branch, and the rules to open and merge; link `~/.claude/skills/pull-request` to this directory |
+| `skill/delivery-playbook/SKILL.md` | the `/delivery-playbook` Claude Code skill: the standard method of delivery as a page and a deck, with five figures and the legend, and how to make a client copy; link `~/.claude/skills/delivery-playbook` to this directory |
+| `skill/herdr-jobs/SKILL.md` | the `/herdr-jobs` Claude Code skill: each background agent job (Codex, a test run, a local CI run) runs in its own tab of a Herdr session, so the person watches it live, and the caller still gets the exit code; `herdr_job.py` beside it starts the job, passes named variables through a self-deleting runner, and runs the job in the foreground when no Herdr server runs; link `~/.claude/skills/herdr-jobs` to this directory |
 | `skill/houston-mayday/SKILL.md` | the `/houston-mayday` Claude Code skill: low-token mode, where Claude writes each mission and its definition of done, Codex builds (high, or extra-high across layers) and a second Codex job reviews, Opus rules last, and work built from scratch gets labels for a later deep review; `make_brief.py` and `run-pair.sh` beside it; link `~/.claude/skills/houston-mayday` to this directory |
 | `skill/workbench/SKILL.md` | the `/workbench` Claude Code skill: the fixed place `$HOME/gitRepos/workbench/<project>/` for clones, worktrees and agent work that must outlive a session, never `/private/tmp` or a scratchpad; `move.sh` beside it moves folders in, skips a folder in use or mounted, and repairs each git worktree; link `~/.claude/skills/workbench` to this directory |
 | `skill/tokensave-fork/SKILL.md` | the `/tokensave-fork` Claude Code skill: install the tokensave2 fork with its dependencies, connect Codex, Cursor and Copilot, put it on the shell PATH, remove the upstream copy, and prove it with a real query; link `~/.claude/skills/tokensave-fork` to this directory |
 | `skill/tokensave-fork/cursor-allow.py` | adds the read tools of tokensave to the Cursor CLI allow list, and no tool that writes |
 | `skill/tokensave-fork/cursor-job-config.py` | makes a second Cursor configuration folder, so that one job gets a shell and reads only its own folder, and the main configuration does not change |
 | `skill/tokensave-fork/tool-use-audit.py` | reads the log of a Claude, Codex or Cursor agent, and shows whether the agent read through tokensave and whether it read a whole file |
+| `skill/screenshot/SKILL.md` | the `/screenshot` Claude Code skill: a legible capture of a web page or console, zoomed to a region, cropped to content, in the theme of the UI, with the stage of the picture and its JSON file; link `~/.claude/skills/screenshot` to this directory |
+| `skill/screenshot/verify.py` | checks a capture before it ships: its size, the flat border at each edge and the dead area |
 | `skill/sweep-stale/SKILL.md` | the `/sweep-stale` Claude Code skill: watch for stale background agents and the processes a session leaves behind, and end them on request; link `~/.claude/skills/sweep-stale` to this directory |
 | `skill/sweep-stale/sweep-stale.py` | reports stale background agents, Codex brokers, orphaned test and browser processes, zombies and leftover socket directories, as text or as a prompt hook; `--sweep` ends what it names |
+| `skill/setup-local-ci/SKILL.md` | the `/setup-local-ci` Claude Code skill: set up local CI in a project, and run the jobs of a GitHub Actions workflow on a Mac with act and Podman, with the Homebrew tools, the Docker socket link, a runner image pinned by digest and the measured gotchas; link `~/.claude/skills/setup-local-ci` to this directory |
+| `skill/setup-local-ci/act-ci.sh` | runs each job and each matrix entry of a workflow alone under act, cleans up after a failure, and runs a gitleaks job natively from the same release as its pin |
+| `skill/setup-local-ci/Dockerfile.runner` | the act runner image, pinned by digest, with a relative `/var/run` link for Podman and the Yarn version of the GitHub runner |
+| `skill/setup-local-ci/setup.sh` | copies `act-ci.sh` and `Dockerfile.runner` into `ci/local/` of a project, and keeps a project copy that differs |
+| `skill/act/SKILL.md`, `skill/local-ci/SKILL.md` | the `/act` and `/local-ci` aliases of `/setup-local-ci`; link `~/.claude/skills/act` to this directory, and link `~/.claude/skills/local-ci` to this directory |
 | `STANDARD.md` | when to use a page and when Mermaid, the page contract, embedding, the checks, review |
 | `TUTORIAL.md` | install, a first figure, render, look, embed, review |
 | `RESEARCH.md` | the measurements behind every check, and the prior art |
@@ -57,7 +77,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 
 ```sh
 python3 -m venv .venv
-.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.5"
+.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.6"
 .venv/bin/playwright install chromium
 .venv/bin/diagram-template docs/diagrams/<slug>/source.html
 .venv/bin/diagram-render docs/diagrams/<slug>/source.html docs/diagrams/<slug> <name-1>,<name-2>
@@ -167,9 +187,9 @@ calls the kit's job, and copies no steps:
 ```yaml
 jobs:
   diagrams:
-    uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.5
+    uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.6
     with:
-      kit: v0.2.5
+      kit: v0.2.6
 ```
 
 It checks every tracked file named `source.html` (the input `pages` takes another git pathspec) and fails when none is
@@ -180,7 +200,7 @@ Chromium on Linux and on macOS draw text at the same widths since 0.2.3. For the
 in CI all the same, the `Containerfile` builds a Linux with the kit and its Chromium:
 
 ```sh
-podman build --build-arg KIT_REF=v0.2.5 -t diagram-kit-linux .
+podman build --build-arg KIT_REF=v0.2.6 -t diagram-kit-linux .
 podman run --rm -v "$PWD":/repo:ro diagram-kit-linux --check docs/diagrams/<slug>/source.html
 ```
 The tag is given twice because a called workflow cannot learn the ref it was called at.
@@ -252,6 +272,13 @@ skills make one standard and change together:
 - **`skill/mockup-to-page/SKILL.md`** translates that mockup one-to-one: tokens to `tokens.css`, state to the URL
   or browser storage, datasets to typed API schemas, and each section type to one component. The page is then proven
   to match at the same widths in both themes, with an accessibility scan and contract tests in CI.
+- **`skill/mobile-app-designer/SKILL.md`** designs the screens of a mobile app on top of `/build-mockup`. It reads
+  Apple's Human Interface Guidelines, measures Apple's system colors on the simulator with `ios-color-probe.swift`,
+  makes the color tokens with a script that tests every contrast pair, chooses category colors by measured
+  separation, and publishes an interactive review page.
+- **`skill/mobile-app-delivery/SKILL.md`** runs a new mobile app end to end on these standards. It asks the owner
+  once, stops only at the gates of money, credentials, licenses, security and approved decisions, and uses the other
+  skills for each step. Its first app is local-first, with no backend, so the backend steps are marked as not proven.
 - **`skill/mockup-to-page-react/SKILL.md`** translates a mockup into React, TypeScript, Vite and PatternFly for a
   console-style app. PatternFly replaces the look, so the page is proven on content, states and behaviour, not by a
   pixel diff against the mockup.
@@ -264,6 +291,8 @@ Link them to install them:
 ln -s "$PWD/skill/build-mockup" ~/.claude/skills/build-mockup
 ln -s "$PWD/skill/mockup-to-page" ~/.claude/skills/mockup-to-page
 ln -s "$PWD/skill/mockup-to-page-react" ~/.claude/skills/mockup-to-page-react
+ln -s "$PWD/skill/mobile-app-designer" ~/.claude/skills/mobile-app-designer
+ln -s "$PWD/skill/mobile-app-delivery" ~/.claude/skills/mobile-app-delivery
 ```
 
 The render and check tools they use live in Inkcast's `scripts/mockups/` (`render.js`, `check.py`), where the
@@ -279,6 +308,11 @@ before it and passes after. The skill runs in its own forked agent (`context: fo
 out of the conversation and only its report comes back. Its figures are made with `/visual` and its dashboards with
 `/dashboard`. Its worked example is Fabric Coffee, demo 57 of
 [cilium-implementation-poc](https://github.com/ephico2real2/cilium-implementation-poc).
+
+If a provider has no sandbox, **`skill/mock-app/SKILL.md`** plans a mock app for it. It runs in its own forked agent. It researches current practice online, reads the public API documentation
+and contract of each provider, and compares them with the calls of the client. The plan gives the build choice, and an
+OpenAPI contract and the authentication of each provider, with test values only. It also gives the contract tests
+and a phased plan with a proof for each step. `/app-architect` sends each provider with no sandbox to it.
 
 ```sh
 ln -s "$PWD/skill/app-architect" ~/.claude/skills/app-architect
@@ -298,6 +332,23 @@ ln -s "$PWD/skill/adversarial-review" ~/.claude/skills/adversarial-review
 
 A personal skill wins over a project skill of the same name, so this link hides a repository's own
 `.claude/skills/adversarial-review` in that repository.
+
+## Skills: the kit is the one copy
+
+Each general skill lives here, and `~/.claude/skills/<name>` is a link to its directory. Change a skill here, through
+a pull request, and never in a copy under `~/.claude/skills`. A copy drifts: on 2026-11-07, three local copies differed
+from the kit, and the newer rules were in different places.
+
+```sh
+ln -s "$PWD/skill/<name>" ~/.claude/skills/<name>
+```
+
+- A new general skill comes here in its first pull request, with its README row and its name in
+  `tests/test_skills.py`.
+- This repository is public. A skill holds no firm name, no client name, no client number and no private host. An
+  example from client work names the kind of work, not the client.
+- A skill for one client or one project lives in that repository, under `.claude/skills/`.
+- A fact about one machine, such as an installed version, goes into the memory of the agent, not into the skill.
 
 ## Why a kit
 

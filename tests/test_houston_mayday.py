@@ -70,3 +70,12 @@ def test_make_brief_refuses_missing_arguments():
 def test_run_pair_refuses_missing_arguments():
     run = subprocess.run(["zsh", SKILL / "run-pair.sh", "a", "b"], capture_output=True, text=True)
     assert run.returncode == 2 and "usage" in run.stderr
+
+
+@pytest.mark.skipif(shutil.which("zsh") is None, reason="run-pair.sh is a zsh script")
+def test_run_pair_refuses_to_start_with_no_draft_repository(tmp_path):
+    env = {"PATH": "/usr/bin:/bin", "CODEX_MODEL": "m"}
+    run = subprocess.run(["zsh", SKILL / "run-pair.sh", tmp_path, "j", "high", "high", tmp_path, "r", "work/x", "main"],
+                         capture_output=True, text=True, env=env)
+    assert run.returncode != 0 and "DRAFT_REPO" in run.stderr
+    assert not (tmp_path / "wt").exists()

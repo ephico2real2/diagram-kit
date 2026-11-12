@@ -1,0 +1,58 @@
+name: "Task"
+description: "One job with no user story."
+type: "Task"
+labels: ["task", "status:open"]
+body:
+  - type: markdown
+    attributes:
+      value: "Start the title with the ID of the item, for example `APM-1: ` or `MA-1: `. The prefix names the body of work, and the class names its kind. The legend gives each prefix."
+  - type: textarea
+    id: why
+    attributes:
+      label: "Why"
+    validations:
+      required: true
+  - type: textarea
+    id: tasks
+    attributes:
+      label: "Tasks"
+      placeholder: "- [ ] "
+    validations:
+      required: true
+  - type: textarea
+    id: done
+    attributes:
+      label: "Definition of done"
+      value: "- [ ] Mockup approved, or the work has no screen and no API shape\n- [ ] Draft pull request open\n- [ ] Build: tests fail before the change and pass after it\n- [ ] Review ruled\n- [ ] Merged with its proof\n- [ ] Released on the default branch"
+    validations:
+      required: true
+  - type: dropdown
+    id: class
+    attributes:
+      label: "Class"
+      description: "Innovation adds something that the product or the delivery does not have today, also a security control, a test method or a CI/CD gate. Tech debt pays back an earlier shortcut. Choose No class only for a fix that restores existing behavior and adds nothing, unless it inherits INV from unmerged work. A defect in unmerged INV work stays INV. A defect in an unmerged fix with no class keeps no class. After you create the issue, add the same class: labels."
+      multiple: true
+      options:
+        - "INV: innovation"
+        - "TDT: tech debt"
+        - "No class"
+    validations:
+      required: true
+  - type: dropdown
+    id: milestone
+    attributes:
+      label: "Milestone"
+      description: "A form cannot set the milestone. After you create the issue, set the same milestone in the sidebar. In a client copy, list the milestones of the client."
+      options:
+        - "Replace with the milestones of the project"
+        - "Not known yet"
+    validations:
+      required: true
+  - type: input
+    id: parent
+    attributes:
+      label: "Part of"
+      description: "The parent issue. After you create the issue, add it as a sub-issue of that parent. If it has no parent, write 'None yet'."
+      placeholder: "#1"
+    validations:
+      required: true

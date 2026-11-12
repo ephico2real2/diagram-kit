@@ -6,12 +6,17 @@
 # Round 1 (build), then round 2 (adversarial review), of one mission: one job at a time, in disposable clones.
 # usage: run-pair.sh <folder> <job> <effort r1> <effort r2> <source repository> <repository folder name> <work branch> [<base branch>]
 # <folder>/<job>-r1/brief.md and <folder>/<job>-r2/brief.md must exist (make_brief.py). CODEX_MODEL names the model.
+# DRAFT_REPO (owner/repo) is required: after each round, draft_pr.sh pushes the branch to a draft pull request
+# (owner mandate 2026-11-12), so no work stays only in a clone. DRAFT_TITLE, LABELS and MILESTONE are optional.
 (( $# >= 7 )) || { print -u2 "usage: run-pair.sh <folder> <job> <effort r1> <effort r2> <source> <name> <branch> [<base>]"; exit 2; }
 J=${1:a} job=$2 e1=$3 e2=$4 src=${5:a} name=$6 branch=$7 base=${8:-main}
 model=${CODEX_MODEL:?set CODEX_MODEL to the Codex model}
+repo=${DRAFT_REPO:?set DRAFT_REPO to the owner/repo of the draft pull request}
+draft=${0:a:h}/../agent-report/scripts/draft_pr.sh
 
-mk() { # clone dir, branch, from
-  git clone -q --no-hardlinks -b "$2" "$3" "$1" && git -C "$1" remote remove origin \
+mk() { # clone dir, branch, from; the base branch stays as a local branch, because draft_pr.sh reads it
+  git clone -q --no-hardlinks -b "$2" "$3" "$1" \
+    && { [[ $2 == $base ]] || git -C "$1" branch -q "$base" "origin/$base"; } && git -C "$1" remote remove origin \
     && git -C "$1" config user.name codex && git -C "$1" config user.email codex@example.invalid
 }
 
@@ -34,12 +39,14 @@ if [[ ${ROUNDS:-r1 r2} == *r1* ]]; then
   mk $r1 $base $src && git -C $r1 switch -q -c $branch || exit 2
   go r1 $e1 $r1
 fi
-# The sandbox keeps .git read-only unless --add-dir names it (measured 2026-11-08). Commit what a job left, so round 2 sees commits.
-if [[ -n $(git -C $r1 status --porcelain) ]]; then
-  git -C $r1 add -A && git -C $r1 commit -q -m "ROUND 1: the uncommitted work of the Codex job" || exit 2
-fi
+keep() { # round, clone: commit what the job left, push the branch, open or update the draft
+  $draft $2 $repo $branch $base $J/$job-$1 "${DRAFT_TITLE:-$job: draft from the agent rounds}" >> $J/status.txt 2>&1 \
+    || { print "$job-$1 draft failed $(date -u +%H:%M:%S)" >> $J/status.txt; exit 2; }
+}
+if [[ ${ROUNDS:-r1 r2} == *r1* ]]; then keep r1 $r1; fi
 if [[ ${ROUNDS:-r1 r2} == *r2* ]]; then
   mkdir -p ${r2:h}
   mk $r2 $branch $r1 || exit 2
   go r2 $e2 $r2
+  keep r2 $r2
 fi

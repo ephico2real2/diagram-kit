@@ -63,9 +63,12 @@ The shared brief states:
   endings of each file. Do not print secrets. Do not use the real network.
 - A test failure counts only with evidence of whether it fails without the patch too.
 - The verdict for each patch is APPLY, APPLY WITH FIX, DO NOT APPLY or OWNER DECISION.
-- Save the report to `$C/reports/<id>.md` and each corrected patch to `$C/fixed/`. Leave fixes uncommitted.
-  The sandbox keeps `.git` read-only, so this rule also matches what the sandbox allows. A job that must commit needs
+- Save the report to `$C/reports/<id>.md` and each corrected patch to `$C/fixed/`.
+- If the work under review is a draft pull request (the default from 2026-11-12), clone the draft branch. Each
+  reviewer commits each fix with its test, and the runner pushes the commits to the draft with `draft_pr.sh` of
+  `/agent-report`. The arbiter reverts a refused fix with a commit that gives the reason. A job that commits needs
   `--add-dir <clone>/.git` (see `/agent-report`, "Let a Codex job commit in its clone").
+- If the work under review is a patch that is not applied, leave the fixes uncommitted.
 - The final chat message is at most 5 lines, so that a report costs Claude few tokens.
 
 ## 5. One job, one wake-up

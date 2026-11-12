@@ -14,9 +14,9 @@ after the ruling.
 | Step | Who | Effort | Output |
 |---|---|---|---|
 | Mission and definition of done | Claude | - | `heads/<job>-r1.md` and `heads/<job>-r2.md`, the planted answers |
-| Round 1: research, build, code | Codex | `high`, or `xhigh` for work across layers | Commits in a disposable clone, and the report files |
-| Round 2: adversarial review | Codex, a separate job | `high` | Verdicts, fixes and tests, in a clone of round 1's result |
-| Round 3: ruling | Opus at high effort (the main session) | high | One ruling per finding, applied and tested |
+| Round 1: research, build, code | Codex | `high`, or `xhigh` for work across layers | Commits with their tests, pushed at once to a draft pull request, and the report files |
+| Round 2: adversarial review | Codex, a separate job | `high` | Verdicts, and fixes with tests, pushed to the same draft |
+| Round 3: ruling | Opus at high effort (the main session) | high | One ruling per finding, applied and tested on the draft, then ready and merge, another round, or close |
 | Later: the deep review | Opus at extra-high effort and Fable | xhigh | Issues for each finding |
 
 If a job changes more than one of these, it crosses layers: the schema, the API, the service code, the UI, the mobile
@@ -45,6 +45,13 @@ in this order:
    reached from the sandbox. The planted answers go in a file outside the job folder.
 5. Deliverables (round 1) or claims to attack (round 2), each with the file it changes.
 6. Definition of done: each item says how a test or a command shows it.
+   If the job changes a screen, the definition of done also has these items:
+   - the production build of the app passes, not only the type check and the unit tests.
+   - each new picture has its stage and its JSON file (`/mockup-to-page` section 7).
+   - the stage table of the mockups README and the history document have a row for the change.
+
+   The sandbox cannot start the deployed stack or a device. Thus the arbiter makes the `deployed-local` pictures
+   after the ruling, and the job marks them NOT REACHED.
 7. Limits: a stop point (`stop after` the IDs, or a time limit), no browser, no `.env` file, no secret, no push, no
    `gh` write, no install, no lockfile change, keep the line endings. The sandbox keeps `.git` read-only, so
    `run-pair.sh` adds the `.git` folder of the clone with `--add-dir`. The job then makes one commit for each deliverable
@@ -67,8 +74,13 @@ python3 <kit>/skill/agent-report/scripts/brief_check.py <job>-r1/brief.md --plan
 and runs the reviewer. Each clone has no remote. The folder of the clone has the name of the repository, because some
 builds read it.
 
+After each round, the runner operates `draft_pr.sh` of `/agent-report` (owner mandate of 2026-11-12). Round 1 commits
+what the job left, pushes the branch and opens a draft pull request. Round 2 pushes its commits to the same draft. If
+a round stops early, its work also goes to the draft, so no work stays only in a clone. `DRAFT_REPO` names the repository of the draft, and the
+runner refuses to start with no value.
+
 ```sh
-CODEX_MODEL=<model> <kit>/skill/houston-mayday/run-pair.sh <folder> <job> <effort r1> <effort r2> \
+DRAFT_REPO=<owner/repo> CODEX_MODEL=<model> <kit>/skill/houston-mayday/run-pair.sh <folder> <job> <effort r1> <effort r2> \
   <source repository> <repository folder name> <work branch> <base branch>
 ```
 
@@ -81,8 +93,11 @@ read-only --skip-git-repo-check -`.
 1. Read `status.txt`, then round 2's `verdicts.md`. Open other files only for the ID that you rule on.
 2. Audit each round against its planted answers. A wrong planted answer means the report is not trusted. Read more of it.
 3. For each finding: read the cited code, accept it, accept it in part, or refuse it, with the reason.
-4. Apply what survives to the real work branch, one commit for each, and run the tests yourself.
-5. Open the pull request in the project flow. File an issue for each defect that stays open.
+4. Work on the draft branch. Revert each refused fix with a commit that gives the reason. Add each accepted change that
+   the rounds did not make, one commit for each, with its test. Operate the tests and the local CI yourself.
+5. Decide from the results: mark the draft ready and merge it, ask for another round on the same draft, or close it
+   with the reason. Before ready, rewrite the body in the project template. File an issue for each defect that stays
+   open.
 
 ## 5. Mark the work for the deep review
 

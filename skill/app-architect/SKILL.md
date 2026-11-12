@@ -59,6 +59,9 @@ If the project has `.tokensave/` or `.codegraph/`, read code through it, not thr
 ### 1. Inventory
 
 - The code: languages, frameworks, entry points, inbound and outbound calls, data stores, queues, schedulers.
+- Each external provider that the app calls, and whether it has a sandbox that the team can use. For each provider
+  with no sandbox, plan its mock with `/mock-app`: a mock that follows the public API documentation and contract of
+  the provider, with its authentication.
 - The tool stack: every tool and dependency with its version, licence, open-source status, CNCF status (graduated,
   incubating, sandbox or none), and a portable alternative.
 - How the app is built, run and deployed today.
@@ -128,8 +131,37 @@ Then:
 ### 6. Portability and platform
 
 - Containerized, and runnable locally as a PoC (Compose or an equivalent) that mirrors production.
+- Creative use of open source: where a managed service lacks a feature, combine open-source components behind one port,
+  with an adapter for each store and one contract test suite that passes against each. Record the licence of each
+  component, open source or source-available, and its limits.
 - Helm charts that deploy on-premises or on any cloud; GitOps with Argo CD as the conduit, every switch a chart
   value.
+- **The Kubernetes network layer is Cilium**, the standard choice of this kit. Review the cluster against it, and
+  recommend it where another CNI is in place:
+  - eBPF network policy at L3 to L7, kube-proxy replacement, and transparent encryption between nodes (WireGuard or
+    IPsec) ([Cilium docs](https://docs.cilium.io/en/stable/));
+  - Cilium Service Mesh for L7 routing, with a shared Envoy on each node and no sidecar; Cilium also implements the
+    Gateway API, so the edge gateway can be Cilium's own or Envoy Gateway, recorded as a choice;
+  - ClusterMesh for more than one cluster: a Service with the same name and namespace in each cluster and the
+    annotation `service.cilium.io/global: "true"` balances across the clusters; `service.cilium.io/affinity: "local"`
+    keeps traffic local while a local backend is healthy; `service.cilium.io/shared: "false"` keeps the backends of
+    a cluster to itself ([global services](https://docs.cilium.io/en/stable/network/clustermesh/global-services/),
+    [affinity](https://docs.cilium.io/en/stable/network/clustermesh/affinity/));
+  - Hubble for flows (Hubble UI and the CLI) and Hubble metrics to Prometheus. With OpenMetrics on and
+    `httpV2:exemplars=true`, each HTTP metric carries the trace ID from the request headers, so Grafana goes from a
+    metric to its trace in Tempo ([metrics](https://docs.cilium.io/en/stable/observability/metrics/)); Sources for trace export and the Grafana link: [trace setup](https://grafana.com/docs/tempo/latest/set-up-for-tracing/), [exemplar links](https://grafana.com/docs/grafana/latest/datasources/prometheus/configure/#exemplars).
+  - the dashboards for these metrics are made with `/dashboard`, from its metrics inventory, like any other workload.
+- **Availability, recovery and the edge are reviewed for each cloud.** `RESILIENCE.md`, beside this file, holds the
+  facts with their sources and the research items. In short:
+  - The order is zones in one region, then a second region of the same cloud. The second region is the default for
+    disaster recovery. If a requirement names a second cloud, recommend it. Measure the RPO and the RTO of each
+    option in a drill.
+  - State which Cilium each cloud gives and who supports it. GKE Dataplane V2 and AKS manage their own Cilium.
+    Standard EKS needs a Cilium that you install and support.
+  - ClusterMesh needs pod ranges that do not overlap and a network path between the clusters. It copies no data, so
+    each database needs its own replication to the recovery site.
+  - The edge is a finding of its own. Compare the CDN of the cloud with Cloudflare (CDN, WAF, DDoS, load balancing
+    with health monitors, Tunnel). Record that the edge reads each request and becomes a dependency.
 - Working configuration lives in Helm (`/helm-first`, where installed): a `kubectl patch`, a hand-applied manifest or a
   post-edited render is a gap in the chart; the values files in git are the source, never `--reuse-values`.
 - Images from a registry (`/registry-first`, where installed): built outside the cluster, pushed under an immutable `sha-<commit>`

@@ -166,7 +166,7 @@ page differs from the mockup with the reason, and a link to the mockup.
 ## 8. Example: one section on PatternFly
 
 The example that follows shows the `row-list` section of `skill/build-mockup/example/workspaces.html` on PatternFly.
-The `Result`, `Page` and `Workspace` types are the ones in `/mockup-to-page` section 7. They come from the mockup's
+The `Result`, `Page` and `Workspace` types are the ones in `/mockup-to-page` section 8. They come from the mockup's
 `// type` and `// states` lines. The words and the order of the states are the mockup's. PatternFly gives the look.
 The code compiles with `tsc --strict` (React 19.3.1, PatternFly 6.7.0, TanStack Query 5.106.0, TypeScript 7.0.2, on
 2026-11-05).
@@ -177,7 +177,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Alert, AlertActionLink, Button, EmptyState, EmptyStateBody, Label, Skeleton, Stack } from '@patternfly/react-core';
 import { LockIcon } from '@patternfly/react-icons';
 import { Table, Tbody, Td, Th, Thead, Tr } from '@patternfly/react-table';
-import { getWorkspaces, type Page, type Result, type Workspace } from './workspaces'; // the types and fetch of /mockup-to-page section 7
+import { getWorkspaces, type Page, type Result, type Workspace } from './workspaces'; // the types and fetch of /mockup-to-page section 8
 
 const TONE = { ready: 'success', pending: 'info', failed: 'danger' } as const;
 

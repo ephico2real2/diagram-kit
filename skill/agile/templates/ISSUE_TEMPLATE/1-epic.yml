@@ -1,0 +1,63 @@
+name: "Epic"
+description: "A goal with child issues and exit criteria."
+labels: ["epic", "status:open"]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: "Goal"
+      description: "What is true when this is finished, and for whom."
+    validations:
+      required: true
+  - type: textarea
+    id: value
+    attributes:
+      label: "Business value"
+      description: "What the work gives the business, in plain words, not the code change. For an INV item, the report shows it in the table of main innovations."
+  - type: textarea
+    id: why
+    attributes:
+      label: "Why"
+      description: "The problem or the risk today, with where it was seen."
+    validations:
+      required: true
+  - type: textarea
+    id: scope
+    attributes:
+      label: "Scope"
+      placeholder: "- "
+    validations:
+      required: true
+  - type: textarea
+    id: out
+    attributes:
+      label: "Out of scope"
+      placeholder: "- "
+  - type: textarea
+    id: issues
+    attributes:
+      label: "Issues"
+      description: "The child issues. Add each one as a sub-issue too."
+      placeholder: "- [ ] #"
+    validations:
+      required: true
+  - type: textarea
+    id: risks
+    attributes:
+      label: "Risks and open questions"
+  - type: textarea
+    id: exit
+    attributes:
+      label: "Exit criteria"
+      description: "Each criterion says how it is checked."
+      placeholder: "- [ ] "
+    validations:
+      required: true
+  - type: input
+    id: parent
+    attributes:
+      label: "Part of"
+      description: "The parent issue. After you create the issue, add it as a sub-issue of that parent. If it has no parent, write 'None yet'."
+      placeholder: "None yet"
+    validations:
+      required: true

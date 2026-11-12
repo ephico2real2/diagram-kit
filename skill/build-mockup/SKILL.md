@@ -63,7 +63,7 @@ For `react-pf-ts`, keep the token table in the mockup. `/mockup-to-page-react` m
   uses only `{{c.<token>}}`; no hex in markup outside the tables (except a wrapper frame's own background).
 - Required names, which become the CSS variables one-to-one: `bg surface raised border track control text muted accent
   accentFg`, series tokens (e.g. `spent saved`), states `okFg okBg warnFg warnBg infoFg infoBg stopFg stopBg`,
-  categories `cat.emerald cat.sky cat.amber cat.violet cat.coral cat.pink cat.teal cat.slate`.
+  categories `cat.emerald cat.sky cat.amber cat.violet cat.coral cat.pink cat.teal cat.slate cat.brown cat.cyan cat.indigo`.
 - Category colours mark what a thing is (a tool, a role, a model) and keep their colour on every tab: map once
   (`TOOL`, `ROLE`, `MODEL`) and look up; never pick a colour inline. Icon tiles: the category colour tinted over
   `surface` (12% light, 16% dark).
@@ -196,3 +196,7 @@ When accepted, export each tab to self-contained HTML plus a PNG under the featu
 `docs/<area>/mockups/`, light screenshots unless the owner says), link them from the design doc with the `$target`
 table, and keep the canvas link in the issue. Attach the screenshots at 390, 820 and 1440 px, in both themes, to the
 issue.
+
+Each exported PNG has the stage `mockup` and a JSON file beside it (`/mockup-to-page` section 7). When the page is
+built and deployed, the mockup pictures stay. The history document shows them first, before the pictures of the built
+and the deployed page.

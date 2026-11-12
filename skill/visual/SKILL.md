@@ -77,7 +77,7 @@ Install the kit once, in its own venv (a pinned tag, so every machine renders wi
 
 ```sh
 python3 -m venv ~/.local/share/diagram-kit/.venv
-~/.local/share/diagram-kit/.venv/bin/pip install -q "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.5"
+~/.local/share/diagram-kit/.venv/bin/pip install -q "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.6"
 ~/.local/share/diagram-kit/.venv/bin/playwright install chromium
 ```
 
@@ -99,11 +99,12 @@ Then:
 Renders every `.fig-scroll` in order to `<out-dir>/<name>.light.png` and `.dark.png` at 2× pixel
 density, and writes nothing unless every check passes. The checks (`STANDARD.md` §5): a page error, a
 request that did not load, figure text in a fallback face, a label past its box, text under 4.5:1
-contrast in either theme, a dashed arrow with no label, a name/figure count mismatch, and sideways
-scroll at 375 px. **Open the PNGs and read them**: a line crossing a label and an arrow into the wrong
+contrast in either theme, a dashed arrow with no label, a name/figure count mismatch, names that put a
+later state first (`after` before `before`), and sideways scroll at 375 px. **Open the PNGs and read them**: a line crossing a label and an arrow into the wrong
 box are only visible there.
 
-`diagram-render --check <page.html>...` runs the same checks on several pages and writes no PNG. It is
+`diagram-render --check <page.html>...` runs every check except name/figure count and state order, because it receives
+no figure names. It checks several pages and writes no PNG. It is
 what a repository's CI runs, through the kit's `check-diagrams` job (README, "In a repository's CI"), so
 that a page edited without being rendered again cannot be merged broken.
 
@@ -123,5 +124,10 @@ that a page edited without being rendered again cannot be merged broken.
   - end the document with a "Diagram sources" section saying how to re-render and that picture, twin
     and page change together;
   - never put a claude.ai artifact URL in the repository.
+- **Before, then after.** A set of figures that shows a change has one order, on the page, in each document and in
+  each gallery. First comes the state before (`before`, `today` or `current`). Then comes the state after (`after`, the
+  built state). Last comes the goal (`target` or `proposed`). Name each PNG with its state word, so that the renderer can check
+  the order. A gallery that collects PNGs by a glob ranks them by that word. A sort by file name puts `after` before
+  `before`, and the reader meets the change before the state that it changes.
 - **Review it like code.** In a PR the figures are part of the change: the reviewers get the SVG text
   (`source.html`) and the PNGs, and "no proposal drawn as current" is a numbered claim in the brief.
