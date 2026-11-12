@@ -107,6 +107,41 @@ On 2026-11-08 (codex-cli 0.166.0), a job with no such access wrote its files but
 not, the next job reads an empty branch. The `approval_mode` settings of `~/.codex/config.toml` approve MCP tools only.
 They do not change this rule.
 
+## After each job: commit, push and open a draft pull request
+
+Owner mandate of 2026-11-12: work that stays in a background clone gets lost. So the runner keeps it at once. When a
+job ends, or stops early, the runner operates `draft_pr.sh` before the audit and before any other step:
+
+```sh
+LABELS="bug" MILESTONE="<milestone>" ${CLAUDE_SKILL_DIR}/scripts/draft_pr.sh <clone> <owner/repo> <branch> <base> <folder>/<job> "<title>"
+```
+
+The script does these steps, in this order:
+
+1. It commits what the job left, with the prefix `WIP <job>:`.
+2. It gives the new commits the global git identity, because the person who drives the work is the author. It writes
+   the old and new SHAs to `<folder>/<job>/draft-sha-map.txt`, so the SHAs of the report stay usable. `KEEP_AUTHOR=1`
+   keeps the agent's author.
+3. It writes `<folder>/<job>/draft-pr.md`: the commits, the number of test files changed, the verdict tally, and each
+   report file that a commit put in the repository.
+4. It pushes the branch, with no force. It opens the draft once. A later round of the same branch only pushes and
+   adds a comment.
+
+`DRY_RUN=1` writes the body and makes no push and no `gh` call. The agent itself never pushes: its sandbox has no
+network write and no `gh`.
+
+After the draft exists, every later round works on that branch: the adversarial review, the fix rounds, the arbiter's
+own fixes. Each round clones the draft branch and its commits go back to it with the same script. The arbiter then
+rules on each finding, operates the tests and the local CI, and decides one of three things:
+
+- Mark the draft ready and merge it to the base.
+- Ask for another round.
+- Close it, with the reason.
+
+Before ready, the arbiter rewrites the body in the project template. A draft with no test file changed stays a
+draft until it has its tests, or until the body states why no test applies. A report file in the repository also
+keeps it a draft.
+
 ## 7. The arbiter's own research
 
 Research that the arbiter does without an agent follows the same structure, because the next reader cannot tell a fact from an impression in a chat reply. Write it to `<topic>/arbiter/`: `research.md`, `tests.md` and `verdicts.md`, one heading per ID. Label each statement MEASURED, READ FROM CODE, WEB RESULT NOT TESTED or PROPOSAL NOT OPERATED. A short lookup by a fetch agent is a source of the arbiter: quote it with its URL and the date read. A source counts only if it was read in full: a search result summary is not a source. Before you repeat a claim from an agent report, make sure that the agent read its source. If it did not, write an arbiter note and do not relay the claim.
@@ -126,4 +161,6 @@ Report the graph calls and the shell calls in your final message.
 | Accept a report because it has the right files | Plant answers, and operate the tests again |
 | Trust the call counts of the final message | Count the calls in the session log |
 | Ask a Codex job to commit with no write access to `.git` | Pass `--add-dir <clone>/.git` |
+| Leave the result of a job in its clone until the audit | When the job ends, operate `draft_pr.sh`, then audit the draft |
+| Start a review round from a clone that is not pushed | Clone the draft branch, and push the round's commits back to it |
 | Ask for a section per ID in each file | Ask for a section only where there is something to say |

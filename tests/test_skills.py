@@ -117,6 +117,10 @@ def test_the_agent_report_skill_ships_its_brief_and_an_audit_of_real_work():
     for report in ("plan.md", "research.md", "tests.md", "verdicts.md", "fixes.md", "recommendations.md", "resume.md"):
         assert report in brief, report
     assert "Do not write a program to test the format" in brief
+    assert "When you stop, your work becomes a draft pull request." in brief
+    assert "Do not push and do not open the pull request." in brief
+    assert "## After each job: commit, push and open a draft pull request" in skill
+    assert "${CLAUDE_SKILL_DIR}/scripts/draft_pr.sh" in skill
 
 
 def test_the_brief_numbers_its_rules_once_each_and_keeps_the_audit_rules():
