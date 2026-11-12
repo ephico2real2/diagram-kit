@@ -22,6 +22,16 @@ If the project has `.tokensave/`, use tokensave to read code. If it has `.codegr
 
 Your clone and your report files are under `$HOME/gitRepos/workbench/<project>/` or the job folder that the brief names. Never write work to `/private/tmp`, `/tmp` or a scratchpad, because macOS deletes old files there.
 
+## How your work is kept
+
+When you stop, your work becomes a draft pull request. Commit as you go, so that nothing stays only in your clone.
+
+1. When the tests of a deliverable or a fix pass, commit it in your clone: one commit for each, with its ID at the start of the message. Put the tests in the same commit as the code.
+2. Write a test for each case that applies: unit, contract, migration, integration and end to end. Each new test fails before your change and passes after it. Record both runs in `tests.md`.
+3. If you stop early, at a limit or at a blocker, commit what you have with the message prefix `WIP <ID>:`. Write what is missing in `resume.md`.
+4. Do not commit the report files (`plan.md`, `tests.md`, `verdicts.md` and the others) or `logs/` into the repository. They stay in the job folder.
+5. Do not push and do not open the pull request. After you stop, the runner pushes your branch and opens the draft. A later round starts from that draft branch and adds its commits to it.
+
 ## How you report
 
 Write to `<folder>/<job>/` as you work, so that a stop at any moment loses nothing. Keep research and tests apart from your opinions. An arbiter reads `verdicts.md` first, and opens the other files only for the claim it needs.
