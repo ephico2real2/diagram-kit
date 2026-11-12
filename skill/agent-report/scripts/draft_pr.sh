@@ -10,11 +10,13 @@
 #   <base>   the base branch, as a local branch of the clone (the clone was made from it)
 #   DRY_RUN=1          write the body and the plan to stdout; no push, no gh call
 #   LABELS="a b"       labels for a new draft;  MILESTONE="name"  its milestone
+#   PART_OF="#123"     the parent issue: the body opens with "Part of #123.", as the project flow asks of each PR
 #   KEEP_AUTHOR=1      keep the agent's author; by default the new commits take the global git identity
 (( $# == 6 )) || { print -u2 "usage: draft_pr.sh <clone> <owner/repo> <branch> <base> <job folder> <title>"; exit 2; }
 C=${1:a} slug=$2 branch=$3 base=$4 J=${5:a} title=$6
 job=${J:t}
 fail() { print -u2 "draft_pr: $*"; exit 1; }
+[[ -z $PART_OF || $PART_OF =~ '^([A-Za-z0-9_.-]+/[A-Za-z0-9_.-]+)?#[0-9]+$' ]] || fail "PART_OF must be #<n> or owner/repo#<n>"
 git -C $C rev-parse --git-dir >/dev/null 2>&1 || fail "$C is not a git clone"
 git -C $C rev-parse --verify -q "$base" >/dev/null || fail "base $base is not a branch of $C"
 [[ $(git -C $C branch --show-current) == $branch ]] || fail "the clone is not on $branch"
@@ -53,6 +55,7 @@ reports=$(print -r -- $files | grep -E '(^|/)(plan|research|tests|verdicts|fixes
 tally=$( [[ -f $J/verdicts.md ]] && grep -oE '\b(CONFIRMED|REFUTED|PLAUSIBLE|NOT REACHED)\b' $J/verdicts.md | sort | uniq -c | awk '{c=$1; $1=""; printf "%s%s %s", sep, c, substr($0,2); sep=", "}')
 body=$J/draft-pr.md
 {
+  [[ -n $PART_OF ]] && { print "Part of $PART_OF."; print; }
   print "Draft from the agent job \`$job\`. Nobody reviewed it yet."
   print
   print "The arbiter rules on each finding, runs the tests and local CI, and then marks it ready, asks for another round, or closes it."

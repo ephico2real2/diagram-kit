@@ -45,9 +45,9 @@ def job(tmp_path):
     return clone, folder, env
 
 
-def run(clone, folder, env):
+def run(clone, folder, env, **extra):
     return subprocess.run(["zsh", SCRIPT, clone, "owner/repo", "work/fix", "main", folder, "fix: sum"],
-                          capture_output=True, text=True, env={**env, "DRY_RUN": "1"})
+                          capture_output=True, text=True, env={**env, "DRY_RUN": "1", **extra})
 
 
 def test_draft_commits_leftovers_and_gives_the_owner_the_authorship(job):
@@ -86,6 +86,24 @@ def test_draft_body_flags_no_tests_and_report_files_in_the_repository(job):
     body = (folder / "draft-pr.md").read_text()
     assert "No test file changed." in body
     assert "Report files in the repository (move them out before ready): tests.md" in body
+
+
+def test_draft_body_opens_with_the_parent_issue(job):
+    clone, folder, env = job
+    result = run(clone, folder, env, PART_OF="#307")
+    assert result.returncode == 0, result.stderr
+    assert (folder / "draft-pr.md").read_text().startswith("Part of #307.\n\nDraft from the agent job")
+    assert run(clone, folder, env, PART_OF="owner/repo#9").returncode == 0
+    assert (folder / "draft-pr.md").read_text().startswith("Part of owner/repo#9.")
+
+
+def test_draft_refuses_a_parent_that_is_not_an_issue_reference(job):
+    clone, folder, env = job
+    (clone / "left.ts").write_text("export {};\n")
+    result = run(clone, folder, env, PART_OF="307; rm -rf x")
+    assert result.returncode == 1 and "PART_OF must be" in result.stderr
+    assert not (folder / "draft-pr.md").exists()
+    assert git(clone, "status", "--porcelain", env=env) == "?? left.ts\n"
 
 
 def test_draft_refuses_a_branch_with_no_new_commit(job):
