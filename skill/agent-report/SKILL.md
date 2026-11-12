@@ -155,6 +155,28 @@ Pass an absolute `graph_root`, because a disposable clone has no index.
 Report the graph calls and the shell calls in your final message.
 ```
 
+## A lead, its helpers and a memory file
+
+If the items of a brief can go in parallel, the lead agent starts one helper agent for each item. All of them share
+one memory file.
+
+1. The lead creates `<folder>/<job>/memory.md` first. For each item, it holds the owner, the state (todo, in progress,
+   committed with the SHA, blocked), the files that the item owns, each design decision with its reason, and each link
+   between items.
+2. Each agent reads the file before each step and adds a line after each step. A line starts with `[HH:MM <agent>]`.
+   The time comes from `date -u +%H:%M`, never from memory.
+3. No agent rewrites the line of another agent. To correct a line, add a correction line below it.
+4. Each helper works in its own clone under `wt/<job>/<item>/`, with its own test database. Two agents never commit in
+   one clone.
+5. Each file has one owner. If another agent needs a change in that file, it writes a `CHANGE REQUEST` line: the file,
+   the exact change and the reason. The owner or the lead answers in the memory file. The arbiter can also answer.
+6. A helper does not delete or weaken a test to make a gate pass. If a change of a contract removes a test, the helper
+   keeps the coverage in another form and names the new test.
+7. The lead cherry-picks the commits of each item into its main clones, in the order of the brief. Then it does the
+   items that need the merged result, and it operates all gates on that result.
+8. Each limit of the brief applies to each helper, and all of them have the same stop time.
+9. Each task of the lead and of each helper goes into the Running section of the handover note (`/handover`).
+
 ## Anti-patterns
 
 | Do not | Do |

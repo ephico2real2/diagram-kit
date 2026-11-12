@@ -136,6 +136,17 @@ def test_the_brief_numbers_its_rules_once_each_and_keeps_the_audit_rules():
     assert "9. File the defects." in skill
     assert "10. For a job that tests an app" in skill
 
+def test_agent_teams_share_a_memory_file_and_list_their_tasks_in_the_note():
+    report = (ROOT / "skill" / "agent-report" / "SKILL.md").read_text()
+    assert "## A lead, its helpers and a memory file" in report
+    for rule in ("`<folder>/<job>/memory.md`", "`date -u +%H:%M`", "`CHANGE REQUEST`", "`wt/<job>/<item>/`"):
+        assert rule in report, rule
+    handover = (ROOT / "skill" / "handover" / "SKILL.md").read_text()
+    assert "### Tasks that an agent starts" in handover
+    assert "started by the <job> lead" in handover
+    assert "none by Claude, the lead restarts it" in handover
+
+
 def test_the_defect_skill_and_the_fork_skill_use_the_brief_standard():
     assert "`/agent-report`" in (ROOT / "skill" / "fix-defect" / "SKILL.md").read_text()
     assert "`/agent-report`" in (ROOT / "skill" / "tokensave-fork" / "SKILL.md").read_text()
