@@ -1,6 +1,6 @@
 ---
 name: app-architect
-description: Review an application, new or existing, monolith or services, as a Senior Staff Application Architect and its adversarial security reviewer. It returns a modernization plan grounded in measured evidence. The plan starts with the contracts that an application defines on day 1, which are the API document and its breaking-change gate, the error registry, authorization, the identity provider, the data model, the UI-to-API map and each integration. It then covers inventories, a twelve-factor scorecard, observability against a layered OpenTelemetry standard, STRIDE and OIDC security, Helm and registry delivery, and KEDA scaling with the TLS and identity of each scaler. It also covers CI/CD with Argo CD, a portability map to open standards and managed services, and a phased roadmap with a runnable proof per step. Every finding carries its full fix and a test that fails before it and passes after. It runs in its own forked agent. Use when the user types /app-architect, or asks for an architecture review, a modernization or migration plan, a monolith-to-microservices assessment, a twelve-factor or observability audit, an API contract or data model definition, or a vendor-neutral platform design.
+description: Review an application, new or existing, monolith or services, as a Senior Staff Application Architect and its adversarial security reviewer. It returns a modernization plan grounded in measured evidence. The plan starts with the contracts that an application defines on day 1. These are the API document and its breaking-change gate, the error registry, the access rules, the identity provider, the data model, the UI-to-API map and each integration. It then covers inventories, a twelve-factor scorecard, observability against a layered OpenTelemetry standard, STRIDE and OIDC security, Helm and registry delivery, and KEDA scaling with the TLS and identity of each scaler. It also covers CI/CD with Argo CD, a portability map to open standards and managed services, and a phased roadmap with a runnable proof per step. Every finding carries its full fix and a test that fails before it and passes after. It runs in its own forked agent. Use when the user types /app-architect, or asks for an architecture review, a modernization or migration plan, a monolith-to-microservices assessment, a twelve-factor or observability audit, an API contract or data model definition, or a vendor-neutral platform design.
 argument-hint: "[repository path or URL] [question or scope]"
 context: fork
 agent: general-purpose
@@ -58,20 +58,22 @@ If the project has `.tokensave/` or `.codegraph/`, read code through it, not thr
 
 ### 0. Contracts first (day 1)
 
-The contracts are the base of the design. Define them on day 1, before the code. For an existing application, they are
-the first thing that you read and score. `CONTRACTS.md`, beside this file, holds each contract: its rule as an open
-standard, the check that fails CI when it breaks, its artifact, and cmapi's file as the example.
+The contracts are the base of the design. Define them on day 1, before the code. For an existing application, read
+and score them first. Read `CONTRACTS.md`, beside this file. For each contract it gives the rule with its standard,
+the check that fails CI, the artifact, and cmapi's file as the example. Its section 2 gives the order of the work.
 
 - **The set:** the API document; its breaking-change gate and accepted-break file; the changelog; payloads recorded
   from a real run; the error registry (RFC 9457); the write rules (idempotency keys, `ETag` and `If-Match`, the dry
   run); authorization from group to role to permission to route; the identity provider contract; the data model; the
   UI-to-API map; each outbound integration with its mock (`/mock-app`); and events and webhooks, when the application
   has them.
-- **A new application is design first.** Write the API document, then the code. **An existing application is code
-  first**, with the generated document committed, tested against what the code serves, and compared with the base
-  branch.
+- **A new application is design first.** Write the API document, then the code. **An existing application keeps its
+  source of truth.** If the code generates the document, it is code first: commit the generated document, test it
+  against what the code serves, and compare it with the base branch. If people maintain the document, keep it, and
+  test the implementation against it.
 - **A contract with no check is a finding.** Score each contract as checked, defined, absent or not applicable, with
-  the file of its artifact and the job or test of its check.
+  the file of its artifact and the job or test of its check. A check that CI did not run is a planned check, and its
+  contract stays "defined".
 - **Each difference from a standard is a finding**, with its fix and its test.
 
 ### 1. Inventory

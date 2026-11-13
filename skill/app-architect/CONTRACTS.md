@@ -6,7 +6,8 @@ and its endpoint. An application writes its contracts down before its code, and 
 
 Each contract below has four parts:
 
-- **The rule**, with the open standard that states it.
+- **The rule**, with the open standard that states it. Where no standard gives the rule, it is a policy of this kit,
+  and the text gives its reason.
 - **The check** that fails CI when the rule breaks. A contract with no check is a document, and a document drifts.
 - **The artifact** and where it is in the repository.
 - **The example**: the file of cmapi that does it, with the commit that added the file.
@@ -19,16 +20,16 @@ recommendation depends on it, because the versions change.
 
 ## 1. The contract set
 
-| No. | Contract | Open standard | The check | The artifact |
+| No. | Contract | Standard or source | The check | The artifact |
 | --- | --- | --- | --- | --- |
 | 3 | The API document | OpenAPI 3.1 or later, JSON Schema 2020-12 | The committed document is the served one. An undocumented route stops startup | `contract/openapi.json` |
 | 4 | The breaking-change gate | The API document of the base branch and of the last release | A breaking change fails. The gate has its own test | `contract/gate.sh`, `contract/accepted-breaking.txt` |
 | 5 | The changelog | The same comparison, between releases | The committed changelog is the one that the tool writes | `contract/released/<version>.json`, `changelog.json` |
 | 6 | Recorded payloads | The `example` fields of OpenAPI | Each operation has a sample from a run, and its shape did not change | `contract/samples.json`, the examples document |
 | 7 | The error registry | RFC 9457 | A route cannot declare or return a problem that is not registered | The registry in code, the problem responses in the API document |
-| 8 | Write semantics | RFC 9110 and RFC 6585; the Idempotency-Key draft | A test for each refusal: 400, 409 or 422, 412, 428 | Shared parameters in the API document |
+| 8 | Write semantics | RFC 9110 and RFC 6585; the Idempotency-Key draft | A test for each refusal: 400, 409, 412, 422, 428 | Shared parameters in the API document |
 | 9 | Authorization | The security requirement of OpenAPI, or an `x-` extension | The declared permission is the enforced one, for each route | The role table in code, the permission on each operation |
-| 10 | The identity provider | OpenID Connect, RFC 9068, RFC 8725, RFC 9700 | The shipped realm on a real identity provider gives each test identity the expected token | The realm as code, the claims table |
+| 10 | The identity provider | OpenID Connect, RFC 9068, RFC 8725, RFC 9700 | The provider configuration that ships, on a test instance of the provider, gives each test identity the expected token | The provider configuration as code, the claims table |
 | 11 | The data model | The migrations and the catalog of the database | The data-model document is the schema of the migrated database | The migrations, the data-model document |
 | 12 | The UI-to-API map | The mockup and the API document | Each row that says "built" names an operation of the API document | The map, one row for each action |
 | 13 | Outbound integrations | The public documents of each provider | Contract tests against the mock and the sandbox | One port for each provider, one mock (`/mock-app`) |
@@ -49,26 +50,32 @@ it, each operation has one permission, and the gate, the changelog and the recor
 shows the standard, not one application.*
 
 ```text
-The interface lane
-  mockup --each action--> UI-to-API map --each endpoint--> API document (OpenAPI)
-  API document --compared with the base branch and the last release--> breaking-change gate (accepted-breaking file)
-  API document --one file for each release--> changelog
-  API document + a run of the test suite --> recorded payloads --> examples in the API document and in the guide
-  error registry (RFC 9457) --the problems of each operation--> API document
-  write rules (Idempotency-Key, If-Match, dry run) --shared parameters--> API document
+INTERFACE · what a client relies on
+  the mockup (each screen and action) --> UI-to-API map (action to endpoint; built or not built)
+  UI-to-API map --endpoints--> the API document (OpenAPI, in the repository; the served one, tested)
+  error registry (RFC 9457 problems) --problems--> the API document
+  write rules (key · If-Match · dry run) --headers--> the API document
+  the API document --compared--> breaking-change gate (base branch · last release)
+  the API document --releases--> changelog (a document for each release)
+  the API document --a run--> recorded payloads (examples in the document and in the guide)
 
-The access lane
-  identity provider: users --> groups --> roles          (the provider owns these)
-  application: roles --> permissions --> one permission for each operation --> API document
-  provider contract: issuer, keys, audience, claims, clients, lifetimes --the token--> permissions
+ACCESS · who can call what
+  groups (users, from the directory; owner: identity provider) --gives--> roles
+  roles (a group gives a role; owner: identity provider) --gives--> permissions
+  permissions (a role gives them; owner: the application) --one permission on each operation--> the API document
+  provider contract (issuer · keys · audience; claims · clients · lifetimes) --the token--> permissions
 
-The data lane
-  migrations --applied--> migrated database --read from the catalog--> data-model document
-  data-model document: what each table holds, the rules that the schema holds, what the database does not hold, the caches
+DATA · what the database holds
+  migrations (the source of the schema) --applied--> migrated database (its catalog is read)
+  migrated database --read--> data-model document (tables · rules · caches; generated, tested)
 
-The outside lane
-  each provider: its public documents --> port --> mock (/mock-app) --> contract tests
-  events and webhooks, when the application has them: AsyncAPI document --> the same gate
+OUTSIDE · what the application calls and sends
+  a provider's documents (paths · errors · sign-in) --define--> port and mock (planned with /mock-app)
+  port and mock --tested--> contract tests (the mock, then a sandbox)
+  AsyncAPI document (events and webhooks; the same gate)
+
+The figure shows the standard. A review says which parts an application has, and which CI check holds each part.
+The access lane shows role-based access. The data lane shows a relational database.
 ```
 
 ## 2. Which comes first: the document or the code
@@ -84,20 +91,35 @@ order:
 2. Write the API document by hand, with the problems, the write rules and the permission of each operation.
 3. Lint the document, and commit it with the gate of section 4.
 4. Start a mock server from the document, so that the UI and the clients build against it (`/mock-app` lists the tools).
-5. Write the code. A test compares what the code serves with the document, and fails on a difference.
+5. Write the code. The tests validate each request and each response of the implementation against the document, and
+   fail on a difference.
 
-**An existing application: code first, with a committed and compared document.** The code generates the document. The
-generated document is committed, a test keeps it equal to what the code serves, and the gate compares it with the base
-branch. The same page permits this: "Regardless of your design approach (design-first or code-first) always keep a
-single source of truth", and for two copies, "you can use a Continuous Integration test to ensure that the two sources
-stay consistent."
+If the application has no screen, there is no map. Then take the list of operations from the callers and their use
+cases, and score the map as "not applicable". On day 1 no check has run. So write each planned check in the scorecard
+(section 15) with its command, and keep the row at "defined" until CI runs the check.
+
+**An existing application: keep its source of truth.** First find what the source of the API document is.
+
+- **The code generates the document, or no document exists.** This is code first, with a committed and compared
+  document. Commit the generated document. A test keeps it equal to the document that the code serves. The gate
+  compares it with the base branch. The same page permits this: "Regardless of your design approach (design-first or
+  code-first) always keep a single source of truth", and for two copies, "you can use a Continuous Integration test to
+  ensure that the two sources stay consistent."
+- **People maintain the document by hand.** Keep it as the source. Do not change the application to code first only
+  because it exists. A served copy of a static file is always equal to that file, so that comparison proves nothing.
+  The check is conformance: the tests of the implementation validate each request and each response against the
+  document, and a test compares the routes of the implementation with the operations of the document.
+
+In both cases the gate of section 4 applies. On the first pull request the base branch has no document, and before the
+first release there is no released document. The gate then runs only its own test. Record that no comparison ran, and
+do not count it as a proof.
 
 **In both cases the document is a source file.** "OADs should be committed to source control, and, in fact, they should
 be among the first files to be committed. From there, they should also participate in Continuous Integration
 processes."
 
 Code first has one known risk, which the same page states: the code can make an API that OpenAPI cannot describe. So
-a code-first application refuses to start when a route has no full description (section 3), and the review reads the
+a code-first application refuses a route that has no full description (section 3), and the review reads the
 generated document, not only the code.
 
 **Example.** cmapi is code first. Its design is prose (`docs/01-design-and-architecture.md`, section "API
@@ -110,21 +132,25 @@ documentation": "The OpenAPI document is generated from the running code"). Fast
 
 **The rule.** One OpenAPI document describes each HTTP API. Each operation has an `operationId`, a summary, a
 description, its parameters with a description and an example, its request and response schemas, its security
-requirement and each error response. The schemas are JSON Schema: in OpenAPI 3.1 the Schema Object "is a superset of
+requirement and each error response. These description rules are a policy of this kit: with them, a client can use the
+API and not read its code. The schemas are JSON Schema: in OpenAPI 3.1 the Schema Object "is a superset of
 the JSON Schema Specification Draft 2020-12". Use OpenAPI 3.1 or later. Version 3.2.1 (10 September 2026) is the latest.
-Choose the newest version that each tool in the chain reads: the generator, the gate, the linter and the documentation
-pages. The application serves the document, and the repository holds the same document.
+Choose the newest version that each tool that you use can read. The application serves the document, and the repository
+holds the same document.
 
 **The check.**
 
-- A test compares the committed document with the served one, and fails on a difference.
-- The application refuses to start when a route has no summary, no description or no response model, when a parameter
-  has no description or no example, or when a field of a model has no description.
-- A linter (Spectral, with a ruleset of the project) fails on a rule of style: an operation with no `operationId`, a
-  schema with no example, an inline schema.
+- For a generated document, a test compares the committed document with the served one, and fails on a difference.
+- For a document that people maintain, the tests validate each request and each response of the implementation
+  against the document, and a test fails on a route that the document does not have (section 2).
+- A route that is not fully described fails: no summary, no description or no response model, a parameter with no
+  description or no example, a field of a model with no description. Where the framework permits it, the application
+  refuses to start. Otherwise a test or the linter does this check.
+- A linter (Spectral is one, with a ruleset of the project) fails on a rule of style: an operation with no
+  `operationId`, a schema with no example, an inline schema. These rules are a policy of the project, not of OpenAPI.
 
-**The artifact.** `contract/openapi.json` beside the code of the service, and the served copies at `/openapi.json` and
-`/openapi.yaml`.
+**The artifact.** `contract/openapi.json` beside the code of the service, or the path that the application has already,
+and the served copy at `/openapi.json`.
 
 **Example.** cmapi's document is OpenAPI 3.1.0 with 31 operations (`cmapi/contract/openapi.json`, commit `3ea7aa1`).
 Routes register through `DocumentedRouter`, and `check_documented` stops startup on a route that is not fully
@@ -182,16 +208,17 @@ is `{"releases": []}`.
 ## 6. Payloads recorded from a real run
 
 **The rule.** No example in the API document or in a guide is written by hand. One scenario of the test suite calls
-each operation on a running instance. A recorder keeps one request and one response for each operation, and one for
-each problem code that the run meets. The samples go into the API document as its `example` fields, and a script
-writes the examples guide from them. So the documentation pages, the guide and the tests show the same payloads. The
-guide says where the run was: which database, which stand-ins, which date.
+each operation on a running instance. A recorder keeps a request and a response for each operation. It also keeps each
+different problem that the run gets. The samples go into the API document as its `example` fields, and a script writes
+the examples guide from them. So the documentation pages, the guide and the tests show the same payloads. The guide
+says where the run was: which database, which stand-ins, which date.
 
 **The check.**
 
 - The test fails when an operation has no sample.
-- The test compares the shape of each sample (the keys and the types) with the committed file. Values such as IDs,
-  times and entity tags change at each run, so the test does not compare them.
+- The test compares each sample with the committed file: the method, the status, the media type and the problem code
+  exactly, and the shape of the body (the keys and the types). Values such as IDs, times and entity tags change at
+  each run, so the test does not compare them. A comparison of the shape only does not find a changed status.
 - The test fails when an operation returns a problem that its part of the document does not declare.
 - The test fails when a sample holds a token. The recorder writes `Bearer $TOKEN` in its place.
 - CI fails when the guide is not what the script writes.
@@ -205,7 +232,9 @@ problems. The operation with no successful sample, `requests_revert`, has a reco
 puts the samples into the document (`cmapi/src/cmapi/core/docs.py:353-377`). `scripts/api-examples-doc.py --check`
 runs in the job `api-contract`, and `docs/04-api-examples.md` is its output. **The limits that cmapi states:** the run
 used the test instance of the service suite, with a fake Git host and a fake cluster, on macOS. `docs/04` says: "No
-payload here is from CRC or from kind yet." The run met 10 of the 48 registered problems.
+payload here is from CRC or from kind yet." The run met 10 of the 48 registered problems. **Where cmapi differs:** its
+test compares only the shape of each sample (`test_api_samples.py:62-74`), so a changed status or problem code in a
+sample does not fail that test. Other tests of the suite assert the statuses (section 8).
 
 A property-based tester such as Schemathesis generates requests from the document and finds the answers that the
 document does not describe. It adds to the recorded run, and does not replace it. cmapi does not use one.
@@ -213,8 +242,9 @@ document does not describe. It adds to the recorded run, and does not replace it
 ## 7. The error registry (RFC 9457)
 
 **The rule.** Each refusal is a problem details object with the media type `application/problem+json`. One registry in
-the code lists each problem type: its code, its status and an example. A route declares the problems that it can
-return, and each one goes into the API document with its example. RFC 9457 gives the rules for the members:
+the code lists each problem type: its code, its status and an example. One registry is a policy of this kit: with
+two lists, two routes give two forms of the same error. Each operation of the API document declares the problems that
+it can return, each with its example. RFC 9457 gives the rules for the members:
 
 - "Consumers MUST use the "type" URI (after resolution, if necessary) as the problem type's primary identifier."
 - "If the type URI is a locator (e.g., those with an "http" or "https" scheme), dereferencing it SHOULD provide
@@ -228,14 +258,18 @@ return, and each one goes into the API document with its example. RFC 9457 gives
 - Registration fails when a route declares a problem that is not in the registry.
 - A test fails when a run meets a problem that the operation does not declare (section 6).
 - A test reads each entry of the registry: a status from 400 to 599, and an example.
+- A test reads the code and fails when it raises a problem that is not in the registry.
 
 **The artifact.** The registry in code, and the problem responses of each operation in the API document.
 
 **Example.** cmapi's registry is `PROBLEMS`, with 48 codes (`cmapi/src/cmapi/core/docs.py:34-84`, commit `fd36e66`).
-`DocumentedRouter._register` raises on an unregistered problem (`docs.py:132-134`). The class `Problem` writes the
-body: `type`, `title`, `status`, `detail`, and the extension members `code` and `errors`
-(`cmapi/src/cmapi/core/errors.py`, commit `72d082b`). **Where cmapi differs:** the `type` URI has a placeholder host
-(`errors.py:9`), so it gives no documentation when a person opens it.
+`DocumentedRouter._register` raises on an unregistered problem (`docs.py:132-134`). The tests
+`test_every_declared_problem_has_a_status_and_example` and `test_every_problem_code_the_code_raises_is_registered`
+read the registry and the code (`cmapi/tests/service/test_api_contract.py:29-31` and `:67-80`). The class `Problem`
+writes the body: `type`, `title`, `status`, `detail` and the extension member `code`, and the member `errors` when
+that list is not empty (`cmapi/src/cmapi/core/errors.py:22-27`, commit `72d082b`). **Where cmapi differs:** the code
+marks the host of the `type` URI as a placeholder (`errors.py:8`). This file did not open that address, so the
+documentation that RFC 9457 asks for there is not verified.
 
 ## 8. Write semantics: idempotency, conditional requests and the dry run
 
@@ -250,11 +284,11 @@ shared parameters.
    with an HTTP 422 status code"; for a retry "while the original request is still being processed, the resource
    SHOULD reply with an HTTP 409 status code"; and the resource "SHOULD define such expiration policy and publish it in
    the documentation." Read the draft again before each design, because a draft can change.
-2. **A change does not overwrite a change that the caller did not see.** A read returns an `ETag`. A change sends it in
-   `If-Match`. RFC 9110, section 13.1.1: "An origin server MUST use the strong comparison function when comparing
-   entity tags for If-Match". An old tag gets 412 (RFC 9110, section 15.5.13). No `If-Match` gets 428. RFC 6585,
-   section 3: "The 428 status code indicates that the origin server requires the request to be conditional. Its typical
-   use is to avoid the "lost update" problem".
+2. **A change does not overwrite a change that the caller did not see.** A read returns a strong `ETag`. A change
+   sends it in `If-Match`. A weak tag cannot pass the comparison of `If-Match`. RFC 9110, section 13.1.1: "An origin
+   server MUST use the strong comparison function when comparing entity tags for If-Match". An old tag gets 412 (RFC
+   9110, section 15.5.13). No `If-Match` gets 428. RFC 6585, section 3: "The 428 status code indicates that the origin
+   server requires the request to be conditional. Its typical use is to avoid the "lost update" problem".
 3. **A caller can ask what a write would do.** A dry run does each check and writes nothing. No IETF standard defines
    it. The Kubernetes API is the model: "Dry-run is triggered by setting the dryRun query parameter", and "dry-run
    requests will not be persisted in storage or have any other side effects."
@@ -269,32 +303,38 @@ declares.
 `idempotency-key-required`, and a dry run needs no key (`cmapi/src/cmapi/plugins/namespaces/router.py:41-48`). A key
 is held for 24 hours by the clock of the database (`cmapi/src/cmapi/core/db/repo.py:49` and `:114-123`), and a unique
 index holds one request for each key of a caller (`docs/16-data-model.md`, "The rules that the schema holds"). No
-`If-Match` gets 428 and an old one gets 412 (`cmapi/src/cmapi/core/pipeline.py:184-188`). The recorded samples hold
-the 400, the 412 and the 428. **Where cmapi differs:** a key with another payload gets 409 `idempotency-replay`
-(`router.py:59-61`), and the draft says 422.
+`If-Match` gets 428 and an old one gets 412 (`cmapi/src/cmapi/core/pipeline.py:184-188`). The tests are in
+`cmapi/tests/service/test_flow.py`: `test_refusals_at_plan_time` (the 400, line 220),
+`test_change_needs_if_match_and_a_moved_folder_is_412` (line 246) and `test_dry_run_writes_nothing_and_shows_the_plan`
+(line 51). The recorded samples hold the 400, the 412 and the 428. **Where cmapi differs:** a key with another payload
+gets 409 `idempotency-replay` (`router.py:59-61`; `test_flow.py:74` asserts the 409), and the draft says 422.
 
 ## 9. Authorization: group, role, permission, route
 
-**The rule.** Access is one chain with four links, and each link has one owner and one file.
+**The rule.** Each operation declares its access rule, and an operation that needs no token says so. For role-based
+access, the rule is one chain with four links, and each link has one owner and one file. The chain is a pattern of this
+kit, not a rule of OpenID Connect. For a different model of authorization, record the inputs of each decision, the
+place where the code decides and the owner, and test the decisions against the rule that each operation declares.
 
 | Link | Owner | Where it is |
 | --- | --- | --- |
 | A user is in a group | The identity provider, from the directory | The directory |
-| A group gives a role | The identity provider | The realm, as code |
+| A group gives a role | The identity provider, or the application: record which | The mapping, as code |
 | A role gives permissions | The application | One table in code, and a configuration file for each instance |
-| A route needs one permission | The application | The route, and its operation in the API document |
+| A route needs one permission, or none | The application | The route, and its operation in the API document |
 
 Each operation of the API document carries its permission. OpenAPI has a field for it, the Security Requirement
 Object: for OAuth 2 "the value is a list of scope names required for the execution", and "For other security scheme
 types, the array MAY contain a list of role names which are required for the execution". Use it when the permission is
-a scope of the token. When the application gets the permission from a role, the token has no such scope, so carry the
-permission in an extension field: "The field name MUST begin with `x-`". The description of the operation says the
-same thing in words.
+a scope of the token. If the application gets the permission from a role, and the token has no scope for it, carry the
+permission in an extension field. For an extension, "The field name MUST begin with x-". Say in the document what the
+extension means. The description of the operation says the same thing in words.
 
 **The check.**
 
 - One test reads each route. It compares the permission that the document declares with the permission that the code
-  enforces. It calls the route with no token (401) and with a role that lacks the permission (403).
+  enforces. It calls the route with no token (401) and with a role that lacks the permission (403). It calls each
+  public route with no token, and gets no 401.
 - Startup fails when the configuration names a permission that the code does not know.
 - A test for each limit that is not a permission: an environment, the caller's own request, a second approval.
 
@@ -305,15 +345,18 @@ of roles and permissions, and each 401 and 403.
 `72d082b`). `DocumentedRouter` writes `x-cmapi-permission` and a "Requires" line on each operation
 (`cmapi/src/cmapi/core/docs.py:143-148`): 29 of the 31 operations have a permission, and 2 have none. The test
 `test_declared_permission_is_the_enforced_one_and_every_route_answers` is the check
-(`cmapi/tests/service/test_review_c_authz.py:39`, commit `88ab538`). An unknown permission stops startup
-(`authz.py:115-117`). `docs/14-authorization.md` is the document, with the owner's rule: "cmapi must define the groups
-contract but keycloak has the user and group role that is mapped to cmapi roles". The security scheme of the document
-is OAuth 2 with no scopes, which is why the permission is in the extension.
+(`cmapi/tests/service/test_review_c_authz.py:39`, commit `88ab538`). An unknown permission stops startup: the code
+collects it (`authz.py:115-117`) and raises (`authz.py:134-135`). `docs/14-authorization.md` is the document, with the
+owner's rule: "cmapi must define the groups contract but keycloak has the user and group role that is mapped to cmapi
+roles". The security scheme of the document is OAuth 2 with no scopes, which is why the permission is in the
+extension. **Not proven on 2026-11-13:** `docs/14`, "Proof", marks the 13 test users on the deployment cluster as "Not
+run yet".
 
 ## 10. The identity provider contract
 
-**The rule.** The application and its identity provider agree in writing on these items, and the realm is code in the
-repository:
+**The rule.** This section applies when the application uses an identity provider. The application and its provider
+agree in writing on these items, and the configuration of the provider is code in the repository. A realm file is the
+form of one provider. For an OpenID Connect provider, the items are:
 
 - The issuer, and where the signing keys are. OpenID Connect Discovery: the `jwks_uri` "contains the signing key(s) the
   RP uses to validate signatures from the OP", and the issuer "MUST also be identical to the iss Claim value".
@@ -331,12 +374,14 @@ repository:
 
 **The check.**
 
-- A test imports the realm file that ships into a real identity provider in a container, gets a token for each test
-  identity, and compares it with a table that does not come from the realm under test.
+- A test applies the configuration that ships to a test instance of the provider. It gets a token for each test
+  identity. It compares the claims with a table that does not come from the configuration under test. Use a
+  container of the provider when one exists. If not, use a test tenant of the provider.
 - A unit test for each refusal of a token: no token, a wrong signature, a wrong audience, a wrong issuer, an expired
   token, a key that is not known.
 
-**The artifact.** The realm as code, and one document with the clients, the claims, the lifetimes and the URLs.
+**The artifact.** The configuration of the provider as code, and one document with the clients, the claims, the
+lifetimes and the URLs.
 
 **Example.** `docs/15-keycloak-integration.md` is the document (commit `65bd329`), and `docs/14-authorization.md`,
 "Step 1: the token", lists each check with its `file:line`. `deploy/tests/realm-test.py` runs the shipped realm on
@@ -348,20 +393,24 @@ differs:** the client `cmapi-automation` takes the password grant (`docs/15`, "T
 
 ## 11. The data model
 
-**The rule.** The migrations are the only source of the schema. The data-model document has two parts.
+**The rule.** This section is for a relational database that the application owns. For a different store, document
+its records, its keys and its rules of consistency, and use the schema check of that store. An application that owns
+no stored data scores this contract as "not applicable". The migrations are the only source of the schema. The
+data-model document has two parts.
 
 - **A generated part.** A script reads each table, column, constraint and index from the catalog of a database at the
   head of the migrations. Nobody copies the schema from the model code.
 - **A written part**, with four subjects. What one row of each table is, and which code writes and reads it. The rules
-  that the schema holds: each unique index, check and foreign key that the code relies on for correctness. What the
+  that the schema holds: each unique index, check, foreign key and lock protocol that the code relies on for
+  correctness. What the
   database does not hold: secrets, tokens, and state that another system owns. The caches: which state the replicas
   share, where it is, and when it expires.
 
-A rule that only the code holds breaks when two replicas run. So a rule such as one open request for each object is
-an index in the schema, and the document names it. A change that is not compatible goes in three steps. Fowler's
-`ParallelChange`: "Parallel change, also known as expand and contract, is a pattern to implement backward-incompatible
-changes to an interface in a safe manner, by breaking the change into three distinct phases: expand, migrate, and
-contract."
+A check in the code of one replica does not see the write of a second replica. So a rule such as one open request for
+each object is an index in the schema, or a transaction protocol that each writer follows, and the document names it.
+A change that is not compatible goes in three steps. Fowler's `ParallelChange`: "Parallel change, also known as expand
+and contract, is a pattern to implement backward-incompatible changes to an interface in a safe manner, by breaking
+the change into three distinct phases: expand, migrate, and contract."
 
 **The check.**
 
@@ -369,19 +418,21 @@ contract."
   migration without its document fails.
 - A check that the models and the migrations agree. With Alembic it is `alembic check`, which "returns an error code
   plus a message if it is detected that new operations would be rendered into a new revision".
-- A test for each rule that the schema holds: two concurrent writes, and the index refuses one.
+- A test for each rule that the schema holds: two concurrent writes, and the index or the protocol refuses one.
 
 **The artifact.** The migrations, and the data-model document with its generated part between two marker lines.
 
-**Example.** `scripts/db-schema-doc.py` writes the part "The tables" of `docs/16-data-model.md` from the test database,
-and `cmapi/tests/service/test_data_model_doc.py` fails when the two differ (commit `b9e7912`). The document has the
-four subjects: "What each table holds", "The rules that the schema holds" (six rules, each with its index or check and
-its migration), "What the database does not hold", and "Caches, and why cmapi has no Redis or Valkey". The migration
-head is `0003`, with nine tables. **Not done in cmapi:** no step runs `alembic check`.
+**Example.** `scripts/db-schema-doc.py` writes the part "The tables" of `docs/16-data-model.md` from the test
+database, and `cmapi/tests/service/test_data_model_doc.py` fails when the two differ (commit `b9e7912`). The document
+has the four subjects: "What each table holds", "The rules that the schema holds" (six rules, each with its migration:
+four unique indexes, one check, and one lease protocol in `cmapi/src/cmapi/core/db/repo.py:249-257`), "What the
+database does not hold", and "Caches, and why cmapi has no Redis or Valkey". The migration head is `0003`, with nine
+tables. **Not done in cmapi:** no step runs `alembic check`.
 
 ## 12. The UI-to-API map
 
-**The rule.** The mockup file and the API document are the two sources. The map has one row for each action of each
+**The rule.** This section applies when the application has a screen. The mockup file and the API document are the two
+sources. The map has one row for each action of each
 screen: the action, the endpoint that it calls, whether the endpoint is built, and a note. It also has the two lists
 that show a gap in the design:
 
@@ -389,8 +440,9 @@ that show a gap in the design:
 - the built endpoints that no action calls.
 
 The map gives the counts: actions, endpoints that the actions need, built, not built. The page code takes its types
-from the API document (for TypeScript, `openapi-typescript` reads OpenAPI 3.0 and 3.1), so that a call that the
-document does not have fails the type check.
+from the API document. For TypeScript, `openapi-typescript` reads OpenAPI 3.0 and 3.1. Types alone do not limit a call
+that an untyped HTTP client makes. So use a client that checks each path and each method against the types
+(`openapi-fetch` is one), and prove in CI that a call to a path that the document does not have fails the type check.
 
 **The check.** A test reads the map and the API document. It fails when a row says "built" and the document has no such
 operation, and when the document has an operation that is in neither the rows nor the list of endpoints with no action.
@@ -437,7 +489,7 @@ OpenAPI document, and no `/mock-app` plan exists for the Git host.
 the first.
 
 - **The document.** AsyncAPI (v3.1.0 on 2026-11-13) "is a project used to describe message-driven APIs in a
-  machine-readable format. It's protocol-agnostic". It describes each channel, each message and its schema.
+  machine-readable format. It’s protocol-agnostic". It describes each channel, each message and its schema.
 - **The envelope.** CloudEvents 1.0 has four required attributes: `id`, `source`, `specversion` and `type`. "Producers
   MUST ensure that `source` + `id` is unique for each distinct event", so a consumer can drop a duplicate.
 - **A webhook that the application sends.** OpenAPI 3.1 has the `webhooks` field: "The incoming webhooks that MAY be
@@ -449,7 +501,10 @@ the first.
 
 **The check.** The same three as for the API document: the committed document is the one that the code publishes, a
 comparison with the base branch fails on a removed channel or a removed required field, and each message example comes
-from a run. A tool for the comparison of two AsyncAPI documents was not read for this file: **research item**.
+from a run. A tool for the comparison of two AsyncAPI documents was not read for this file: **research item**. With
+a tool or with a script of the project, the comparison has its own test, as in section 4: a removed channel and a
+removed required field must fail, and an added channel and an added optional field must pass. Until CI runs it, the
+contract is "defined".
 
 **The artifact.** `contract/asyncapi.yaml`, and a `webhooks` part in the OpenAPI document.
 
@@ -467,24 +522,26 @@ A review and a design both deliver this scorecard. One row for each contract. Th
 - **absent**: the application needs the contract and does not have it;
 - **not applicable**: with the reason.
 
-Each row names the file of the artifact and the job or test of the check. A row with no file is "absent". Each
-difference from the standard is a finding, with its fix and its test, as for each other finding of the review.
+Each row that applies names the file of the artifact and the job or test of the check. A row that applies and has no
+file is "absent". A row that does not apply gives its reason. A check that CI did not run is a planned check: the row
+stays "defined". The last column lists each difference from the standard and each thing that the check does not
+cover. Each one is a finding, with its fix and its test, as for each other finding of the review.
 
 The scorecard of cmapi at commit `933274a`, as the example:
 
 | Contract | State | The artifact | The check | Open on 2026-11-13 |
 | --- | --- | --- | --- | --- |
 | The API document | checked | `cmapi/contract/openapi.json` | `test_the_committed_contract_is_the_document_this_code_serves`, `check_documented` | No lint step |
-| The breaking-change gate | checked | `cmapi/contract/gate.sh`, `accepted-breaking.txt` | The job `api-contract`, with `gate-test.sh` | None |
+| The breaking-change gate | checked | `cmapi/contract/gate.sh`, `accepted-breaking.txt` | The job `api-contract`, with `gate-test.sh` | No released version, so no comparison with a release has run |
 | The changelog | checked | `cmapi/contract/changelog.py`, `changelog.json` | `changelog.py --check` | No version is released |
-| Recorded payloads | checked | `cmapi/src/cmapi/contract/samples.json`, `docs/04` | `test_api_samples.py`, `api-examples-doc.py --check` | No payload from a cluster; 10 of 48 problems recorded |
-| The error registry | checked | `PROBLEMS` in `core/docs.py` | `_register`, `test_api_samples.py` | The `type` host is a placeholder |
-| Write semantics | checked | `routers/__init__.py`, `docs/04` "Rules for each call" | The recorded 400, 412 and 428 | 409 where the draft says 422 |
+| Recorded payloads | checked | `cmapi/src/cmapi/contract/samples.json`, `docs/04` | `test_api_samples.py`, `api-examples-doc.py --check` | No payload from a cluster; 10 of 48 problems recorded; the test compares the shape only |
+| The error registry | checked | `PROBLEMS` in `core/docs.py` | `_register`, the two registry tests of `test_api_contract.py`, `test_api_samples.py` | The `type` host is a placeholder |
+| Write semantics | checked | `routers/__init__.py`, `docs/04` "Rules for each call" | `test_refusals_at_plan_time`, `test_change_needs_if_match_and_a_moved_folder_is_412`, `test_dry_run_writes_nothing_and_shows_the_plan` | 409 where the draft says 422 |
 | Authorization | checked | `core/authz.py`, `x-cmapi-permission`, `docs/14` | `test_review_c_authz.py` | The 13 test users on the deployment cluster: not run |
-| The identity provider | checked | The realm import, `docs/15` | `deploy/tests/realm-test.py`, `test_auth.py` | The password grant; the proof on the deployment cluster |
+| The identity provider | checked | The realm import, `docs/15` | `deploy/tests/realm-test.py`, `test_auth.py` | The password grant; the `typ` claim, not the `typ` header; three results on the deployment cluster: not run |
 | The data model | checked | The migrations, `docs/16` | `test_data_model_doc.py` | No `alembic check` |
-| The UI-to-API map | defined | `docs/diagrams/portal-architecture/README.md` | None for the "built" column | The page calls no API |
-| Outbound integrations | defined | `core/ports.py`, the fakes | The adapter tests, with no provider document | No `/mock-app` plan |
+| The UI-to-API map | defined | `docs/diagrams/portal-architecture/README.md` | None for the "built" column | No test compares the map with the API document; the page calls no API |
+| Outbound integrations | defined | `core/ports.py`, the fakes | The adapter tests, with no provider document | No mock from the documents of a provider; no `/mock-app` plan |
 | Events and webhooks | not applicable | None | None | Designed and off |
 
 ## 16. Rejected options, and the sources
@@ -493,28 +550,29 @@ The scorecard of cmapi at commit `933274a`, as the example:
 | --- | --- | --- |
 | A document written by hand beside code that also generates one, with no test between them | Rejected | Two sources. The OpenAPI Initiative: "newcomers to the project will not know which one is actually in use and mistakes will be made" |
 | A code-first document that is served and not committed | Rejected | Nothing to compare a pull request with, so no gate |
-| A comparison script of the project | Rejected | oasdiff has hundreds of checks in three levels, and a test of the gate proves it. cmapi's own research rejected the same option (`ob1-run/research.md`, D1) |
-| OpenAPITools/openapi-diff 2.1.7 | Rejected for a 3.1 document | Its README says "Supports OpenAPI spec v3.0", and it needs Java |
+| A comparison script of the project | Rejected for an HTTP API | oasdiff "supports hundreds of checks" in three levels, and a test of the gate proves it on the project's document |
+| OpenAPITools/openapi-diff 2.1.7 | Rejected for a 3.1 document | Its README says "Supports OpenAPI spec v3.0", and it needs Java. Read it again when a later release is out |
 | opticdev/optic | Rejected | The repository is archived (GitHub API, 2026-11-13) |
-| pb33f/openapi-changes | Not chosen, kept as the alternative | Active, Apache-2.0, with configurable breaking rules. One tool for the gate and the changelog is simpler, and oasdiff does both |
-| OpenAPI 3.0 | Rejected for a new document | Version 3.1 made the Schema Object a superset of JSON Schema 2020-12. Version 3.0 has its own subset |
+| pb33f/openapi-changes | Not chosen, kept as the alternative | Not archived, Apache-2.0 (GitHub API, 2026-11-13), with configurable breaking rules in its README. Its 3.1 support was not read. One tool for the gate and the changelog is simpler, and oasdiff does both |
+| OpenAPI 3.0 | Rejected for a new document | In 3.0.4 the Schema Object "is an extended subset of the JSON Schema Specification Draft Wright-00". In 3.1 it is a superset of JSON Schema 2020-12, so one schema serves the document and the validators |
 | OpenAPI 3.2.1 now | Not rejected | Use it when each tool in the chain reads it. oasdiff says "3.2 specs are read too", and Spectral lists v3.2 |
-| Examples written by hand | Rejected | They drift from the code. A recorded sample cannot |
+| Examples written by hand | Rejected | Nothing compares them with the code. A recorded sample has a test, and that test must compare the status and the problem code, not only the shape (section 6) |
 | A byte comparison of the recorded payloads | Rejected | IDs, times and entity tags change at each run. Compare the keys and the types |
 | An error body of the project | Rejected | RFC 9457 is the standard, with a media type that clients know |
-| `Last-Modified` as the validator of a change | Rejected | RFC 9110, section 8.8.2.2: "A Last-Modified time, when used as a validator in a request, is implicitly weak unless it is possible to deduce that it is strong". An entity tag has no such limit |
+| `Last-Modified` as the validator of a change | Rejected | RFC 9110, section 8.8.2.2: "A Last-Modified time, when used as a validator in a request, is implicitly weak unless it is possible to deduce that it is strong". Use a strong entity tag: `If-Match` uses the strong comparison |
 | The password grant for a script | Rejected | RFC 9700: it "MUST NOT be used". Use client credentials for a service |
 | A fake that implements the port as the contract test of a provider | Rejected | `/mock-app`: "The documents of the provider define the contract, not the client" |
 | A data-model document written from the model code | Rejected | The catalog of the migrated database is what runs |
 | Pact as the gate of an API with clients that the team does not own | Not chosen | A consumer-driven contract needs the tests of each consumer. The gate on the document needs none |
 
-All sources were read on 2026-11-13.
+All sources were read on 2026-11-13. The release numbers, the release dates, the licences and the archived state of each
+tool came from the GitHub API on the same day.
 
 | Subject | Source |
 | --- | --- |
 | Design first, one source of truth, the document in source control | [OpenAPI best practices](https://learn.openapis.org/best-practices.html) |
 | OpenAPI 3.1: the Schema Object, the security requirement, `x-` extensions, `webhooks`, `example` | [OpenAPI 3.1.2](https://spec.openapis.org/oas/v3.1.2.html) |
-| The latest OpenAPI version | [OpenAPI 3.2.1](https://spec.openapis.org/oas/v3.2.1.html) |
+| The latest OpenAPI version, and the Schema Object of 3.0 | [OpenAPI 3.2.1](https://spec.openapis.org/oas/v3.2.1.html), [OpenAPI 3.0.4](https://spec.openapis.org/oas/v3.0.4.html) |
 | JSON Schema: "The current version is 2020-12" | [JSON Schema specification](https://json-schema.org/specification) |
 | Problem details | [RFC 9457](https://www.rfc-editor.org/rfc/rfc9457.html) |
 | `ETag`, `If-Match`, 412 | [RFC 9110](https://www.rfc-editor.org/rfc/rfc9110.html), sections 8.8.3, 13.1.1 and 15.5.13 |

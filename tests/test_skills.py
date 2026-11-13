@@ -419,7 +419,9 @@ def test_the_architect_starts_with_the_contracts_of_day_1():
     order = [skill.index(h) for h in ("### 0. Contracts first (day 1)", "### 1. Inventory", "## Deliverables", "- A contracts scorecard",
                                       "## Worked example: Fabric Coffee (demo 57)", "## Worked example: cmapi (the contracts)")]
     assert order == sorted(order)
-    assert "`CONTRACTS.md`" in skill.split("### 0. Contracts first (day 1)", 1)[1].split("### 1. Inventory", 1)[0]
+    section = skill.split("### 0. Contracts first (day 1)", 1)[1].split("### 1. Inventory", 1)[0]
+    assert "`CONTRACTS.md`" in section
+    assert "**A new application is design first.**" in section and "**An existing application keeps its\n  source of truth.**" in section
     meta = frontmatter(ROOT / "skill" / "app-architect" / "SKILL.md")
     assert "contracts" in meta["description"] and ": " not in meta["description"], "a colon and a space end a plain YAML value"
 
@@ -427,19 +429,29 @@ def test_the_architect_starts_with_the_contracts_of_day_1():
 def test_each_contract_has_its_rule_its_check_its_artifact_and_its_example():
     facts = (ROOT / "skill" / "app-architect" / "CONTRACTS.md").read_text()
     for n, heading in enumerate(CONTRACT_SECTIONS):
-        assert heading in facts, heading
+        assert facts.count(heading) == 1, heading
         end = CONTRACT_SECTIONS[n + 1] if n + 1 < len(CONTRACT_SECTIONS) else "## 15. The contracts scorecard"
         section = facts.split(heading, 1)[1].split(end, 1)[0]
         for part in ("**The rule.**", "**The check.**", "**The artifact.**", "**Example.**"):
             assert part in section, f"{heading}: {part}"
         # the example is a file of cmapi, never a statement from memory
         assert "`" in section.split("**Example.**", 1)[1], heading
-    assert "## 2. Which comes first: the document or the code" in facts
-    assert "**A new application: design first.**" in facts and "**An existing application: code first" in facts
-    # the scorecard has one row for each contract, and each state is one of the four
-    rows = [r for r in facts.split("## 15. The contracts scorecard", 1)[1].split("## 16.", 1)[0].splitlines() if r.startswith("| The ") or r.startswith("| Recorded") or r.startswith("| Write") or r.startswith("| Authorization") or r.startswith("| Outbound") or r.startswith("| Events")]
-    assert len(rows) == len(CONTRACT_SECTIONS), rows
-    assert {r.split("|")[2].strip() for r in rows} <= {"checked", "defined", "absent", "not applicable"}
+    order = "## 2. Which comes first: the document or the code"
+    assert order in facts
+    order = facts.split(order, 1)[1].split("## 3.", 1)[0]
+    assert "**A new application: design first.**" in order and "**An existing application: keep its source of truth.**" in order
+    # an existing application is not forced to code first: both sources of the document have their check
+    assert "**The code generates the document, or no document exists.**" in order and "**People maintain the document by hand.**" in order
+    # the scorecard has one row for each contract, in the order of the sections, and a checked row names its artifact and its check
+    scorecard = facts.split("## 15. The contracts scorecard", 1)[1].split("## 16.", 1)[0]
+    rows = [[cell.strip() for cell in line.strip("|").split("|")] for line in scorecard.splitlines() if line.startswith("|")][2:]
+    assert [row[0] for row in rows] == ["The API document", "The breaking-change gate", "The changelog", "Recorded payloads",
+                                        "The error registry", "Write semantics", "Authorization", "The identity provider", "The data model",
+                                        "The UI-to-API map", "Outbound integrations", "Events and webhooks"]
+    for row in rows:
+        assert len(row) == 5 and row[1] in {"checked", "defined", "absent", "not applicable"}, row
+        if row[1] == "checked":
+            assert "`" in row[2] and "`" in row[3], f"{row[0]}: a checked row names its artifact and its check"
     # each standard and each tool names its primary source, and the date it was read
     assert "All sources were read on 2026-11-13." in facts and facts.count("](https://") >= 30
     for source in ("https://learn.openapis.org/best-practices.html", "https://spec.openapis.org/oas/v3.1.2.html", "https://json-schema.org/specification",
@@ -461,9 +473,11 @@ def test_the_contract_figure_is_rendered_and_has_its_text_twin():
     claim = re.search(r'aria-label="([^"]+)"', page).group(1)
     assert f'<img alt="{claim}"' in facts, "the picture in CONTRACTS.md and the page state the same claim"
     assert page.count('class="fig-scroll"') == 1 and "stroke-dasharray" not in page, "the figure shows the standard: nothing in it is proposed"
-    twin = facts.split("```text\n", 1)[1].split("```", 1)[0]
-    for lane in ("The interface lane", "The access lane", "The data lane", "The outside lane"):
-        assert lane in twin
+    # the twin has each label of the figure, so a label cannot change, and the twin cannot lose a line, without the other
+    twin = " ".join(facts.split("```text\n", 1)[1].split("```", 1)[0].split())
+    labels = [" ".join(label.split()) for label in re.findall(r"<text[^>]*>([^<]+)</text>", page.split("<svg", 1)[1].split("</svg>", 1)[0])]
+    assert len(labels) > 60, "the labels of the figure were found"
+    assert [label for label in labels if label not in twin] == []
     assert "diagram-render figures/source.html figures contracts" in facts
 
 

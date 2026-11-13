@@ -68,7 +68,7 @@ a { color: var(--remote); }
     <h2>The contract set, and what feeds what</h2>
     <figure>
       <div class="fig-scroll">
-<svg viewBox="0 0 980 680" role="img" aria-label="The contract set in four lanes. In the interface lane, the mockup gives the UI-to-API map, and the map, the error registry and the write rules give the API document. The gate, the changelog and the recorded payloads come from the API document. In the access lane, groups give roles, roles give permissions, and each operation of the API document has one permission. In the data lane, the migrations give the migrated database, and its catalog gives the data-model document. Outside, the documents of each provider define a port and a mock, and events have an AsyncAPI document.">
+<svg viewBox="0 0 980 700" role="img" aria-label="The contract set in four lanes. In the interface lane, the mockup gives the UI-to-API map, and the map, the error registry and the write rules give the API document. The gate, the changelog and the recorded payloads come from the API document. In the access lane, groups give roles, roles give permissions, and each operation of the API document has one permission. In the data lane, the migrations give the migrated database, and its catalog gives the data-model document. Outside, the documents of each provider define a port and a mock, and events have an AsyncAPI document.">
 <defs><marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="context-stroke"/></marker></defs>
 <g font-family="IBM Plex Mono, monospace" font-size="13" font-weight="600">
 <rect x="20" y="14" width="430" height="26" rx="6" fill="var(--none-wash)" stroke="var(--none)"/>
@@ -177,6 +177,7 @@ a { color: var(--remote); }
 <line x1="450" y1="597" x2="506" y2="597" stroke="currentColor" stroke-width="1.2" marker-end="url(#ah)"/>
 <text x="478" y="590" text-anchor="middle" font-size="11.5" fill="var(--muted)">tested</text>
 <text x="20" y="662" fill="var(--muted)">The figure shows the standard. A review says which parts an application has, and which CI check holds each part.</text>
+<text x="20" y="682" fill="var(--muted)">The access lane shows role-based access. The data lane shows a relational database.</text>
 </g>
 </svg>
       </div>
