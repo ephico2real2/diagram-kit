@@ -100,6 +100,8 @@ git -C <folder>/<repository name> remote remove origin
 
 `act-ci.sh` writes one log for each job, `status.txt` and the copy of the workflow that act ran, to `<folder>/act-logs`, or to the folder of `-o`. When each job exits 0, it exits 0. When the working tree has changes, it stops, but `-d` lets it continue. Never operate `act` with no arguments: it runs every workflow that runs on a push, and that can include a deploy workflow.
 
+To watch the runs in a browser, use `/local-ci-web`. It shows each run of `act-ci.sh` with its jobs, its `act-*` containers and their logs, on `http://127.0.0.1:2026/`.
+
 | Setting or step | Why |
 | --- | --- |
 | `-W <workflow> -j <job>` on each call | A bare `act` operates every push workflow (G4) |

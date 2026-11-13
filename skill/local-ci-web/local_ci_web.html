@@ -1,0 +1,95 @@
+<!doctype html>
+<!-- SPDX-License-Identifier: MPL-2.0. Part of diagram-kit skill/local-ci-web (https://mozilla.org/MPL/2.0/). -->
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local CI Runs</title>
+<style>
+:root{--bg:#fff;--fg:#1f2328;--mut:#59636e;--ok:#1a7f37;--run:#9a6700;--bad:#cf222e;--rule:#d1d9e0;--panel:#f6f8fa;--sel:#ddf4ff}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#0d1117;--fg:#e6edf3;--mut:#9198a1;--ok:#3fb950;--run:#d29922;--bad:#f85149;--rule:#3d444d;--panel:#151b23;--sel:#1f3a5c}}
+:root[data-theme="dark"]{--bg:#0d1117;--fg:#e6edf3;--mut:#9198a1;--ok:#3fb950;--run:#d29922;--bad:#f85149;--rule:#3d444d;--panel:#151b23;--sel:#1f3a5c}
+*{box-sizing:border-box}
+body{background:var(--bg);color:var(--fg);font:14px/1.45 -apple-system,system-ui,sans-serif;margin:0;padding:16px}
+h1{font-size:18px;margin:0 0 4px}h2{font-size:15px;margin:18px 0 6px}
+.mut{color:var(--mut)}.ok{color:var(--ok);font-weight:600}.run{color:var(--run);font-weight:600}.bad{color:var(--bad);font-weight:600}
+.run-card{border:1px solid var(--rule);border-radius:6px;padding:10px 12px;margin:10px 0}
+table{border-collapse:collapse;margin:6px 0;width:100%;max-width:900px}
+td,th{border:1px solid var(--rule);padding:3px 8px;text-align:left;font-size:13px;vertical-align:top}
+tr.pick{cursor:pointer}tr.pick:hover,tr.sel{background:var(--sel)}
+code{font:12px ui-monospace,Menlo,monospace;overflow-wrap:anywhere}
+#logbar{display:flex;gap:12px;align-items:baseline;flex-wrap:wrap;margin-top:14px}
+pre{background:var(--panel);border:1px solid var(--rule);padding:10px;height:50vh;overflow:auto;font:12px/1.4 ui-monospace,Menlo,monospace;white-space:pre-wrap;overflow-wrap:anywhere}
+.wrap{overflow-x:auto}
+</style></head><body>
+<h1>Local CI runs (act)</h1>
+<div class="mut">Runs come from the running <code>act-ci.sh</code> processes; containers from the Podman socket, tied to a run by their working folder. Refreshes every 3 s. <span id="t"></span></div>
+<div id="err" class="bad"></div>
+<div id="runs"></div>
+<div id="other"></div>
+<div id="logbar"><b id="cur">Click a job or a container to read its log.</b><label class="mut"><input type="checkbox" id="follow" checked> follow the running job</label></div>
+<pre id="log"></pre>
+<script>
+let pick = null; // {kind:'file', run, file} or {kind:'clog', name}
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const result = j => j.rc === null ? (j.start ? '<span class="run">running</span>' : '')
+  : j.rc === 0 ? '<span class="ok">passed (exit 0)</span>' : `<span class="bad">failed (exit ${j.rc})</span>`;
+const stateCls = s => s === 'running' ? 'run' : s === 'exited' ? 'mut' : '';
+
+function containersTable(list) {
+  if (!list.length) return '<div class="mut">No act container for this run now.</div>';
+  return '<div class="wrap"><table><tr><th>Container (workflow and job)</th><th>Role</th><th>Image</th><th>State</th></tr>' +
+    list.map(c => `<tr class="pick${pick && pick.kind==='clog' && pick.name===c.name ? ' sel' : ''}" data-clog="${esc(c.name)}">
+      <td><code>${esc(c.label)}</code></td><td>${esc(c.role)}</td><td><code>${esc(c.image.split('@')[0])}</code></td>
+      <td class="${stateCls(c.state)}">${esc(c.status || c.state)}</td></tr>`).join('') + '</table></div>';
+}
+
+function render(state) {
+  document.getElementById('t').textContent = 'Updated ' + state.now + ' UTC.';
+  document.getElementById('err').textContent = state.podman_error ? 'Podman: ' + state.podman_error : '';
+  const box = document.getElementById('runs');
+  if (!state.runs.length) box.innerHTML = '<p class="mut">No act-ci.sh run is running, and none was seen since this server started.</p>';
+  else box.innerHTML = state.runs.map(r => `<div class="run-card">
+    <div><b>${r.running ? '<span class="run">running</span>' : '<span class="mut">ended</span>'}</b>
+      <code>${esc(r.out)}</code></div>
+    <div class="mut">repository <code>${esc(r.repo || '?')}</code>, base <code>${esc(r.base || '?')}</code>${r.pid ? ', pid ' + r.pid : ''}</div>
+    <div class="wrap"><table><tr><th>Job</th><th>Start (UTC)</th><th>End (UTC)</th><th>Result</th><th>Note</th></tr>` +
+    r.jobs.map(j => `<tr class="pick${pick && pick.kind==='file' && pick.run===r.out && pick.file===j.job+'.log' ? ' sel' : ''}"
+      data-run="${esc(r.out)}" data-file="${esc(j.job)}.log"><td>${esc(j.job)}</td><td>${esc(j.start)}</td><td>${esc(j.end)}</td>
+      <td>${result(j)}</td><td class="mut">${esc(j.note)}</td></tr>`).join('') + `</table></div>
+    <h2>Containers</h2>${containersTable(r.containers)}</div>`).join('');
+  document.getElementById('other').innerHTML = state.other_containers.length
+    ? '<h2>Act containers with no known run</h2>' + containersTable(state.other_containers) : '';
+  if (document.getElementById('follow').checked) {
+    const live = state.runs.find(r => r.running && r.current);
+    if (live) pick = {kind: 'file', run: live.out, file: live.current + '.log'};
+  }
+  if (!pick) { const r = state.runs[0]; if (r && r.jobs.length) pick = {kind:'file', run:r.out, file:r.jobs[r.jobs.length-1].job + '.log'}; }
+}
+
+async function loadLog() {
+  if (!pick) return;
+  const url = pick.kind === 'file'
+    ? `/api/log?run=${encodeURIComponent(pick.run)}&file=${encodeURIComponent(pick.file)}&tail=400`
+    : `/api/clog?name=${encodeURIComponent(pick.name)}&tail=400`;
+  document.getElementById('cur').textContent = (pick.kind === 'file' ? 'Job log: ' + pick.file : 'Container log: ' + pick.name) + ' (last 400 lines)';
+  const res = await fetch(url, {cache: 'no-store'});
+  const pre = document.getElementById('log');
+  const atEnd = pre.scrollTop + pre.clientHeight >= pre.scrollHeight - 20;
+  pre.textContent = res.ok ? await res.text() : 'Not available: ' + (await res.text());
+  if (atEnd) pre.scrollTop = pre.scrollHeight;
+}
+
+document.addEventListener('click', e => {
+  const tr = e.target.closest('tr.pick'); if (!tr) return;
+  document.getElementById('follow').checked = false;
+  pick = tr.dataset.clog ? {kind:'clog', name: tr.dataset.clog} : {kind:'file', run: tr.dataset.run, file: tr.dataset.file};
+  tick();
+});
+
+async function tick() {
+  try {
+    const res = await fetch('/api/state', {cache: 'no-store'});
+    render(await res.json());
+    await loadLog();
+  } catch (err) { document.getElementById('err').textContent = 'The local-ci-web server does not answer: ' + err; }
+}
+tick(); setInterval(tick, 3000);
+</script></body></html>
