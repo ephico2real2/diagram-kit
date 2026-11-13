@@ -406,6 +406,67 @@ def test_the_architect_reviews_recovery_for_each_cloud_and_the_edge():
     assert facts.count("](https://") >= 15
 
 
+CONTRACT_SECTIONS = ("## 3. The API document", "## 4. The breaking-change gate and the accepted-break file", "## 5. The changelog",
+                     "## 6. Payloads recorded from a real run", "## 7. The error registry (RFC 9457)",
+                     "## 8. Write semantics: idempotency, conditional requests and the dry run",
+                     "## 9. Authorization: group, role, permission, route", "## 10. The identity provider contract",
+                     "## 11. The data model", "## 12. The UI-to-API map", "## 13. Outbound integrations, each with its mock",
+                     "## 14. Events and webhooks, when the application has them")
+
+
+def test_the_architect_starts_with_the_contracts_of_day_1():
+    skill = (ROOT / "skill" / "app-architect" / "SKILL.md").read_text()
+    order = [skill.index(h) for h in ("### 0. Contracts first (day 1)", "### 1. Inventory", "## Deliverables", "- A contracts scorecard",
+                                      "## Worked example: Fabric Coffee (demo 57)", "## Worked example: cmapi (the contracts)")]
+    assert order == sorted(order)
+    assert "`CONTRACTS.md`" in skill.split("### 0. Contracts first (day 1)", 1)[1].split("### 1. Inventory", 1)[0]
+    meta = frontmatter(ROOT / "skill" / "app-architect" / "SKILL.md")
+    assert "contracts" in meta["description"] and ": " not in meta["description"], "a colon and a space end a plain YAML value"
+
+
+def test_each_contract_has_its_rule_its_check_its_artifact_and_its_example():
+    facts = (ROOT / "skill" / "app-architect" / "CONTRACTS.md").read_text()
+    for n, heading in enumerate(CONTRACT_SECTIONS):
+        assert heading in facts, heading
+        end = CONTRACT_SECTIONS[n + 1] if n + 1 < len(CONTRACT_SECTIONS) else "## 15. The contracts scorecard"
+        section = facts.split(heading, 1)[1].split(end, 1)[0]
+        for part in ("**The rule.**", "**The check.**", "**The artifact.**", "**Example.**"):
+            assert part in section, f"{heading}: {part}"
+        # the example is a file of cmapi, never a statement from memory
+        assert "`" in section.split("**Example.**", 1)[1], heading
+    assert "## 2. Which comes first: the document or the code" in facts
+    assert "**A new application: design first.**" in facts and "**An existing application: code first" in facts
+    # the scorecard has one row for each contract, and each state is one of the four
+    rows = [r for r in facts.split("## 15. The contracts scorecard", 1)[1].split("## 16.", 1)[0].splitlines() if r.startswith("| The ") or r.startswith("| Recorded") or r.startswith("| Write") or r.startswith("| Authorization") or r.startswith("| Outbound") or r.startswith("| Events")]
+    assert len(rows) == len(CONTRACT_SECTIONS), rows
+    assert {r.split("|")[2].strip() for r in rows} <= {"checked", "defined", "absent", "not applicable"}
+    # each standard and each tool names its primary source, and the date it was read
+    assert "All sources were read on 2026-11-13." in facts and facts.count("](https://") >= 30
+    for source in ("https://learn.openapis.org/best-practices.html", "https://spec.openapis.org/oas/v3.1.2.html", "https://json-schema.org/specification",
+                   "https://www.rfc-editor.org/rfc/rfc9457.html", "https://www.rfc-editor.org/rfc/rfc9110.html",
+                   "https://datatracker.ietf.org/doc/draft-ietf-httpapi-idempotency-key-header/",
+                   "https://openid.net/specs/openid-connect-discovery-1_0.html", "https://www.asyncapi.com/docs/reference/specification/latest",
+                   "https://github.com/oasdiff/oasdiff/blob/main/docs/BREAKING-CHANGES.md"):
+        assert source in facts, source
+    assert "| Rejected |" in facts and "/Users/" not in facts
+
+
+def test_the_contract_figure_is_rendered_and_has_its_text_twin():
+    folder = ROOT / "skill" / "app-architect"
+    facts = (folder / "CONTRACTS.md").read_text()
+    page = (folder / "figures" / "source.html").read_text()
+    for name in ("contracts.light.png", "contracts.dark.png"):
+        assert (folder / "figures" / name).stat().st_size > 10_000
+        assert f"figures/{name}" in facts
+    claim = re.search(r'aria-label="([^"]+)"', page).group(1)
+    assert f'<img alt="{claim}"' in facts, "the picture in CONTRACTS.md and the page state the same claim"
+    assert page.count('class="fig-scroll"') == 1 and "stroke-dasharray" not in page, "the figure shows the standard: nothing in it is proposed"
+    twin = facts.split("```text\n", 1)[1].split("```", 1)[0]
+    for lane in ("The interface lane", "The access lane", "The data lane", "The outside lane"):
+        assert lane in twin
+    assert "diagram-render figures/source.html figures contracts" in facts
+
+
 def test_mock_app_tool_claims_have_primary_sources():
     text = (ROOT / "skill" / "mock-app" / "SKILL.md").read_text()
     sources = {

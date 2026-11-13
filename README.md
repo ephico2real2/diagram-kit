@@ -308,7 +308,9 @@ open standards and managed services, and a phased roadmap. Every finding carries
 before it and passes after. The skill runs in its own forked agent (`context: fork`), so the review's reading stays
 out of the conversation and only its report comes back. Its figures are made with `/visual` and its dashboards with
 `/dashboard`. Its worked example is Fabric Coffee, demo 57 of
-[cilium-implementation-poc](https://github.com/ephico2real2/cilium-implementation-poc).
+[cilium-implementation-poc](https://github.com/ephico2real2/cilium-implementation-poc). Its section 0 is contracts first:
+`skill/app-architect/CONTRACTS.md` holds the contracts that an application defines on day 1, each with its open
+standard, the check that fails CI, its artifact, and [cmapi](https://github.com/ephico2real2/cmapi) as the example.
 
 If a provider has no sandbox, **`skill/mock-app/SKILL.md`** plans a mock app for it. It runs in its own forked agent. It researches current practice online, reads the public API documentation
 and contract of each provider, and compares them with the calls of the client. The plan gives the build choice, and an
