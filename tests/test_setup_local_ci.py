@@ -121,10 +121,16 @@ def env(tmp_path):
         """))
     write_tool(bin_dir, "podman", textwrap.dedent(f"""\
         echo "$*" >> "{calls}/podman"
+        if [[ "$*" == *"{{{{.Ports}}}}"* ]]; then printf '%s\\n' "${{PODMAN_PORTS:-}}"; exit 0; fi
         case "$1 $2" in
           "ps -a") printf 'act-CI-left-from-a-failed-job\\nkeep-me\\nact-Other-job\\n' ;;
         esac
         exit 0
+        """))
+    # The stand-in lsof: a port listed in LSOF_BUSY has a listener on this host, any other port is free.
+    write_tool(bin_dir, "lsof", textwrap.dedent("""\
+        for arg in "$@"; do [[ $arg == -iTCP:* ]] && port=${arg#-iTCP:}; done
+        [[ " ${LSOF_BUSY:-} " == *" $port "* ]]
         """))
     write_tool(bin_dir, "gh", textwrap.dedent(f"""\
         if [[ "$1 $2" == "auth token" ]]; then echo sample-token; exit 0; fi
@@ -342,3 +348,42 @@ def test_an_act_call_that_exits_0_with_no_job_succeeded_is_a_failure(env):
     result = run(env, "-j", "verify")
     assert result.returncode != 0
     assert "exit=0" not in status_of(env, "verify") and "no job succeeded" in status_of(env, "verify")
+
+
+def add_port_jobs(env):
+    path = env["repo"] / ".github" / "workflows" / "ci.yml"
+    path.write_text(path.read_text() + textwrap.indent(textwrap.dedent("""\
+        service:
+          runs-on: ubuntu-latest
+          services:
+            db:
+              image: postgres:16
+              ports:
+                - "${{ vars.CI_DB_PORT || '55432' }}:5432"
+            cache:
+              image: postgres:16
+              ports:
+                - "${{ vars.CI_CACHE_PORT || '55433' }}:5432"
+          steps:
+            - run: echo "${{ vars.CI_DB_PORT || '55432' }}"
+        """), "  "))
+    git = ["git", "-C", str(env["repo"]), "-c", "user.name=t", "-c", "user.email=t@example.test"]
+    subprocess.run([*git, "commit", "-qam", "a job with port placeholders"], check=True)
+
+
+def test_each_port_variable_gets_a_free_host_port_from_12026(env):
+    """cmapi #170: the service job published 55432, which the project's own test database held, and act failed to start it."""
+    add_port_jobs(env)
+    env["env"]["LSOF_BUSY"] = "12026"
+    env["env"]["PODMAN_PORTS"] = "0.0.0.0:12027->5432/tcp"
+    result = run(env, "-j", "service")
+    assert result.returncode == 0, result.stdout + result.stderr
+    (call,) = act_calls(env)
+    assert "--var CI_CACHE_PORT=12028" in call and "--var CI_DB_PORT=12029" in call, call
+    assert (env["logs"] / "ports.txt").read_text().split() == ["CI_CACHE_PORT=12028", "CI_DB_PORT=12029"]
+
+
+def test_a_workflow_with_no_port_variable_passes_no_var(env):
+    result = run(env, "-j", "verify")
+    assert result.returncode == 0, result.stdout + result.stderr
+    assert all("--var" not in call for call in act_calls(env))

@@ -115,6 +115,7 @@ To watch the runs in a browser, use `/local-ci-web`. It shows each run of `act-c
 | One call for each matrix entry, with `--matrix <key>:<value>` | act starts the entries together, and their services collide on one host port (G8) |
 | `-s GITHUB_TOKEN`, from `gh auth token` for each call | The actions download tools with it. act masks it in the logs. The script does not print it |
 | A job that installs gitleaks runs natively | See section 5 |
+| `--var <NAME>_PORT=<free port>` for each `vars.<NAME>_PORT` in the workflow | A fixed service port can clash with a program that already holds it (G15). act runs the job container on the host network and each service on its own network, so a job reaches a service only through its published port |
 
 ## 5. The secret scan
 
@@ -154,6 +155,7 @@ gitleaks does not scan a merge commit as a patch, so the number of commits is th
 | G12 | A test that finds files by the repository folder fails | for example `path is outside the three repositories: <clone>/docs/...` | GitHub checks out to `<workspace>/<repository>/<repository>`, but act mounts the clone at its own path, with its own folder name | Name the clone folder after the repository |
 | G13 | A job of another project fails while a run of this project starts | `can only create exec sessions on running containers: container state improper` | Both workflows are named `CI`. act gives a job the same container name in both projects, and removes the container of the other run when it starts its own | `act-ci.sh` runs a copy of the workflow whose name starts with a run id, and cleans up only `act-<run id>-*` |
 | G14 | A job ends in 1 second with `exit=0`, and ran no step | `Skipping unsupported platform -- Try running with `-P ubuntu-24.04=...`` | act runs a job only when a `-P` names its `runs-on` label. The script mapped only `ubuntu-latest`, and act exits 0 for a job that it skips | `act-ci.sh` passes one `-P` for each plain `runs-on` label of the workflow. It counts exit 0 as a pass only when the log has `Job succeeded`. A skipped job gets `exit=3` |
+| G15 | A service job fails in "Set up job" | `failed to start container: ... "proxy already running"`, and a program that is not act holds the port | The workflow publishes a fixed host port, and another program on the Mac or in the Podman machine holds it (for example the project's own test database) | Write the host port as `"${{ vars.<NAME>_PORT \|\| '<GitHub port>' }}:<container port>"`. GitHub has no such variable and keeps its port. `act-ci.sh` gives each `vars.<NAME>_PORT` of the workflow a port free on the Mac (`lsof`) and in the Podman machine (`podman ps`), from 12026 up (`ACT_CI_PORT_BASE`), passes it with `--var`, and writes `<log folder>/ports.txt` |
 
 Two of these were first read as the wrong cause. The first `proxy already running` came from G11, a service that a failed job left behind, and not from G8. Only a run on a clean engine showed that G8 was also real. Before you name the cause of an act failure, remove the `act-*` containers of runs that have ended, and run the job again. Do not remove the containers of a run that is still active (G13).
 
