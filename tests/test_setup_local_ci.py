@@ -41,6 +41,10 @@ def workflow(pin: str) -> str:
             runs-on: ubuntu-latest
             steps:
               - run: echo verify
+          contract:
+            runs-on: ubuntu-24.04
+            steps:
+              - run: echo contract
           migrations:
             runs-on: ubuntu-latest
             strategy:
@@ -96,7 +100,25 @@ def env(tmp_path):
     lines = {x64_asset: x64_pin, host_asset(): digest}
     (release / f"gitleaks_{VERSION}_checksums.txt").write_text("".join(f"{h}  {n}\n" for n, h in lines.items()))
 
-    write_tool(bin_dir, "act", f'echo "$*" >> "{calls}/act"\n')
+    # The stand-in act: it runs a job only when a -P names the job's runs-on label, as act does. A job on a label with no -P
+    # is skipped with act's own line and exit 0. ACT_SILENT=1 makes it exit 0 with no job line at all.
+    write_tool(bin_dir, "act", textwrap.dedent(f"""\
+        echo "$*" >> "{calls}/act"
+        [[ -n ${{ACT_SILENT:-}} ]] && exit 0
+        args=("$@"); workflow= job= platforms=
+        for ((i = 0; i < ${{#args[@]}}; i++)); do
+          case ${{args[i]}} in
+            -W) workflow=${{args[i+1]}} ;; -j) job=${{args[i+1]}} ;; -P) platforms+=" ${{args[i+1]%%=*}} " ;;
+          esac
+        done
+        label=$(awk -v job="  $job:" '$0 == job {{found = 1}} found && /runs-on:/ {{print $2; exit}}' "$workflow")
+        if [[ $platforms == *" $label "* ]]; then
+          echo "[$job] 🏁  Job succeeded"
+        else
+          echo "[$job] 🚧  Skipping unsupported platform -- Try running with \`-P $label=...\`"
+        fi
+        exit 0
+        """))
     write_tool(bin_dir, "podman", textwrap.dedent(f"""\
         echo "$*" >> "{calls}/podman"
         case "$1 $2" in
@@ -152,7 +174,7 @@ def test_every_act_call_names_the_workflow_and_the_job_and_cleans_up(env):
     result = run(env)
     assert result.returncode == 0, result.stdout + result.stderr
     calls = act_calls(env)
-    assert len(calls) == 3
+    assert len(calls) == 4
     for call in calls:
         assert call.startswith(f"pull_request -W {env['logs']}/workflow-r") and ".yml -j " in call
         for flag in ("--rm", "--pull=false", "--container-daemon-socket -", "-s GITHUB_TOKEN",
@@ -285,3 +307,38 @@ def test_the_gitleaks_job_runs_natively_when_more_steps_follow_the_scan(env):
         result = run(env, "-j", "secret-scan")
         assert result.returncode == 0, result.stdout + result.stderr
         assert act_calls(env) == []
+
+
+def status_of(env, job):
+    lines = [line for line in (env["logs"] / "status.txt").read_text().splitlines() if line.startswith(f"{job} ") and " start " not in line]
+    assert len(lines) == 1, lines
+    return lines[0]
+
+
+def test_each_runs_on_label_of_the_workflow_maps_to_the_runner_image(env):
+    """cmapi #169: only ubuntu-latest was mapped, so act skipped a job on ubuntu-24.04 and the run still said exit=0."""
+    result = run(env)
+    assert result.returncode == 0, result.stdout + result.stderr
+    for call in act_calls(env):
+        assert "-P ubuntu-latest=act-runner:ubuntu-24.04" in call and "-P ubuntu-24.04=act-runner:ubuntu-24.04" in call, call
+    assert status_of(env, "contract").startswith("contract exit=0 ")
+    assert "Job succeeded" in (env["logs"] / "contract.log").read_text()
+
+
+def test_a_job_that_act_skips_is_a_failure(env):
+    """A label that the script cannot map: an expression. act skips the job and exits 0, and the run must not pass."""
+    path = env["repo"] / ".github" / "workflows" / "ci.yml"
+    path.write_text(path.read_text().replace("runs-on: ubuntu-24.04", "runs-on: ${{ matrix.os }}"))
+    git = ["git", "-C", str(env["repo"]), "-c", "user.name=t", "-c", "user.email=t@example.test"]
+    subprocess.run([*git, "commit", "-qam", "an expression as the label"], check=True)
+    result = run(env, "-j", "contract verify")
+    assert result.returncode != 0
+    assert "skipped" in status_of(env, "contract") and "exit=0" not in status_of(env, "contract")
+    assert status_of(env, "verify").startswith("verify exit=0 ")
+
+
+def test_an_act_call_that_exits_0_with_no_job_succeeded_is_a_failure(env):
+    env["env"]["ACT_SILENT"] = "1"
+    result = run(env, "-j", "verify")
+    assert result.returncode != 0
+    assert "exit=0" not in status_of(env, "verify") and "no job succeeded" in status_of(env, "verify")
