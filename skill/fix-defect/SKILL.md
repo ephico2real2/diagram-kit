@@ -48,6 +48,16 @@ These rules keep the loop honest:
 - If 3 different fixes fail for one defect, stop the work on that defect and report the data from each attempt.
 - "Resolved" means fixed and retested in the clone. A fix reaches the review branch only after the arbiter rules on it. Money, security and migration fixes also get the 3 reviews. An issue closes only through a merged fix, so it stays open with the label `status:fixed-on-review-branch` until then.
 
+## A defect found during a fix run is fixed in that run
+
+Owner rule, 2026-11-13: a fix run files each defect that it finds. It also fixes that defect before the run ends. This applies to each fix run, by the arbiter or by an agent of any kind. It covers a defect in the code, a test, a script or the deploy. It also covers a regression that a fix of the run causes.
+
+1. File the defect at once, with the form of section 1. An agent that cannot write with `gh` writes it to `fixes.md`, and the arbiter files it.
+2. Fix it in the same clone and on the same branch, in one commit. Add a test that fails before the fix and passes after it.
+3. Put it in the proof of the run and in its pull request. The run is not finished while a defect that it found is open.
+
+Only a defect that needs an owner decision, a real provider or an account stays open after the run. Write what blocks it, with its facts, in the issue.
+
 ## 1. Log it, at once
 
 File the issue as soon as the defect is seen, before fixing anything. The owner's yes is not needed for a defect, unless the owner held that specific filing back. The title states what is wrong, not the work to do.
