@@ -26,7 +26,102 @@ only. Read the changelog again before you trust this table, because it changes.
 maestro-runner (devicelab-dev/maestro-runner, Apache-2.0) runs the same flow files. On a real iPhone or iPad it
 installs an XCTest agent app on the device and drives the app through it.
 
-## 2. Rules for every device
+## 2. Set up the Mac
+
+Run the check first. It changes nothing, prints each tool with its version and state, and lists the real devices
+that the Mac can see. If a required tool is missing or too old, it exits with 1.
+
+```sh
+scripts/check-mac.sh            # JAVA_HOME, ANDROID_HOME and MAESTRO_RUNNER, if set, choose the tools
+```
+
+Install each tool that it marks `missing`. The last column is the version on the reference Mac (macOS 26.5.2,
+Apple silicon, 2026-11-15). Each command comes from the vendor's page in the sources.
+
+| Tool | Needed for | Install | Measured |
+|---|---|---|---|
+| Xcode | iOS builds, simulators, real iOS devices | The App Store or the Apple developer site, then `xcodebuild -runFirstLaunch` | 26.6 (17F113) |
+| iOS simulator runtime | iOS simulators | `xcodebuild -downloadPlatform iOS` | iOS 26.5 (23F77) |
+| `devicectl` | Real iPhone and iPad | Part of Xcode | 518.33 |
+| JDK 17 or later | Maestro, Gradle | `brew install openjdk@17`, then set `JAVA_HOME` (below) | 17.0.21 |
+| Android command line tools | `sdkmanager`, `avdmanager` | `brew install --cask android-commandlinetools` | 22.0 |
+| Platform tools and emulator | `adb`, emulators | `sdkmanager "platform-tools" "emulator"` | 37.0.1, 37.2.13.0 |
+| A system image | Emulators | `sdkmanager "system-images;android-36;google_apis;arm64-v8a"` | API 28, 32, 36 |
+| Maestro | Flows on Android and on simulators | `curl -fsSL "https://get.maestro.mobile.dev" \| bash` | 2.12.1 |
+| maestro-runner | Flows on every device, real iOS too | A release of devicelab-dev/maestro-runner (below) | 1.1.29 |
+| Python 3 | The scripts of this skill | `brew install python` | 3.15.2 |
+
+Then these steps:
+
+1. Make the JDK the one that the tools use. If no JDK is set, the `/usr/bin/java` of macOS only prints "Unable to locate
+   a Java Runtime":
+
+   ```sh
+   export JAVA_HOME="$(brew --prefix openjdk@17)/libexec/openjdk.jdk/Contents/Home"
+   export ANDROID_HOME="$(brew --prefix)/share/android-commandlinetools"
+   ```
+
+2. Accept the Android SDK licenses once: `sdkmanager --licenses`. Google's page says that `sdkmanager` is
+   deprecated and names `android sdk` instead. The reference Mac uses `sdkmanager`. Asked for its help, its `android`
+   command started an unpack and showed a license text. Read its page before you use it.
+3. Make an AVD for each device that the tests need, from an installed system image. The device ids come from
+   `avdmanager list device -c`, for example `pixel_9_pro` for a phone and `pixel_tablet` for a tablet:
+
+   ```sh
+   avdmanager create avd -n <name> -k "system-images;android-36;google_apis;arm64-v8a" -d pixel_9_pro
+   ```
+
+4. Install maestro-runner. Its README gives `curl -fsSL https://open.devicelab.dev/install/maestro-runner | bash`.
+   To check what runs, download the release file instead, compare its SHA-256 with the release, and check the
+   signature with `codesign -dv` and `spctl -a -vv -t install`. If the binary is not on PATH, set
+   `MAESTRO_RUNNER=<path>`. Its `doctor` command checks the Mac for a run.
+5. Turn off usage reports of maestro-runner with `MAESTRO_RUNNER_NO_TELEMETRY=1`. Its README names this switch, and
+   the scripts set it.
+6. Run `scripts/check-mac.sh` again. Every required row must say `ok`. A maestro-runner before 1.1.30 says `old`:
+   it works, with the limit of section 9.
+
+## 3. Set up each device
+
+### A real iPhone or iPad
+
+The owner does these steps on the device. The job never does them, and never types the device passcode.
+
+1. Connect the device to the Mac with a cable. If "Trust This Computer" appears on the device, tap Trust.
+2. In Xcode, pair the device. Apple's current page says: choose Xcode > Open Developer Tool > Device Hub, select
+   the device. If a Pair button appears, click it. The menu name can differ in another Xcode version.
+3. Turn on Developer Mode. The switch appears only after the pairing starts, or for a device that was paired
+   before. In Settings > Privacy & Security, turn on Developer Mode, and tap Restart in the alert. After the
+   restart, swipe up, tap Enable, and enter the device passcode.
+4. Turn on Settings > Developer > Enable UI Automation. No Apple page documents this switch. The Appium XCUITest
+   driver's setup page names it for UI tests on a real device.
+5. If the app does not open and the device names an untrusted developer, trust the developer in Settings >
+   General > VPN & Device Management. Apple's support page gives this path for enterprise apps.
+6. Run `scripts/ios-device.sh state --device <UDID>`. It must say `unlocked`. Keep the device unlocked and awake
+   during the run.
+
+To turn Developer Mode off after the tests, turn off its switch in Settings > Privacy & Security and restart the
+device. Xcode then cannot run apps on it until it is on again.
+
+### A real Android phone
+
+The owner does these steps on the phone. macOS needs no USB driver.
+
+1. Turn on Developer options: in Settings > About phone, tap Build number seven times, until "You are now a
+   developer!" shows. Other makers put Build number in another place. Google's page lists them.
+2. Turn on USB debugging. On Android 9 and later it is in Settings > System > Advanced > Developer options.
+3. Connect the phone with a cable. When the phone asks whether to accept the RSA key of the Mac, accept it.
+4. For a test over Wi-Fi (Android 11 and later), turn on Wireless debugging in Developer options, and pair the
+   phone with a pairing code, as Google's page shows.
+5. Run `scripts/android-device.sh state --serial <serial>`. `adb devices -l` names the serial. The phone must be
+   awake with no lock screen.
+
+### An emulator or a simulator
+
+- An emulator needs only its AVD. If the app needs a screen lock, set a PIN of the emulator with
+  `adb shell locksettings set-pin <PIN>`. That PIN is an emulator value, never a real one.
+- A simulator needs only its runtime. Face ID and the passcode sheet are in section 8.
+
+## 4. Rules for every device
 
 1. Use only the devices that the owner gave to the job. Name each one in the report.
 2. Find an Android emulator by its AVD name, never by its serial. Serials follow the order of boot, so
@@ -38,12 +133,12 @@ installs an XCTest agent app on the device and drives the app through it.
 5. Never run `adb kill-server`, `adb start-server` or `adb reconnect`. Every job uses the same adb server.
 6. On a person's device, never type its PIN or passcode, never wake it with key events, and never change a setting.
    If it is locked or asleep, skip it, and report the state that the script printed (exit 3).
-7. On a person's device, run nothing that can change the app's data until the gate passes (section 3).
+7. On a person's device, run nothing that can change the app's data until the gate passes (section 5).
 8. When the job ends, stop each emulator that it started, and delete each simulator that it made. The scripts do
    this in their exit trap.
 9. Turn off usage reports: `MAESTRO_RUNNER_NO_TELEMETRY=1`. The scripts set it.
 
-## 3. The gate: no test changes a person's data
+## 5. The gate: no test changes a person's data
 
 A flow with `clearState: true` erases the app's data. A UI test that makes a new account or vault replaces the old
 one. On a person's device that data can be theirs. So before a run, `ios-device.sh` and `android-device.sh` open the
@@ -57,7 +152,7 @@ button of a first launch. Choose an element that only an app with no data shows.
 - After a run, the tests leave their own data. The next run's gate refuses it, which is correct. A data set that a
   run made is test data. The job can remove the app and install it again, and must say so in the report.
 
-## 4. Android emulator
+## 6. Android emulator
 
 ```sh
 scripts/android-avd.sh --avd <AVD name> --port 5580 --apk app-debug.apk --lock <shared dir>/locks/maestro-android \
@@ -72,7 +167,7 @@ scripts/android-avd.sh --avd <AVD name> --port 5580 --apk app-debug.apk --lock <
 - For Android device tests in Gradle, run `ANDROID_SERIAL=emulator-<port> ./gradlew connectedAndroidTest` (or the
   project's device task) as the command of `android-avd.sh`.
 
-## 5. Real Android phone
+## 7. Real Android phone
 
 ```sh
 scripts/android-device.sh state --serial <serial>
@@ -84,7 +179,7 @@ scripts/android-device.sh flows --serial <serial> --package <app id> --require-i
   unlock the phone and keep it awake. Do not wait in a loop.
 - `--tool maestro-runner` runs the same flows with maestro-runner.
 
-## 6. iOS simulator
+## 8. iOS simulator
 
 ```sh
 scripts/ios-sim.sh --name <job>-iPad --type "iPad Air 11-inch (M4)" --runtime com.apple.CoreSimulator.SimRuntime.iOS-26-5 \
@@ -100,17 +195,15 @@ scripts/ios-sim.sh --name <job>-iPad --type "iPad Air 11-inch (M4)" --runtime co
   the app group `group.com.apple.FileProvider.LocalStorage` of `com.apple.DocumentsApp`
   (`xcrun simctl get_app_container <UDID> com.apple.DocumentsApp groups`).
 
-## 7. Real iPhone or iPad
+## 9. Real iPhone or iPad
 
-### Set up once
+### Before the first run
 
-1. Download a release of maestro-runner from its GitHub page, and check the file's SHA-256 against the release.
-2. Check the signature: `codesign -dv` and `spctl -a -vv -t install` on the binary. The release binary is notarized.
-3. Turn on Developer Mode on the device, and trust the Mac. Only the owner does this, on the device.
-4. Use a development team that can sign apps: `--team-id <team>`. A free team works for 7 days per install.
-5. If another team took the default agent bundle id, a free team cannot sign it. Then give the agent a bundle id
+Do sections 2 and 3. Then choose the team and the agent:
+
+1. Use a development team that can sign apps: `--team-id <team>`.
+2. If another team took the default agent bundle id, a free team cannot sign it. Then give the agent a bundle id
    of your own team: `--agent-bundle-id <your prefix>.testagent`.
-6. If the binary is not on PATH, set `MAESTRO_RUNNER=<path of the binary>`.
 
 ### Run
 
@@ -148,12 +241,12 @@ The build for a real device is signed, so it needs the team: `xcodebuild build -
 build failed on a missing dependency, delete `Build/Intermediates.noindex/XCBuildData` of its derived data folder
 before the next build.
 
-## 8. The report
+## 10. The report
 
 For each device: its name, model, OS version and how it was chosen. Then the app build: its commit and its
-configuration. Then the tool and its version, and the command. Then the start and end times in UTC, the counts of
+build type, Debug or Release. Then the tool and its version, and the command. Then the start and end times in UTC, the counts of
 passed, failed and skipped tests, and the log path. For each failure, its message and its cause, measured from the log or a screenshot, and the
-issue filed for it. Say plainly what was not run and why: a locked device, a refused gate, a limit of section 7.
+issue filed for it. Say plainly what was not run and why: a locked device, a refused gate, a limit of section 9.
 
 ## Sources
 
@@ -163,3 +256,19 @@ issue filed for it. Say plainly what was not run and why: a locked device, a ref
 - maestro-runner, its options (`maestro-runner --help`, version 1.1.29) and its releases:
   https://github.com/devicelab-dev/maestro-runner
 - maestro-runner commit 1628fab, "launchApp with stopApp: false keeps a running app running", in v1.1.30.
+- Apple, "Enabling Developer Mode on a device":
+  https://developer.apple.com/documentation/xcode/enabling-developer-mode-on-a-device
+- Apple, Managing your simulated and physical devices in Device Hub (pairing, Trust This Computer):
+  https://developer.apple.com/documentation/xcode/managing-your-simulated-and-physical-devices-in-device-hub
+- Apple, Downloading and installing additional Xcode components (`-downloadPlatform`, `-runFirstLaunch`):
+  https://developer.apple.com/documentation/xcode/downloading-and-installing-additional-xcode-components
+- Apple Support, Install custom enterprise apps (VPN & Device Management): https://support.apple.com/en-us/118254
+- Appium XCUITest driver, device setup (Enable UI Automation):
+  https://github.com/appium/appium-xcuitest-driver/blob/master/docs/getting-started/device-setup.md
+- Android, Configure on-device developer options: https://developer.android.com/studio/debug/dev-options
+- Android, Run apps on a hardware device (USB, Wi-Fi, macOS needs no driver): https://developer.android.com/studio/run/device
+- Android, sdkmanager and avdmanager: https://developer.android.com/tools/sdkmanager,
+  https://developer.android.com/tools/avdmanager
+- Maestro README (Java 17 or higher, the install command): https://github.com/mobile-dev-inc/Maestro
+- Apple's developer pages render with JavaScript. A plain fetch gets only the title. Their text is at the same
+  path under `https://developer.apple.com/tutorials/data/` with `.json` at the end.
