@@ -319,3 +319,78 @@ def test_every_script_passes_shellcheck_and_names_no_private_value():
     result = subprocess.run(["shellcheck", "-S", "warning", *map(str, sorted(SCRIPTS.glob("*.sh")))], capture_output=True, text=True)
     assert result.returncode == 0, result.stdout
 
+
+
+# check-mac.sh
+
+
+@pytest.fixture
+def mac(tmp_path):
+    bin_ = tmp_path / "bin"
+    bin_.mkdir()
+    tool(bin_, "sw_vers", "echo 26.5\n")
+    tool(bin_, "xcode-select", "echo /Applications/Xcode.app/Contents/Developer\n")
+    tool(bin_, "xcodebuild", 'printf "Xcode 26.6\\nBuild version 17F113\\n"\n')
+    tool(bin_, "xcrun", """case "$*" in
+  "simctl list runtimes") echo "iOS 26.5 (26.5 - 23F77) - com.apple.CoreSimulator.SimRuntime.iOS-26-5" ;;
+  "devicectl --version") echo 518.33 ;;
+  "devicectl list devices") printf 'Name Hostname Identifier State Model\\n---\\nA-iPad host ID connected iPad\\n' ;;
+esac
+""")
+    jdk = tmp_path / "jdk" / "bin"
+    jdk.mkdir(parents=True)
+    tool(jdk, "java", 'echo "openjdk version \\"$FAKE_JAVA\\" 2026-10-24" >&2\n')
+    sdk = tmp_path / "sdk"
+    for folder in ("platform-tools", "emulator", "cmdline-tools/latest/bin", "system-images/android-36/google_apis/arm64-v8a"):
+        (sdk / folder).mkdir(parents=True)
+    (sdk / "cmdline-tools/latest/source.properties").write_text("Pkg.Revision=22.0\n")
+    tool(sdk / "platform-tools", "adb", """case "$1" in
+  version) printf 'Android Debug Bridge version 1.0.41\\nVersion 37.0.1-1\\n' ;;
+  devices) printf 'List of devices attached\\nemulator-5580 device\\nR58X device usb:1 model:Phone\\n' ;;
+esac
+""")
+    tool(sdk / "emulator", "emulator", """case "$1" in
+  -version) echo "Android emulator version 37.2.13.0 (build_id 1)" ;;
+  -list-avds) echo phone-36 ;;
+esac
+""")
+    tool(sdk / "cmdline-tools/latest/bin", "sdkmanager", "exit 0\n")
+    tool(bin_, "maestro", "echo 2.12.1\n")
+    tool(bin_, "maestro-runner", 'echo "maestro-runner $FAKE_VERSION"\n')
+    for name in ("xcodegen", "shellcheck"):
+        tool(bin_, name, "echo 'version: 1.0'\n")
+    return tmp_path
+
+
+def check_mac(tmp: pathlib.Path, **env: str) -> subprocess.CompletedProcess:
+    base = {"JAVA_HOME": str(tmp / "jdk"), "ANDROID_HOME": str(tmp / "sdk"), "FAKE_JAVA": "17.0.21", "FAKE_VERSION": "1.1.31"}
+    return run("check-mac.sh", [], {**base, **env}, tmp)
+
+
+def states(result: subprocess.CompletedProcess) -> dict[str, str]:
+    rows = {}
+    for line in result.stdout.splitlines()[1:]:
+        if not line.strip() or line.startswith(("Real devices", "  ")):
+            continue
+        name = line[:22].strip()
+        rows[name] = line[57:66].strip()
+    return rows
+
+
+def test_a_mac_with_every_tool_passes_and_lists_its_real_devices_only(mac):
+    result = check_mac(mac)
+    assert result.returncode == 0, result.stdout
+    rows = states(result)
+    assert all(state == "ok" for state in rows.values()), rows
+    assert "26.5 (23F77)" in result.stdout and "37.0.1-1" in result.stdout and "37.2.13.0" in result.stdout
+    assert "  iOS:     A-iPad host ID connected iPad" in result.stdout
+    assert "R58X" in result.stdout and "Android: emulator-5580" not in result.stdout
+
+
+def test_an_old_java_fails_and_an_old_runner_is_named_but_passes(mac):
+    old_java = check_mac(mac, FAKE_JAVA="11.0.2")
+    assert old_java.returncode == 1 and states(old_java)["Java"] == "missing"
+    old_runner = check_mac(mac, FAKE_VERSION="1.1.29")
+    assert old_runner.returncode == 0 and states(old_runner)["maestro-runner"] == "old"
+    no_sdk = check_mac(mac, ANDROID_HOME=str(mac / "nowhere"))
+    assert no_sdk.returncode == 1 and states(no_sdk)["platform-tools"] == "missing"
