@@ -75,3 +75,14 @@ installs the newest release, which matches the pin only until the next one.
 The `.docx` adds no claim of its own: review the Markdown, and check that the build ran from the reviewed revision.
 A reviewer gets the Markdown paths, the command line and the `--date`, and confirms the committed `.docx` is what that
 command produces.
+
+## 6. A web page from the same Markdown
+
+If the reader needs a page and not a Word file, build it with `doc-page` (README, "Document pages"). The same rules
+apply: the Markdown is the source, the figures are light PNGs, and the page is made again after each change.
+
+```sh
+~/.local/share/diagram-kit/.venv/bin/doc-page docs/DESIGN.md design.html --eyebrow "Design" --figures 2
+```
+
+Follow each figure with an italic caption paragraph, because the command refuses a picture with no caption.
