@@ -159,6 +159,30 @@ gitleaks does not scan a merge commit as a patch, so the number of commits is th
 
 Two of these were first read as the wrong cause. The first `proxy already running` came from G11, a service that a failed job left behind, and not from G8. Only a run on a clean engine showed that G8 was also real. Before you name the cause of an act failure, remove the `act-*` containers of runs that have ended, and run the job again. Do not remove the containers of a run that is still active (G13).
 
-## 8. Change the script
+## 8. Test a shell script on the shell of CI
+
+A script that CI runs can also run on a developer's Mac. macOS has Bash 3.2 at `/bin/bash`, and the GitHub ubuntu runner has Bash 5.2. Test the script on both shells before CI does. Do not wait for a full act run to find a shell fault.
+
+1. On the Mac, check the syntax with `/bin/bash -n <script>`, then operate its tests. Bash 3.2 has no `mapfile` and no associative arrays. If the script needs them, say so in its header and refuse an older Bash.
+2. On the CI shell, use the runner image of section 3 and replace its entrypoint with `bash`. Mount the clone read-only and copy it inside the container, so that the test cannot write into the clone:
+
+   ```sh
+   podman run --rm --entrypoint bash -v <clone>:/w:ro -w /w act-runner:ubuntu-24.04 \
+     -c 'bash --version | head -1; cp -r /w /tmp/w; cd /tmp/w && bash -n <script> && <its tests>'
+   ```
+
+3. Do not use the `node_modules` folder of the Mac in the container. Its packages are built for macOS, and a link to an absolute path of the Mac does not resolve. Measured on 2026-11-18: the same Node test passed on the Mac and failed in the container with `ERR_MODULE_NOT_FOUND` for a nested package. Install the packages in the container copy (`yarn install --frozen-lockfile`). Otherwise, test only the parts that need no package, and get the rest of the proof from act.
+4. Fake the commands that the script calls. Put a small script first on `PATH` (or name it in the setting that selects the engine) that writes its arguments to a file. Then the test reads each command of the script, with no container engine and no network.
+
+To learn what an image runs at its start, read its entrypoint and command, and read the entrypoint script with a shell entrypoint:
+
+```sh
+podman image inspect <image@digest> --format '{{json .Config.Entrypoint}} {{json .Config.Cmd}}'
+podman run --rm --entrypoint /bin/sh <image@digest> -c 'cat /usr/local/bin/docker-entrypoint.sh'
+```
+
+A GitHub service container takes no command arguments. If a broker needs a start flag (for example `-js` for NATS JetStream), a workflow step starts it instead. Measured on 2026-11-18 with `nats:2.12.4-alpine`: the default command and an `--entrypoint nats-server` override both start NATS without JetStream. In act, such a step runs in the job container, where a port that the step publishes is not on the job's `127.0.0.1`. When `ACT` is set, join the step's containers to the job's network namespace (`--network container:$(hostname)`). Remove them in a step with `if: always()`.
+
+## 9. Change the script
 
 After each change of `act-ci.sh` or `setup.sh`, operate `shellcheck -S style act-ci.sh setup.sh` and the tests of this kit (`python -m pytest tests/test_setup_local_ci.py`). The tests run the script with stand-in commands for `act`, `podman` and `gh`, so that they need no container engine.
