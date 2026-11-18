@@ -467,9 +467,9 @@ def test_the_contract_figure_is_rendered_and_has_its_text_twin():
     folder = ROOT / "skill" / "app-architect"
     facts = (folder / "CONTRACTS.md").read_text()
     page = (folder / "figures" / "source.html").read_text()
-    for name in ("contracts.light.png", "contracts.dark.png"):
-        assert (folder / "figures" / name).stat().st_size > 10_000
-    # the owner's rule: the page shows the light figure to every reader. The dark PNG is kept, and the page does not offer it
+    assert (folder / "figures" / "contracts.light.png").stat().st_size > 10_000
+    # the owner's rule: figures are light only. There is no dark PNG, and the page shows the light figure to every reader
+    assert not (folder / "figures" / "contracts.dark.png").exists()
     assert "figures/contracts.light.png" in facts and "contracts.dark.png" not in facts and "prefers-color-scheme" not in facts
     claim = re.search(r'aria-label="([^"]+)"', page).group(1)
     assert f'<img alt="{claim}"' in facts, "the picture in CONTRACTS.md and the page state the same claim"
