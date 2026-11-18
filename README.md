@@ -5,13 +5,16 @@ two commands for their dashboards, the figures that move; since 0.2.5, one comma
 Markdown; and, since 0.2.6, one command for a page made from a repository's tracker, handover and resume documents.
 
 Each diagram has a `source.html` page, started by `diagram-template` from the template the kit ships. `diagram-render`
-turns every figure on it into a light and a dark PNG, and refuses the defects a review of the SVG text does not see:
+turns every figure on it into a light PNG, and refuses the defects a review of the SVG text does not see:
 
 - a fallback font;
 - a label that runs past its box;
 - a dashed arrow with no label beside it;
-- text the reader cannot read in one of the two themes;
+- text under 4.5:1 contrast with the box it sits in;
 - a page that scrolls sideways on a phone.
+
+Figures are light only: the renderer draws the light theme and writes no dark PNG, and a document embeds the light PNG
+with one `<img>` (`STANDARD.md` §3 and §4).
 
 | File | What it is |
 |---|---|

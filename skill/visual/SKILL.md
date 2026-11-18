@@ -1,6 +1,6 @@
 ---
 name: visual
-description: Design an enterprise-grade technical diagram page — hand-authored inline SVG, light and dark themes, rendered to PNG — for a mechanism, a flow, a trust boundary or a decision, grounded in the actual code and data. Use when the user types /visual, or asks for a visual, a diagram or a picture of how something works.
+description: Design an enterprise-grade technical diagram page — hand-authored inline SVG, light theme only, rendered to PNG — for a mechanism, a flow, a trust boundary or a decision, grounded in the actual code and data. Use when the user types /visual, or asks for a visual, a diagram or a picture of how something works.
 ---
 
 # /visual — a diagram that is true, readable and publishable
@@ -55,11 +55,12 @@ This skill lives in diagram-kit (`skill/visual/SKILL.md`), the one home of the t
 and the standard (https://github.com/ephico2real2/diagram-kit). `~/.claude/skills/visual` is a link to
 it, so a change to the skill is a pull request to the kit. Install the kit once (§4).
 
-- **Tokens on `:root`**, redefined under `@media (prefers-color-scheme: dark)` guarded by
-  `:root:not([data-theme="light"])` and again under `:root[data-theme="dark"]`. The palette's
-  meanings are fixed: `--host` amber (the local side / proposed emphasis), `--remote` teal (the far
-  side / the allowed path), `--gap` red (failure, refusal, a finding), `--none` grey (no call, denied),
-  each with a `-wash` fill.
+- **Light only.** Figures are drawn in the light theme only (the owner, 2026-11-18): the page has
+  no `prefers-color-scheme: dark` block and no `data-theme="dark"` palette, the renderer draws the
+  light theme, and there is no dark PNG.
+- **Tokens on `:root`.** The palette's meanings are fixed: `--host` amber (the local side / proposed
+  emphasis), `--remote` teal (the far side / the allowed path), `--gap` red (failure, refusal, a
+  finding), `--none` grey (no call, denied), each with a `-wash` fill.
 - **SVG:** `viewBox` sized to the content, `width:100%; min-width:760px` inside a horizontally
   scrolling `.fig-scroll` (so phones scroll the figure, never the page); strokes and text in
   `currentColor` or a token; one arrowhead `<marker>` per figure (`ah`, `ah2`, …) filled with
@@ -96,10 +97,11 @@ Then:
 ~/.local/share/diagram-kit/.venv/bin/diagram-render <page.html> <out-dir> <name-1>,<name-2>,…
 ```
 
-Renders every `.fig-scroll` in order to `<out-dir>/<name>.light.png` and `.dark.png` at 2× pixel
-density, and writes nothing unless every check passes. The checks (`STANDARD.md` §5): a page error, a
+Renders every `.fig-scroll` in order to `<out-dir>/<name>.light.png` at 2× pixel density, in the
+light theme, and writes nothing unless every check passes. It writes no dark PNG, and names any
+`<name>.dark.png` an older kit left beside it as stale. The checks (`STANDARD.md` §5): a page error, a
 request that did not load, figure text in a fallback face, a label past its box, text under 4.5:1
-contrast in either theme, a dashed arrow with no label, a name/figure count mismatch, names that put a
+contrast, a dashed arrow with no label, a name/figure count mismatch, names that put a
 later state first (`after` before `before`), and sideways scroll at 375 px. **Open the PNGs and read them**: a line crossing a label and an arrow into the wrong
 box are only visible there.
 
@@ -112,13 +114,13 @@ that a page edited without being rendered again cannot be merged broken.
 
 - **As a page:** publish with the Artifact tool. Load the `artifact-design` and `artifact-diagramming`
   skills first (the tool's contract), give the page a two-to-four word `<title>`, republish the same
-  file path to keep the URL.
+  file path to keep the URL. The page stays light, as its figures do: add no dark palette to publish it.
 - **Into a repository document** (the enterprise form):
   - commit the page as `docs/diagrams/<slug>/source.html` and the PNGs beside it;
-  - embed each figure with `<picture>` — a `<source media="(prefers-color-scheme: dark)">`, a light
-    `<source>`, and an `<img alt="…the figure's claim…">` — wrapped in
-    `<!-- markdownlint-disable MD033 -->` / `<!-- markdownlint-enable MD033 -->` when the repo lints
-    Markdown (GitHub deprecated the `#gh-dark-mode-only` fragments);
+  - embed each figure as one light image, `<img src="…/<name>.light.png" alt="…the figure's claim…">`,
+    wrapped in `<!-- markdownlint-disable MD033 -->` / `<!-- markdownlint-enable MD033 -->` when the
+    repo lints Markdown. No `<picture>` with a dark `<source>`: a reader in dark mode sees the light
+    figure, as every other reader does;
   - follow each figure with an italic caption and a ```` ```text ```` twin that carries the same
     points for readers who cannot see images and for diffs;
   - end the document with a "Diagram sources" section saying how to re-render and that picture, twin

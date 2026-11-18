@@ -6,7 +6,8 @@
 WCAG 2.2 success criterion 1.4.3 asks 4.5:1 of normal text, and every figure text in the template is under the
 18.66 px bold / 24 px that would make it large. The pairs are the ones the template and the pages built from it
 draw: each colour token on --surface (the figure's ground) and on its own -wash (a box of that meaning), and
---ink and --muted on every wash. Reads the file only; no browser.
+--ink and --muted on every wash. The figures are light only, so the template holds the light palette alone; the dark
+palette a delivery page keeps (diagram_kit/delivery.py) is held to the same pairs. Reads the files only; no browser.
 """
 
 from __future__ import annotations
@@ -18,17 +19,19 @@ import sys
 
 import pytest
 
+from diagram_kit import delivery
+
 TEMPLATE = (pathlib.Path(__file__).resolve().parents[1] / "diagram_kit" / "template.html").read_text()
 TOKENS = ("ink", "muted", "host", "remote", "gap", "none")
 WASHES = ("host-wash", "remote-wash", "gap-wash", "none-wash")
 
 
-def _block(selector: str) -> dict[str, str]:
-    body = re.search(re.escape(selector) + r"\s*\{([^}]*)\}", TEMPLATE).group(1)
+def _block(selector: str, text: str = TEMPLATE) -> dict[str, str]:
+    body = re.search(re.escape(selector) + r"\s*\{([^}]*)\}", text).group(1)
     return dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})", body))
 
 
-THEMES = {"light": _block(":root"), "dark": _block(':root[data-theme="dark"]')}
+THEMES = {"light": _block(":root"), "delivery-dark": _block(':root[data-theme="dark"]', delivery.DARK_PALETTE)}
 
 
 def _luminance(hex_colour: str) -> float:
@@ -52,10 +55,17 @@ def test_the_contrast_formula_matches_wcag():
     assert round(contrast("#767676", "#ffffff"), 2) == 4.54
 
 
-def test_the_dark_media_query_and_the_dark_attribute_carry_the_same_palette():
+def test_the_template_holds_the_light_palette_only():
+    # The owner, 2026-11-18: figures are light only. A page started from the template carries no dark palette.
+    assert "prefers-color-scheme" not in TEMPLATE
+    assert "data-theme" not in TEMPLATE
+    assert re.findall(r"^:root\s*\{", TEMPLATE, re.M) == [":root {"]
+
+
+def test_the_delivery_dark_media_query_and_the_dark_attribute_carry_the_same_palette():
     media = re.search(r'@media \(prefers-color-scheme: dark\)\s*\{\s*:root:not\(\[data-theme="light"\]\)\s*\{([^}]*)\}',
-                      TEMPLATE).group(1)
-    assert dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})", media)) == THEMES["dark"]
+                      delivery.DARK_PALETTE).group(1)
+    assert dict(re.findall(r"--([\w-]+):\s*(#[0-9a-fA-F]{6})", media)) == THEMES["delivery-dark"]
 
 
 @pytest.mark.parametrize("theme", THEMES)

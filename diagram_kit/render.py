@@ -2,14 +2,15 @@
 # SPDX-License-Identifier: MPL-2.0
 # This Source Code Form is subject to the terms of the Mozilla Public License, v. 2.0. If a copy of the MPL was not
 # distributed with this file, You can obtain one at https://mozilla.org/MPL/2.0/.
-"""Render every .fig-scroll figure of a diagram page to light and dark PNGs, and check the page.
+"""Render every .fig-scroll figure of a diagram page to a light PNG, and check the page.
 
     diagram-render <page.html> <out-dir> <name-1>,<name-2>,...      (installed)
     python diagram_kit/render.py <page.html> <out-dir> <name-1>,<name-2>,...
     diagram-render --check <page.html>...                            (page checks, no PNG: what a CI job runs)
 
-One name per .fig-scroll, in document order; each becomes <out-dir>/<name>.light.png and
-<name>.dark.png at 2x pixel density. The page may be a fragment (an Artifact page starts at
+One name per .fig-scroll, in document order; each becomes <out-dir>/<name>.light.png at 2x pixel
+density. The figures are drawn in the light theme only: a page that still carries a dark palette is
+drawn light, and no dark PNG is written. The page may be a fragment (an Artifact page starts at
 <title>): it is wrapped in a document for rendering, never modified. Exit status is non-zero on
 the defects a code review of the SVG text does not see:
   - a page error;
@@ -19,7 +20,7 @@ the defects a code review of the SVG text does not see:
     with every request answered 200, or a face whose unicode-range leaves the text out);
   - figure text that crosses the edge of a box (a label longer than its box);
   - a dashed arrow with no label beside it (a dashed arrow is a relationship, and names it);
-  - figure text under 4.5:1 contrast with the box it sits in, in either theme (WCAG 1.4.3);
+  - figure text under 4.5:1 contrast with the box it sits in (WCAG 1.4.3);
   - a name/figure count mismatch;
   - names that put a later state before an earlier one: before, today or current, then after, then target or
     proposed (a reader follows a change from the old state to the new one);
@@ -140,7 +141,7 @@ CROSSINGS = """() => [...document.querySelectorAll(".fig-scroll")].flatMap((figu
 
 # Figure text under 4.5:1 (WCAG 2.2 SC 1.4.3, normal text) against what is painted under it: the last filled
 # <rect> before it in document order whose box holds it, else the figure's background. A text with no fill is
-# black, which the light theme hides and the dark theme shows; fill-opacity and gradients are not modelled.
+# black; fill-opacity and gradients are not modelled.
 LOW_CONTRAST = """() => [...document.querySelectorAll(".fig-scroll")].flatMap((figure, i) => {
   const rgb = (c) => { const m = /^rgba?\\(([^)]+)\\)/.exec(c); const v = m ? m[1].split(/[\\s,\\/]+/).map(Number) : [];
                        return v.length < 3 || v[3] === 0 ? null : v.slice(0, 3); };
@@ -174,12 +175,18 @@ CHROMIUM_ARGS = ["--font-render-hinting=none"]
 PAGE_SECONDS = 120
 
 
+# The figures are drawn light only (the owner, 2026-11-18). A page's dark palette is chosen either by the
+# prefers-color-scheme query or by data-theme="dark" on <html> (the template's pattern until 0.2.6), so the browser
+# answers the query with light and the root is set to data-theme="light": both routes then give the light palette.
+THEME = "light"
+
+
 class PageError(Exception):
     """The browser's part ended without an answer: what it said last is the reason."""
 
 
 def _stage(page_path: pathlib.Path, stage: pathlib.Path, wanted: int | None) -> dict:
-    """The browser's part: check the page and draw its figures into `stage` as <number>.<theme>.png.
+    """The browser's part: check the page and draw its figures into `stage` as <number>.png, in the light theme.
 
     `wanted` is the number of names given, or None when the figures are only counted (--check). The answer is
     {"failures": [...], "count": figures, "width": scrollWidth at 375 px}.
@@ -204,32 +211,28 @@ def _stage(page_path: pathlib.Path, stage: pathlib.Path, wanted: int | None) -> 
         doc = pathlib.Path(tmp) / "page.html"
         doc.write_text(text)
         browser = p.chromium.launch(args=CHROMIUM_ARGS)
-        for theme in ("light", "dark"):
-            page = browser.new_page(viewport={"width": 1180, "height": 900}, device_scale_factor=2)
-            watch(page, theme)
-            page.goto(doc.as_uri(), wait_until="networkidle")
-            page.evaluate(f"() => document.documentElement.setAttribute('data-theme', '{theme}')")
-            failures.extend(f"{theme}: figure text in a fallback face: {reason}"
-                            for reason in page.evaluate(UNLOADED_FAMILIES))
-            failures.extend(f"{theme}: text under 4.5:1 contrast in {text}" for text in page.evaluate(LOW_CONTRAST))
-            if theme == "light":  # the geometry is the same in both themes
-                failures.extend(f"text crosses the edge of a box in {text}" for text in page.evaluate(CROSSINGS))
-                failures.extend(f"a dashed arrow with no label beside it in {arrow}"
-                                for arrow in page.evaluate(DASHED_UNLABELLED))
-            if failures:
-                break
+        page = browser.new_page(viewport={"width": 1180, "height": 900}, device_scale_factor=2, color_scheme=THEME)
+        watch(page, THEME)
+        page.goto(doc.as_uri(), wait_until="networkidle")
+        page.evaluate(f"() => document.documentElement.setAttribute('data-theme', '{THEME}')")
+        failures.extend(f"{THEME}: figure text in a fallback face: {reason}"
+                        for reason in page.evaluate(UNLOADED_FAMILIES))
+        failures.extend(f"{THEME}: text under 4.5:1 contrast in {text}" for text in page.evaluate(LOW_CONTRAST))
+        failures.extend(f"text crosses the edge of a box in {text}" for text in page.evaluate(CROSSINGS))
+        failures.extend(f"a dashed arrow with no label beside it in {arrow}"
+                        for arrow in page.evaluate(DASHED_UNLABELLED))
+        if not failures:
             figures = page.locator(".fig-scroll")
             count = figures.count()
             if wanted is None and count == 0:
                 failures.append("no .fig-scroll figure on the page")
-                break
-            if wanted is not None and count != wanted:
+            elif wanted is not None and count != wanted:
                 failures.append(f"{count} .fig-scroll figures but {wanted} names given")
-                break
-            for i in range(count):
-                figures.nth(i).screenshot(path=str(stage / f"{i}.{theme}.png"))
-            page.close()
-        phone = browser.new_page(viewport={"width": 375, "height": 800})
+            else:
+                for i in range(count):
+                    figures.nth(i).screenshot(path=str(stage / f"{i}.png"))
+        page.close()
+        phone = browser.new_page(viewport={"width": 375, "height": 800}, color_scheme=THEME)
         watch(phone, "375 px")
         phone.goto(doc.as_uri(), wait_until="networkidle")
         width = phone.evaluate("document.fonts.ready.then(() => document.documentElement.scrollWidth)")
@@ -311,8 +314,9 @@ def render_page(page: str | pathlib.Path, out_dir: pathlib.Path, names: list[str
             if names is not None:
                 failures.extend(state_order(names))
             if not failures and names is not None:
-                staged = [(pathlib.Path(stage) / f"{i}.{theme}.png", out_dir / f"{name}.{theme}.png")
-                          for theme in ("light", "dark") for i, name in enumerate(names)]
+                # The file keeps its .light.png name, which every document that embeds a figure already links.
+                staged = [(pathlib.Path(stage) / f"{i}.png", out_dir / f"{name}.light.png")
+                          for i, name in enumerate(names)]
                 # A name may carry a subdirectory: make each one before the first move, so a missing directory
                 # cannot stop the moves half way.
                 for _, target in staged:
@@ -320,6 +324,12 @@ def render_page(page: str | pathlib.Path, out_dir: pathlib.Path, names: list[str
                 for png, target in staged:
                     png.replace(target)
                     print(f"wrote {target} ({target.stat().st_size} bytes)")
+                # A dark PNG left by an older kit is no longer kept up to date. It is named, not deleted: a
+                # document whose <picture> still names it would show a broken image to a reader in dark mode.
+                for name in names:
+                    stale = out_dir / f"{name}.dark.png"
+                    if stale.exists():
+                        print(f"stale: {stale} is not rendered any more; remove it and every <source> that names it")
     except PageError as error:
         failures.append(str(error))
     except (OSError, RuntimeError, ValueError) as error:

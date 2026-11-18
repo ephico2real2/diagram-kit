@@ -58,10 +58,7 @@ For example, a managed PostgreSQL service can lack the TimescaleDB extension. Th
 ## 4. The engagement lifecycle
 
 <!-- markdownlint-disable MD033 -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="figures/lifecycle.dark.png">
-  <img src="figures/lifecycle.light.png" alt="Figure 1. The engagement lifecycle. Eight stages, from discovery to hand-over. The product operates locally at stage 2, before the review. A failed test at stage 6 sends the work back to stage 5.">
-</picture>
+<img src="figures/lifecycle.light.png" alt="Figure 1. The engagement lifecycle. Eight stages, from discovery to hand-over. The product operates locally at stage 2, before the review. A failed test at stage 6 sends the work back to stage 5.">
 <!-- markdownlint-enable MD033 -->
 
 *Figure 1. The engagement lifecycle. Eight stages, from discovery to hand-over. The product operates locally at stage 2, before the review. A failed test at stage 6 sends the work back to stage 5.*
@@ -82,10 +79,7 @@ If a test fails at stage 6, the work goes back to stage 5. Each defect gets an i
 ## 5. The review and build loop
 
 <!-- markdownlint-disable MD033 -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="figures/review-loop.dark.png">
-  <img src="figures/review-loop.light.png" alt="Figure 2. The review and build loop. The architect writes the brief, audits the result and rules. Agents from several vendors do the work in isolated copies. Money, security and migration fixes get three reviews.">
-</picture>
+<img src="figures/review-loop.light.png" alt="Figure 2. The review and build loop. The architect writes the brief, audits the result and rules. Agents from several vendors do the work in isolated copies. Money, security and migration fixes get three reviews.">
 <!-- markdownlint-enable MD033 -->
 
 *Figure 2. The review and build loop. The architect writes the brief, audits the result and rules. Agents from several vendors do the work in isolated copies. Money, security and migration fixes get three reviews.*
@@ -105,10 +99,7 @@ The test loop: operate the whole test from its first step. At the first failure,
 ## 6. Local first
 
 <!-- markdownlint-disable MD033 -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="figures/local-first.dark.png">
-  <img src="figures/local-first.light.png" alt="Figure 3. One build, the same scripts, four environments. The product operates on a laptop first. The same image and scripts then operate in CI, in a sandbox and in production, on-premises or in a cloud.">
-</picture>
+<img src="figures/local-first.light.png" alt="Figure 3. One build, the same scripts, four environments. The product operates on a laptop first. The same image and scripts then operate in CI, in a sandbox and in production, on-premises or in a cloud.">
 <!-- markdownlint-enable MD033 -->
 
 *Figure 3. One build, the same scripts, four environments. The product operates on a laptop first. The same image and scripts then operate in CI, in a sandbox and in production, on-premises or in a cloud.*
@@ -144,10 +135,7 @@ A mock is a stand-in. The recommendation for real sandboxes stays.
 ## 7. CI/CD for a web application or an API
 
 <!-- markdownlint-disable MD033 -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="figures/pipeline-web.dark.png">
-  <img src="figures/pipeline-web.light.png" alt="Figure 4. The pipeline for a web application or an API. Five stages. The image is built and signed once, and the same digest moves to staging and to production. Each stage names what stops it.">
-</picture>
+<img src="figures/pipeline-web.light.png" alt="Figure 4. The pipeline for a web application or an API. Five stages. The image is built and signed once, and the same digest moves to staging and to production. Each stage names what stops it.">
 <!-- markdownlint-enable MD033 -->
 
 *Figure 4. The pipeline for a web application or an API. Five stages. The image is built and signed once, and the same digest moves to staging and to production. Each stage names what stops it.*
@@ -201,10 +189,7 @@ To move a product to new infrastructure, build the new environments beside the c
 ## 8. CI/CD for a mobile application
 
 <!-- markdownlint-disable MD033 -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="figures/pipeline-mobile.dark.png">
-  <img src="figures/pipeline-mobile.light.png" alt="Figure 5. The pipeline for a mobile application. Six stages. Device flows operate on emulators and simulators before the build and again on the release build. A person approves each store submission.">
-</picture>
+<img src="figures/pipeline-mobile.light.png" alt="Figure 5. The pipeline for a mobile application. Six stages. Device flows operate on emulators and simulators before the build and again on the release build. A person approves each store submission.">
 <!-- markdownlint-enable MD033 -->
 
 *Figure 5. The pipeline for a mobile application. Six stages. Device flows operate on emulators and simulators before the build and again on the release build. A person approves each store submission.*
