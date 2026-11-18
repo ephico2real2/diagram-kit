@@ -469,7 +469,8 @@ def test_the_contract_figure_is_rendered_and_has_its_text_twin():
     page = (folder / "figures" / "source.html").read_text()
     for name in ("contracts.light.png", "contracts.dark.png"):
         assert (folder / "figures" / name).stat().st_size > 10_000
-        assert f"figures/{name}" in facts
+    # the owner's rule: the page shows the light figure to every reader. The dark PNG is kept, and the page does not offer it
+    assert "figures/contracts.light.png" in facts and "contracts.dark.png" not in facts and "prefers-color-scheme" not in facts
     claim = re.search(r'aria-label="([^"]+)"', page).group(1)
     assert f'<img alt="{claim}"' in facts, "the picture in CONTRACTS.md and the page state the same claim"
     assert page.count('class="fig-scroll"') == 1 and "stroke-dasharray" not in page, "the figure shows the standard: nothing in it is proposed"

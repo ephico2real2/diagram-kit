@@ -360,13 +360,19 @@ supports it.
 
 ## Worked example: cmapi (the contracts)
 
-[cmapi](https://github.com/ephico2real2/cmapi) is the worked example of section 0, read at commit `933274a` on
-2026-11-13. `CONTRACTS.md` cites its file for each contract, and section 15 holds its scorecard.
+[cmapi](https://github.com/ephico2real2/cmapi) is the worked example of section 0, read at commit `f418576` on
+2026-11-18 (first read at `933274a` on 2026-11-13). `CONTRACTS.md` cites its file for each contract, and section 15
+holds its scorecard.
 
-- **Checked in CI:** the OpenAPI 3.1 document (31 operations) against what the code serves, the oasdiff gate with its
-  own test, the changelog, the recorded payloads, the error registry, the permission of each route, the realm on a
-  real Keycloak, and the data-model document against the migrated database.
-- **Defined, with no check:** the UI-to-API map (64 actions, 13 of 26 endpoints built), and the ports of the outbound
-  integrations, which have in-memory fakes and no mock from a provider's documents.
+- **Checked in CI:** the OpenAPI 3.1 document (39 operations) against what the code serves and against a Spectral
+  ruleset, the oasdiff gate with its own test, the changelog, the recorded payloads, the error registry, the
+  permission of each route, the realm on a real Keycloak, the data-model document against the migrated database, the
+  models against the migrations (`alembic check`), and the UI-to-API map against the document.
+- **Defined, with no check:** the ports of the outbound integrations, which have in-memory fakes and no test of an
+  adapter against a provider's documents (open, #200).
 - **Not applicable yet:** events and webhooks, which are designed and off.
-- **Open:** no version is released, so the gate has compared only branches. No payload is from a cluster.
+- **Open:** no version is released, so the gate has compared only branches. No payload is from a cluster. A reused
+  `Idempotency-Key` with another payload gets 409, and the IETF draft says 422.
+- **Fixed since 2026-11-13:** the Spectral lint (#188), the exact comparison of the status in the samples (#191), the
+  `alembic check` (#193), the test of the UI-to-API map (#194), the password grant (#190) and the `typ` header of
+  RFC 9068 (#195), and the page of each problem type (#197).

@@ -12,10 +12,14 @@ Each contract below has four parts:
 - **The artifact** and where it is in the repository.
 - **The example**: the file of cmapi that does it, with the commit that added the file.
 
-The example is [cmapi](https://github.com/ephico2real2/cmapi), read at commit `933274a` of `main` on 2026-11-13. cmapi
-is the example, not the rule. Where cmapi differs from the standard, or has no check, the section says so.
+The example is [cmapi](https://github.com/ephico2real2/cmapi). Each file, line, count and commit below was read at
+commit `f418576` of `main` on 2026-11-18. The first reading was at `933274a` on 2026-11-13, and every statement was
+read again at `f418576`. A commit that a section names with a file is the commit that added the file. cmapi is the
+example, not the rule. Where cmapi differs from the standard, or has no check, the section says so. A difference that
+cmapi has fixed since 2026-11-13 says "fixed" and names its pull request.
 
-Each standard and each tool was read on 2026-11-13. Section 16 lists the sources. Read each link again before a
+Each standard and each tool was read on 2026-11-13. The refresh of 2026-11-18 read cmapi again and did not read the
+standards again. Section 16 lists the sources. Read each link again before a
 recommendation depends on it, because the versions change.
 
 ## 1. The contract set
@@ -39,7 +43,6 @@ The number is the section of this file.
 
 <!-- markdownlint-disable MD033 -->
 <picture>
-  <source media="(prefers-color-scheme: dark)" srcset="figures/contracts.dark.png">
   <source srcset="figures/contracts.light.png">
   <img alt="The contract set in four lanes. In the interface lane, the mockup gives the UI-to-API map, and the map, the error registry and the write rules give the API document. The gate, the changelog and the recorded payloads come from the API document. In the access lane, groups give roles, roles give permissions, and each operation of the API document has one permission. In the data lane, the migrations give the migrated database, and its catalog gives the data-model document. Outside, the documents of each provider define a port and a mock, and events have an AsyncAPI document." src="figures/contracts.light.png">
 </picture>
@@ -126,7 +129,7 @@ generated document, not only the code.
 documentation": "The OpenAPI document is generated from the running code"). FastAPI generates the document,
 `cmapi/contract/openapi.json` holds it (commit `3ea7aa1`), and the test
 `test_the_committed_contract_is_the_document_this_code_serves` fails when the two differ
-(`cmapi/tests/service/test_api_docs.py`, commit `3ea7aa1`).
+(`cmapi/tests/service/test_api_docs.py:374-382`, commit `3ea7aa1`).
 
 ## 3. The API document
 
@@ -152,13 +155,23 @@ holds the same document.
 **The artifact.** `contract/openapi.json` beside the code of the service, or the path that the application has already,
 and the served copy at `/openapi.json`.
 
-**Example.** cmapi's document is OpenAPI 3.1.0 with 31 operations (`cmapi/contract/openapi.json`, commit `3ea7aa1`).
+**Example.** cmapi's document is OpenAPI 3.1.0 with 39 operations (`cmapi/contract/openapi.json`, commit `3ea7aa1`).
 Routes register through `DocumentedRouter`, and `check_documented` stops startup on a route that is not fully
-described (`cmapi/src/cmapi/core/docs.py:115-171` and `:205-226`, commit `fd36e66`; called at
-`cmapi/src/cmapi/main.py:88`). The tests are `test_an_undocumented_route_stops_startup`
-(`cmapi/tests/service/test_api_contract.py`) and `test_a_parameter_without_a_description_or_an_example_stops_startup`
-(`test_api_docs.py`). **Not done in cmapi:** the Spectral lint. `docs/01` designs it, and `.github/workflows/ci.yml`
-has no step for it.
+described (`cmapi/src/cmapi/core/docs.py:126-191` and `:194-269`, commit `fd36e66`; called at
+`cmapi/src/cmapi/main.py:117`). The tests are `test_an_undocumented_route_stops_startup`
+(`cmapi/tests/service/test_api_contract.py:34-49`) and `test_a_parameter_without_a_description_or_an_example_stops_startup`
+(`cmapi/tests/service/test_api_docs.py:313-331`). **Fixed (#188):** the Spectral lint. The ruleset is
+`cmapi/contract/spectral/.spectral.yaml` and the command is `cmapi/contract/lint.sh` (commit `913b200`). Spectral is
+pinned by a lockfile. The lint has its own test, `cmapi/contract/lint-test.py`: the committed document must pass, and a
+document that breaks one rule must fail with that rule. CI runs both (`.github/workflows/ci.yml:192-200`). A rule is a
+policy of the project: when a feature put a new kind of content in the document, cmapi added a rule for it
+(`cmapi-net-keys-only-in-labels`, #368).
+
+One more fact of cmapi is general. The document that an instance serves depends on its configuration. The labels and
+annotations of a new namespace are schema fields that the code generates from the `metadata-keys.yaml` of the instance,
+with their required keys (`docs.py:434-456`, #350), and `GET /api/v1/metadata-keys` returns the same schemas (#368). So
+the committed document is the one of the reference instance that the test suite uses, and the check of this section
+holds that one. Section 4 says what holds a change of configuration.
 
 ## 4. The breaking-change gate and the accepted-break file
 
@@ -185,9 +198,21 @@ request, the gate against the document of the base branch. Pin the tool by versi
 **Example.** `cmapi/contract/gate.sh` is the command above. `cmapi/contract/gate-test.sh` changes the committed
 document three ways that must fail (a response loses a required field, an endpoint goes, a request body gains a
 required field) and one way that must pass (a new endpoint and a new optional response field). The CI job
-`api-contract` runs both, with oasdiff 1.37.0 checked against its SHA-256 (`.github/workflows/ci.yml:90-132`). All
-three files came with commit `3ea7aa1`. `cmapi/contract/accepted-breaking.txt` holds no accepted change: its two lines
-are comments.
+`api-contract` runs both, with oasdiff 1.37.0 checked against its SHA-256 (`.github/workflows/ci.yml:170-225`; the
+download and the checksum are at `:183-188`, the gate against the base branch at `:215-225`). All three files came with
+commit `3ea7aa1`. `cmapi/contract/accepted-breaking.txt` holds seven groups of accepted changes, each with its reason and its
+issue on the line above, and each accepted before the first release (the first at `accepted-breaking.txt:4`). On
+2026-11-13 the file held none.
+
+**A change of configuration changes the document.** The gate compares two documents of the same instance. A change of
+a Helm values file or of `metadata-keys.yaml` changes the document that the instance serves (section 3), and the gate
+does not see it. cmapi has a report for that case (#337, #370): `cmapi-tools openapi render` writes the document of an
+instance offline, through the code that serves it (`cmapi/src/cmapi/tools/openapi.py`, commit `749bfdf`), and
+`cmapi/contract/report.py` renders the document for each side of a values change and runs oasdiff on the pair
+(`.github/workflows/api-contract-report.yml` and `values-contract-report.yml`, commit `9a62770`). It is a report and
+not a gate: its own text says that "a change of required keys is the operator's decision", so it exits 0 for a
+breaking change and exits 1 only when it cannot say what changed (`cmapi/contract/report.py:1-22`). The test is
+`cmapi/tests/service/test_contract_report_337.py`.
 
 ## 5. The changelog
 
@@ -202,7 +227,7 @@ changelog by hand. The application serves it to its users.
 **Example.** `cmapi/contract/changelog.py` writes `cmapi/src/cmapi/contract/changelog.json` with
 `oasdiff changelog --format json`, and `--check` fails when the file is not current (commit `3ea7aa1`; the CI step is
 "The changelog that /docs/changelog serves is current"). `gate-test.sh` tests the writer on two documents. **State on
-2026-11-13:** cmapi has no released version. `cmapi/contract/released/` holds only `.gitkeep`, and `changelog.json`
+2026-11-18:** cmapi has no released version. `cmapi/contract/released/` holds only `.gitkeep`, and `changelog.json`
 is `{"releases": []}`.
 
 ## 6. Payloads recorded from a real run
@@ -227,14 +252,17 @@ says where the run was: which database, which stand-ins, which date.
 examples guide between two marker lines.
 
 **Example.** `cmapi/tests/service/test_api_samples.py` is the scenario and the recorder (commit `bcb8b9d`).
-`cmapi/src/cmapi/contract/samples.json` holds 31 samples, for 30 of the 31 operations and one dry run, and 10
-problems. The operation with no successful sample, `requests_revert`, has a recorded problem. `add_recorded_examples`
-puts the samples into the document (`cmapi/src/cmapi/core/docs.py:353-377`). `scripts/api-examples-doc.py --check`
-runs in the job `api-contract`, and `docs/04-api-examples.md` is its output. **The limits that cmapi states:** the run
-used the test instance of the service suite, with a fake Git host and a fake cluster, on macOS. `docs/04` says: "No
-payload here is from CRC or from kind yet." The run met 10 of the 48 registered problems. **Where cmapi differs:** its
-test compares only the shape of each sample (`test_api_samples.py:62-74`), so a changed status or problem code in a
-sample does not fail that test. Other tests of the suite assert the statuses (section 8).
+`cmapi/src/cmapi/contract/samples.json` holds 44 samples: one for each of the 39 operations, five dry runs of the
+namespace writes, and 12 problems. Each operation has a successful sample. `add_recorded_examples` puts the samples into
+the document (`cmapi/src/cmapi/core/docs.py:516-547`). `scripts/api-examples-doc.py --check` runs in the job
+`api-contract` (`.github/workflows/ci.yml:205-206`), and `docs/04-api-examples.md` is its output. **The limits that
+cmapi states:** the run used the test instance of the service suite, with a fake Git host and a fake cluster. `docs/04`
+says: "No payload here is from CRC or from kind yet." The run met 12 of the 50 registered problems. **Fixed (#191):**
+the test compared only the shape of each sample, so a changed status or problem code did not fail it. Now `fixed()`
+keeps the method, the path, the status and the media type of each sample exactly, and for a problem its type, title,
+status and code, and `compare()` checks that part exactly and the rest by shape (`test_api_samples.py:96-113`). A test
+of the comparison changes eight values in turn (the status, the media type, the method and the path of a sample, and the code, type,
+status and body status of a problem) and expects a failure each time (`test_api_samples.py:116-146`).
 
 A property-based tester such as Schemathesis generates requests from the document and finds the answers that the
 document does not describe. It adds to the recorded run, and does not replace it. cmapi does not use one.
@@ -262,14 +290,18 @@ it can return, each with its example. RFC 9457 gives the rules for the members:
 
 **The artifact.** The registry in code, and the problem responses of each operation in the API document.
 
-**Example.** cmapi's registry is `PROBLEMS`, with 48 codes (`cmapi/src/cmapi/core/docs.py:34-84`, commit `fd36e66`).
-`DocumentedRouter._register` raises on an unregistered problem (`docs.py:132-134`). The tests
+**Example.** cmapi's registry is `PROBLEMS`, with 50 codes (`cmapi/src/cmapi/core/docs.py:34-85`, commit `fd36e66`).
+`DocumentedRouter._register` raises on an unregistered problem (`docs.py:145-146`). The tests
 `test_every_declared_problem_has_a_status_and_example` and `test_every_problem_code_the_code_raises_is_registered`
 read the registry and the code (`cmapi/tests/service/test_api_contract.py:29-31` and `:67-80`). The class `Problem`
 writes the body: `type`, `title`, `status`, `detail` and the extension member `code`, and the member `errors` when
-that list is not empty (`cmapi/src/cmapi/core/errors.py:22-27`, commit `72d082b`). **Where cmapi differs:** the code
-marks the host of the `type` URI as a placeholder (`errors.py:8`). This file did not open that address, so the
-documentation that RFC 9457 asks for there is not verified.
+that list is not empty (`cmapi/src/cmapi/core/errors.py:38-43`, commit `72d082b`). **Fixed in the code (#197):** the
+`type` URI resolves to documentation. Each instance serves `/problems` and `/problems/{code}` (`cmapi/src/cmapi/main.py:204-216`;
+the pages are `cmapi/src/cmapi/core/problem_docs.py`, commit `540aef6`), and the setting `problems.typeBase` of
+`instance.yaml` sets the base of the URI (`errors.py:13-24`). `cmapi/tests/service/test_problem_type_docs.py` has a test
+that the `type` of a real problem resolves on the instance that gave it, and one that each code has a page that says
+what to do. **Still a placeholder:** the default base is a placeholder host, and the code says so (`errors.py:9-10`).
+This file did not open any deployed address, so whether the `type` of a deployed instance resolves is not verified.
 
 ## 8. Write semantics: idempotency, conditional requests and the dry run
 
@@ -299,15 +331,16 @@ declares.
 
 **The artifact.** The shared parameters in the API document, and the rows of the examples guide that state each rule.
 
-**Example.** cmapi declares the three once (`cmapi/src/cmapi/routers/__init__.py:19-65`). A write with no key gets 400
-`idempotency-key-required`, and a dry run needs no key (`cmapi/src/cmapi/plugins/namespaces/router.py:41-48`). A key
-is held for 24 hours by the clock of the database (`cmapi/src/cmapi/core/db/repo.py:49` and `:114-123`), and a unique
-index holds one request for each key of a caller (`docs/16-data-model.md`, "The rules that the schema holds"). No
-`If-Match` gets 428 and an old one gets 412 (`cmapi/src/cmapi/core/pipeline.py:184-188`). The tests are in
-`cmapi/tests/service/test_flow.py`: `test_refusals_at_plan_time` (the 400, line 220),
-`test_change_needs_if_match_and_a_moved_folder_is_412` (line 246) and `test_dry_run_writes_nothing_and_shows_the_plan`
-(line 51). The recorded samples hold the 400, the 412 and the 428. **Where cmapi differs:** a key with another payload
-gets 409 `idempotency-replay` (`router.py:59-61`; `test_flow.py:74` asserts the 409), and the draft says 422.
+**Example.** cmapi declares the three once (`cmapi/src/cmapi/routers/__init__.py:19-21` and `:57-66`). A write with no
+key gets 400 `idempotency-key-required`, and a dry run needs no key (`cmapi/src/cmapi/plugins/namespaces/router.py:54-61`).
+A key is held for 24 hours by the clock of the database (`cmapi/src/cmapi/core/db/repo.py:49` and `:117-126`), and a
+unique index holds one request for each key of a caller (`docs/16-data-model.md`, "The rules that the schema holds").
+No `If-Match` gets 428 and an old one gets 412 (`cmapi/src/cmapi/core/pipeline.py:204-208`, and `:378-381` for a delete).
+The tests are in `cmapi/tests/service/test_flow.py`: `test_refusals_at_plan_time` (the 400, line 223),
+`test_change_needs_if_match_and_a_moved_folder_is_412` (line 249) and `test_dry_run_writes_nothing_and_shows_the_plan`
+(line 51). The recorded samples hold the 400, the 412 and the 428. **Still open:** a key with another payload gets 409
+`idempotency-replay` (`router.py:72-74`; `test_flow.py:75` asserts the 409), and the draft says 422. cmapi chose 409 and
+documents it (`docs/04`, "Rules for each call"), so this is a recorded difference and not a defect.
 
 ## 9. Authorization: group, role, permission, route
 
@@ -341,16 +374,18 @@ extension means. The description of the operation says the same thing in words.
 **The artifact.** The role table in code, the permission on each operation, and one document with the chain, the table
 of roles and permissions, and each 401 and 403.
 
-**Example.** cmapi's roles and permissions are `ROLE_PERMISSIONS` (`cmapi/src/cmapi/core/authz.py:21-41`, commit
+**Example.** cmapi's roles and permissions are `ROLE_PERMISSIONS` (`cmapi/src/cmapi/core/authz.py:32-44`, commit
 `72d082b`). `DocumentedRouter` writes `x-cmapi-permission` and a "Requires" line on each operation
-(`cmapi/src/cmapi/core/docs.py:143-148`): 29 of the 31 operations have a permission, and 2 have none. The test
+(`cmapi/src/cmapi/core/docs.py:154-160`): 37 of the 39 operations have a permission, and 2 have none (`GET /api/v1/me`
+and `GET /api/v1/version`). The test
 `test_declared_permission_is_the_enforced_one_and_every_route_answers` is the check
-(`cmapi/tests/service/test_review_c_authz.py:39`, commit `88ab538`). An unknown permission stops startup: the code
-collects it (`authz.py:115-117`) and raises (`authz.py:134-135`). `docs/14-authorization.md` is the document, with the
+(`cmapi/tests/service/test_review_c_authz.py:43`, commit `88ab538`). An unknown permission stops startup: the code
+collects it (`authz.py:118-120`) and raises (`authz.py:137-138`). `docs/14-authorization.md` is the document, with the
 owner's rule: "cmapi must define the groups contract but keycloak has the user and group role that is mapped to cmapi
 roles". The security scheme of the document is OAuth 2 with no scopes, which is why the permission is in the
-extension. **Not proven on 2026-11-13:** `docs/14`, "Proof", marks the 13 test users on the deployment cluster as "Not
-run yet".
+extension. **Proven since 2026-11-13, as `docs/14` records:** `docs/14`, "Proof", records the 13 test users on the
+deployment cluster as passed on CRC on 2026-11-15, by `deploy/crc-proof.sh` on main `21a7f47`. This file did not run
+that proof.
 
 ## 10. The identity provider contract
 
@@ -386,10 +421,17 @@ lifetimes and the URLs.
 **Example.** `docs/15-keycloak-integration.md` is the document (commit `65bd329`), and `docs/14-authorization.md`,
 "Step 1: the token", lists each check with its `file:line`. `deploy/tests/realm-test.py` runs the shipped realm on
 Keycloak 26.6.4 in a container, with an LDAP stand-in, and reads the expected token of each identity from
-`examples/cmapi-sso/ldap/test-identities.tsv` (commit `ba76718`; it runs in the CI job `manifests`). **Where cmapi
-differs:** the client `cmapi-automation` takes the password grant (`docs/15`, "The clients"), and cmapi checks the
-`typ` claim of Keycloak, not the `typ` header of RFC 9068 (`cmapi/src/cmapi/core/auth.py:168-170`). **Not proven on
-2026-11-13:** `docs/15`, "Proof", marks the three results on the deployment cluster as "Not run yet".
+`examples/cmapi-sso/ldap/test-identities.tsv` (commit `ba76718`; it runs in the CI job `manifests`). **Fixed since 2026-11-13:** the client `cmapi-automation` took the password grant, and no client of
+realm `cmapi` takes it now. The automation client signs in with its service account (client credentials), and the
+realm sets `directAccessGrantsEnabled: false` on each client (#190; `docs/15`, "No password grant"). `docs/14`, "Proof",
+records that the password grant is refused with `unauthorized_client` on CRC. cmapi also checked the `typ` claim of
+Keycloak and not the `typ` header of RFC 9068. It now needs the header `typ: at+jwt` (or `application/at+jwt`), with
+the claim `typ` of Keycloak as a second condition, and the realm makes Keycloak write the header
+(#195; `cmapi/src/cmapi/core/auth.py:132-133` and `:178-185`). The instance setting `auth.acceptLegacyTokenType` accepts
+the old form (header `JWT` and claim `Bearer`, both) for a realm that cannot set the attribute, and the constructor
+default is off (`auth.py:136-148`). **Not proven:** `docs/15`, "Proof", still
+marks the sign-in to Swagger UI with PKCE on CRC as "Not run yet". The 13 users through the federation on CRC are
+recorded there as passed on 2026-11-15.
 
 ## 11. The data model
 
@@ -424,10 +466,14 @@ the change into three distinct phases: expand, migrate, and contract."
 
 **Example.** `scripts/db-schema-doc.py` writes the part "The tables" of `docs/16-data-model.md` from the test
 database, and `cmapi/tests/service/test_data_model_doc.py` fails when the two differ (commit `b9e7912`). The document
-has the four subjects: "What each table holds", "The rules that the schema holds" (six rules, each with its migration:
-four unique indexes, one check, and one lease protocol in `cmapi/src/cmapi/core/db/repo.py:249-257`), "What the
-database does not hold", and "Caches, and why cmapi has no Redis or Valkey". The migration head is `0003`, with nine
-tables. **Not done in cmapi:** no step runs `alembic check`.
+has the four subjects: "What each table holds", "The rules that the schema holds" (seven rules, each with its migration
+or its code: four unique indexes, one check, one lease protocol in `cmapi/src/cmapi/core/db/repo.py:245-270`, and one
+column that records which approving group an approval counted for), "What the database does not hold", and "Caches, and
+why cmapi has no Redis or Valkey". The migration head is `0006`, with ten tables. **Fixed (#193):** `alembic check` runs
+in the service suite (`cmapi/tests/service/test_models_match_migrations.py`, commit `a4746ab`). It found that the models
+did not declare eight indexes of the migrations. The same file has a second test, because `alembic check` does not see
+a changed `WHERE` of a partial index (`docs/16`, "The models and the migrations agree", measured with Alembic 1.20.1 on
+PostgreSQL 16), and three unique indexes of cmapi are partial.
 
 ## 12. The UI-to-API map
 
@@ -450,13 +496,18 @@ A second test fails when the page has a state or a dataset that the map does not
 
 **The artifact.** The map beside its figures, and the list of what the page takes from the mockup.
 
-**Example.** `docs/diagrams/portal-architecture/README.md` is cmapi's map (commit `3cad6ed`): 64 actions in 9 tabs, 26
-endpoints that the actions need, 13 built and 11 not built, 17 actions that make no call, and 18 built operations that
-no action calls. `cmapi-portal-ui/MOCKUP-CONTRACT.md` lists the state and the datasets of each tab (commit `12f6d7b`),
-and `cmapi-portal-ui/tests/contract.test.mjs` fails when the mockup has a state key that the list does not name.
-**Not done in cmapi:** no test compares the map with `cmapi/contract/openapi.json`, so the "built" column is kept by
-hand. The page makes no API call yet (`MOCKUP-CONTRACT.md`: "The API is built for a part of the mockup, and this app
-calls none of it").
+**Example.** `docs/diagrams/portal-architecture/README.md` is cmapi's map (commit `3cad6ed`): 64 actions in 9 tabs, 25
+endpoints that the actions need, 19 built in `openapi.json` and 2 built outside it (`/docs` and `/redoc`), 4 not built,
+17 actions that make no call, and 20 built operations that no action calls (`README.md:5` and `:13-21`).
+**Fixed (#194):** `cmapi/tests/service/test_portal_map.py` (commit `806c679`) reads the map and `cmapi/contract/openapi.json`.
+A row that says "built" must name an operation of the document, a row that says "not built" must name none, and the
+counts and the list of unused operations must be true. `cmapi-portal-ui/MOCKUP-CONTRACT.md` lists the state and the
+datasets of each tab (commit `12f6d7b`), and `cmapi-portal-ui/tests/contract.test.mjs` fails when the mockup has a state
+key that the list does not name (commit `93bbfcc`). The page now takes its types from the document: `npm test` runs
+`scripts/api-types.mjs --check`, which fails when `src/api/schema.generated.ts` is not current
+(`cmapi-portal-ui/package.json:15`), and the client is `openapi-fetch` (`package.json:23`). Every tab of the mockup is on
+the API (`MOCKUP-CONTRACT.md:27`). **Not read:** whether a test proves that a call to a path that the document does not
+have fails the type check.
 
 ## 13. Outbound integrations, each with its mock
 
@@ -475,13 +526,28 @@ prove the adapter, so it is not the contract test.
 **The artifact.** The ports file, one adapter for each provider, the mock, and the plan from `/mock-app` with its table
 "The client against the documents".
 
-**Example.** cmapi's ports are typed Protocols in `cmapi/src/cmapi/core/ports.py`, and the Git adapters are
-`core/git/gitea.py` and `core/git/github.py`. The service suite uses in-memory fakes that implement the ports:
-`FakeGit`, `FakeKube` and `FakeValidator` (`cmapi/tests/service/conftest.py:80`, `:198` and `:259`). The GitHub
-adapter has tests on a transport "shaped by GitHub's REST docs (2026-11)", and its file says "No test here reaches
-GitHub" (`cmapi/tests/service/test_github_check_runs.py:1-4`). The identity provider is the one integration that
-cmapi tests against the real software (section 10). **Not done in cmapi:** no mock follows a provider's published
-OpenAPI document, and no `/mock-app` plan exists for the Git host.
+**Example.** cmapi's ports are typed Protocols in `cmapi/src/cmapi/core/ports.py` (11 of them, from `Authenticator` at
+line 98 to `ApprovalChannel` at line 177), and the Git adapters are `core/git/gitea.py` and `core/git/github.py`. The
+service suite uses in-memory fakes that implement the ports: `FakeGit`, `FakeKube` and `FakeValidator`
+(`cmapi/tests/service/conftest.py:131`, `:297` and `:381`). The GitHub adapter has tests on a transport "shaped by
+GitHub's REST docs (2026-11)" (`cmapi/tests/service/test_github_statuses.py:1-3`). The identity provider is the one
+integration that cmapi tests against the real software (section 10).
+
+**Still open:** no test checks an adapter against a provider's published document (issue #200, open). **Planned, and a
+result:** the spike #187 (pull request #201) planned it and measured the plan. It decided to keep the fakes, to check
+each adapter against the provider's description with no server, and to build no mock server now, because GitHub has a
+free test repository and Kubernetes has `envtest` and `kwok` (`docs/reviews/2026-11-13-spike-187/README.md`, "The
+decision" and "A plan for a mock app").
+
+**The contract of an inbound integration.** The other direction is also a contract. A separate cluster-baseline process
+hands each cluster to cmapi as one Secret, and the Secret is the contract (`docs/02-technical-design-v2.md:649-669`: the
+labels, the annotations, and the fields `apiUrl`, `token`, `caData` and `insecure`). The reader checks it in six steps
+(`cmapi/src/cmapi/core/registry.py:1-16`, with the parse in `_secret` and `_check`). The writer of the lab is
+`deploy/kind-import/import-secret.py`, and `deploy/tests/kind-import-test.sh` runs it on stubs, with checks that the token
+never reaches an argument list or an output (#399; `.github/workflows/ci.yml:274-275`). The contract has a state for
+its absence: a cluster that has a policy entry and no import Secret is `not-imported`, and the Capacity and Policies
+views say so with their finding (#404, pull request #411; `registry.py:90-98`). The contract also has a prerequisite that the code does not
+own: the network path from the hub to each cluster (`docs/02-technical-design-v2.md:640`, #401).
 
 ## 14. Events and webhooks, when the application has them
 
@@ -508,10 +574,10 @@ contract is "defined".
 
 **The artifact.** `contract/asyncapi.yaml`, and a `webhooks` part in the OpenAPI document.
 
-**Example.** cmapi is not an example here. Its events are designed and off: `docs/01-design-and-architecture.md`,
+**Example.** cmapi is not an example here. Its events are designed and off: `docs/01-design-and-architecture.md:576`,
 "Optional integrations", has "Outbound events | Off | Signed webhook or Kafka topic, from a transactional outbox".
 cmapi has no AsyncAPI document, and its figure of the portal lists "webhooks" and `outbox_publish` under "not built"
-(`docs/diagrams/portal-architecture/README.md`, the text twin of figure 1).
+(`docs/diagrams/portal-architecture/README.md:154` and `:164`, the text twin of figure 1). This is unchanged since 2026-11-13.
 
 ## 15. The contracts scorecard
 
@@ -527,21 +593,23 @@ file is "absent". A row that does not apply gives its reason. A check that CI di
 stays "defined". The last column lists each difference from the standard and each thing that the check does not
 cover. Each one is a finding, with its fix and its test, as for each other finding of the review.
 
-The scorecard of cmapi at commit `933274a`, as the example:
+The scorecard of cmapi at commit `f418576` (2026-11-18), as the example. On 2026-11-13, at `933274a`, the same scorecard
+had nine "checked" rows and two "defined" rows, and each row had at least one open item. The last column names
+each item that is fixed since then, with its pull request.
 
-| Contract | State | The artifact | The check | Open on 2026-11-13 |
+| Contract | State | The artifact | The check | Open on 2026-11-18 |
 | --- | --- | --- | --- | --- |
-| The API document | checked | `cmapi/contract/openapi.json` | `test_the_committed_contract_is_the_document_this_code_serves`, `check_documented` | No lint step |
-| The breaking-change gate | checked | `cmapi/contract/gate.sh`, `accepted-breaking.txt` | The job `api-contract`, with `gate-test.sh` | No released version, so no comparison with a release has run |
+| The API document | checked | `cmapi/contract/openapi.json`, `cmapi/contract/spectral/.spectral.yaml` | `test_the_committed_contract_is_the_document_this_code_serves`, `check_documented`, `cmapi/contract/lint.sh` with `lint-test.py` (job `api-contract`) | None known. The lint was open on 2026-11-13 (fixed, #188) |
+| The breaking-change gate | checked | `cmapi/contract/gate.sh`, `accepted-breaking.txt` | The job `api-contract`, with `gate-test.sh` | No released version, so no comparison with a release has run. A change of a values file is a report (`report.py`, #337), not a gate, by decision |
 | The changelog | checked | `cmapi/contract/changelog.py`, `changelog.json` | `changelog.py --check` | No version is released |
-| Recorded payloads | checked | `cmapi/src/cmapi/contract/samples.json`, `docs/04` | `test_api_samples.py`, `api-examples-doc.py --check` | No payload from a cluster; 10 of 48 problems recorded; the test compares the shape only |
-| The error registry | checked | `PROBLEMS` in `core/docs.py` | `_register`, the two registry tests of `test_api_contract.py`, `test_api_samples.py` | The `type` host is a placeholder |
-| Write semantics | checked | `routers/__init__.py`, `docs/04` "Rules for each call" | `test_refusals_at_plan_time`, `test_change_needs_if_match_and_a_moved_folder_is_412`, `test_dry_run_writes_nothing_and_shows_the_plan` | 409 where the draft says 422 |
-| Authorization | checked | `core/authz.py`, `x-cmapi-permission`, `docs/14` | `test_review_c_authz.py` | The 13 test users on the deployment cluster: not run |
-| The identity provider | checked | The realm import, `docs/15` | `deploy/tests/realm-test.py`, `test_auth.py` | The password grant; the `typ` claim, not the `typ` header; three results on the deployment cluster: not run |
-| The data model | checked | The migrations, `docs/16` | `test_data_model_doc.py` | No `alembic check` |
-| The UI-to-API map | defined | `docs/diagrams/portal-architecture/README.md` | None for the "built" column | No test compares the map with the API document; the page calls no API |
-| Outbound integrations | defined | `core/ports.py`, the fakes | The adapter tests, with no provider document | No mock from the documents of a provider; no `/mock-app` plan |
+| Recorded payloads | checked | `cmapi/src/cmapi/contract/samples.json`, `docs/04` | `test_api_samples.py`, `api-examples-doc.py --check` | No payload from a cluster; 12 of 50 problems recorded. The status and the problem code are compared exactly (fixed, #191) |
+| The error registry | checked | `PROBLEMS` in `core/docs.py`, `core/problem_docs.py` | `_register`, the two registry tests of `test_api_contract.py`, `test_api_samples.py`, `test_problem_type_docs.py` | The default `type` host is a placeholder. A deployed address was not opened. The page of each type is served (fixed in code, #197) |
+| Write semantics | checked | `routers/__init__.py`, `docs/04` "Rules for each call" | `test_refusals_at_plan_time`, `test_change_needs_if_match_and_a_moved_folder_is_412`, `test_dry_run_writes_nothing_and_shows_the_plan` | 409 where the draft says 422 (open, recorded) |
+| Authorization | checked | `core/authz.py`, `x-cmapi-permission`, `docs/14` | `test_review_c_authz.py` | None known. The 13 test users on CRC are recorded as passed on 2026-11-15, and this file did not run them |
+| The identity provider | checked | The realm import, `docs/15` | `deploy/tests/realm-test.py`, `test_auth.py` | The sign-in to Swagger UI with PKCE on CRC: not run. The password grant and the `typ` header were open (fixed, #190 and #195) |
+| The data model | checked | The migrations, `docs/16` | `test_data_model_doc.py`, `test_models_match_migrations.py` | None known. `alembic check` was open (fixed, #193) |
+| The UI-to-API map | checked | `docs/diagrams/portal-architecture/README.md` | `cmapi/tests/service/test_portal_map.py`, `cmapi-portal-ui/tests/contract.test.mjs` | A test that a call to an unknown path fails the type check: not read. The map was "defined" on 2026-11-13 (fixed, #194) |
+| Outbound integrations | defined | `core/ports.py`, the fakes, `docs/02` (the import Secret) | The adapter tests, `kind-import-test.sh`; no provider document | No test of an adapter against a provider's document (#200, open); no mock server, by the decision of spike #187 |
 | Events and webhooks | not applicable | None | None | Designed and off |
 
 ## 16. Rejected options, and the sources
