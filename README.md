@@ -28,6 +28,7 @@ turns every figure on it into a light and a dark PNG, and refuses the defects a 
 | `skill/delivery-page/SKILL.md` | the `/delivery-page` Claude Code skill: the three required documents, the render, and how the page is checked and published; link `~/.claude/skills/delivery-page` to this directory |
 | `skill/build-mockup/SKILL.md` | the `/build-mockup` Claude Code skill: an app mockup built as the contract for its page (target, tokens, state, typed data, section types, checks); link `~/.claude/skills/build-mockup` to this directory |
 | `skill/mobile-app-delivery/SKILL.md` | the `/mobile-app-delivery` Claude Code skill: a new mobile app from one round of questions to a build on the owner's phone, with research, decisions, diagrams, design, backlog, repositories, CI and device tests, each through a kit skill; link `~/.claude/skills/mobile-app-delivery` to this directory |
+| `skill/mobile-device-test/SKILL.md` | the `/mobile-device-test` Claude Code skill: test a mobile app on Android emulators, real Android phones, iOS simulators and real iPhones and iPads with Maestro, maestro-runner, XCTest UI and the Android device tests; `check-mac.sh` checks the Mac for each tool and its version, the skill walks through the setup of the Mac and of each device, the scripts beside it find an emulator by its AVD name, make a simulator of the job, never type a person's PIN, and run no test that can change the app's data until its first screen shows that it holds none; link `~/.claude/skills/mobile-device-test` to this directory |
 | `skill/mobile-app-designer/SKILL.md` | the `/mobile-app-designer` Claude Code skill: the screens of a mobile app after Apple's Human Interface Guidelines, with measured system colors, scripted contrast tests and a review page; link `~/.claude/skills/mobile-app-designer` to this directory |
 | `skill/mockup-to-page/SKILL.md` | the `/mockup-to-page` Claude Code skill: that mockup translated one-to-one into React or Preact + TypeScript, and proven to match; link `~/.claude/skills/mockup-to-page` to this directory |
 | `skill/mockup-to-page-react/SKILL.md` | the `/mockup-to-page-react` Claude Code skill: a mockup translated into React, TypeScript, Vite and PatternFly, with PatternFly's look and the mockup's content, data and behaviour, proven by parity tests; link `~/.claude/skills/mockup-to-page-react` to this directory |
@@ -294,6 +295,7 @@ ln -s "$PWD/skill/mockup-to-page" ~/.claude/skills/mockup-to-page
 ln -s "$PWD/skill/mockup-to-page-react" ~/.claude/skills/mockup-to-page-react
 ln -s "$PWD/skill/mobile-app-designer" ~/.claude/skills/mobile-app-designer
 ln -s "$PWD/skill/mobile-app-delivery" ~/.claude/skills/mobile-app-delivery
+ln -s "$PWD/skill/mobile-device-test" ~/.claude/skills/mobile-device-test
 ```
 
 The render and check tools they use live in Inkcast's `scripts/mockups/` (`render.js`, `check.py`), where the
