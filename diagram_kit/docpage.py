@@ -10,7 +10,7 @@ headings. Images keep their relative paths, so they are published next to the pa
 
 The page is light only, on a white background, like the light figures it shows.
 
-usage: doc-page SOURCE.md OUT.html --eyebrow TEXT [--figures N] [--band H2-ID]
+usage: doc-page SOURCE.md OUT.html --eyebrow TEXT --title NAME [--figures N] [--band H2-ID] [--standalone]
 """
 from __future__ import annotations
 
@@ -31,6 +31,9 @@ H2 = re.compile(r'<h2 id="([^"]+)">(.*?)</h2>', re.S)
 TAG = re.compile(r"<[^>]+>")
 # A private page link in repository text leaks it to every reader of the page.
 PRIVATE_LINK = "claude.ai/"
+# A page served beside the main page is not wrapped by the host, so it carries its own doctype and charset.
+STANDALONE_HEAD = ('<!doctype html>\n<html lang="en">\n<meta charset="utf-8">\n'
+                   '<meta name="viewport" content="width=device-width,initial-scale=1">\n')
 
 
 class PageError(Exception):
@@ -46,17 +49,29 @@ def to_html(source: Path) -> str:
     ).stdout
 
 
-def build(body: str, eyebrow: str, figures: int | None = None, band: str | None = None) -> tuple[str, int, int]:
-    """Return the page, the number of figures and the number of sections."""
+def caption(text: str) -> str:
+    """End a caption with one stop. Markdown puts the period inside or outside the italics, so add one only
+    when the text has no end mark of its own."""
+    text = text.rstrip()
+    return text if text.endswith((".", "!", "?")) else text + "."
+
+
+def build(body: str, eyebrow: str, title: str, figures: int | None = None, band: str | None = None,
+          standalone: bool = False) -> tuple[str, int, int]:
+    """Return the page, the number of figures and the number of sections.
+
+    `title` is the name in the browser tab, two to four words; the H1 of the document stays the heading."""
+    if not 2 <= len(title.split()) <= 4:
+        raise PageError(f"the title must be two to four words, got {title!r}")
     header = HEADER.match(body)
     if not header:
         raise PageError("the document does not open with an H1 and a byline paragraph")
-    title, byline = header.group(1), header.group(2)
+    heading, byline = header.group(1), header.group(2)
     body = body[header.end():]
 
     count = len(FIGURE.findall(body))
     body = FIGURE.sub(lambda f: f'<figure><div class="shot"><img loading="lazy" {f.group(1)}></div>'
-                                f'<figcaption>{f.group(2)}.</figcaption></figure>', body)
+                                f'<figcaption>{caption(f.group(2))}</figcaption></figure>', body)
     if figures is not None and count != figures:
         raise PageError(f"expected {figures} pictures with captions, found {count}")
     if re.search(r'<img (?!loading="lazy")', body):
@@ -75,13 +90,15 @@ def build(body: str, eyebrow: str, figures: int | None = None, band: str | None 
     sections = H2.findall(body)
     toc = "".join(f'<li><a href="#{i}">{TAG.sub("", t)}</a></li>' for i, t in sections)
     values = {
-        "PLAIN_TITLE": html.escape(html.unescape(TAG.sub("", title)), quote=False),
+        "TAB_TITLE": html.escape(title, quote=False),
         "EYEBROW": html.escape(eyebrow, quote=False),
-        "TITLE": title, "BYLINE": byline, "TOC": toc, "BODY": body,
+        "TITLE": heading, "BYLINE": byline, "TOC": toc, "BODY": body,
     }
     # One pass, so that text inside a value is never read as a placeholder.
-    template = TEMPLATE.read_text().replace("<title>{{TITLE}}</title>", "<title>{{PLAIN_TITLE}}</title>", 1)
+    template = TEMPLATE.read_text().replace("<title>{{TITLE}}</title>", "<title>{{TAB_TITLE}}</title>", 1)
     page = re.sub(r"\{\{([A-Z_]+)\}\}", lambda m: values[m.group(1)], template)
+    if standalone:
+        page = STANDALONE_HEAD + page
     if PRIVATE_LINK in page:
         raise PageError(f"the page holds '{PRIVATE_LINK}': a link to a private page must not be in repository text")
     return page, count, len(sections)
@@ -92,11 +109,14 @@ def main(argv: list[str] | None = None) -> int:
     ap.add_argument("source", type=Path, help="the Markdown document")
     ap.add_argument("out", type=Path, help="the HTML page to write")
     ap.add_argument("--eyebrow", required=True, help="the small line above the title")
+    ap.add_argument("--title", required=True, help="the name in the browser tab, two to four words")
     ap.add_argument("--figures", type=int, help="the number of captioned pictures the document must hold")
-    ap.add_argument("--band", help="the id of an H2 section drawn as a tinted band")
+    ap.add_argument("--band", help="the id of an H2 section drawn as a tinted band: the story, else the summary")
+    ap.add_argument("--standalone", action="store_true",
+                    help="a page published beside the main page: add the doctype and the charset")
     a = ap.parse_args(argv)
     try:
-        page, count, sections = build(to_html(a.source.resolve()), a.eyebrow, a.figures, a.band)
+        page, count, sections = build(to_html(a.source.resolve()), a.eyebrow, a.title, a.figures, a.band, a.standalone)
     except (PageError, subprocess.CalledProcessError) as e:
         print(f"doc-page: {getattr(e, 'stderr', None) or e}", file=sys.stderr)
         return 1
