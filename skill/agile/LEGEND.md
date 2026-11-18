@@ -53,6 +53,18 @@ An open issue has exactly one `status:` label.
 | Fixed on the review branch | `status:fixed-on-review-branch` | The fix and its test are merged on a branch that is not the default branch. Nothing is deployed |
 | Owner action | `status:owner-action` | The work waits for the owner |
 | Closed | None: the issue is closed | The fix reached the default branch |
+| Out of scope | `out-of-scope` and `wontfix`, on a closed issue | The owner decided that the work will not be done. The issue is closed as not planned |
+
+### Out of scope
+
+When the owner drops an idea, the issue is kept as a record and is not deleted.
+
+1. Add the labels `out-of-scope` and `wontfix`.
+2. Close the issue with the reason "not planned". Its comment quotes the owner decision with its date, and names the work that takes its place, if any.
+3. Remove its `status:` label and its work tag. A closed issue that is out of scope has neither.
+4. Leave it out of every progress count: it is not done, and it is not open work.
+
+Only the owner can open it again.
 
 ## Progress
 
