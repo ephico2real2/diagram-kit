@@ -16,17 +16,19 @@ from __future__ import annotations
 
 import argparse
 import html
+import json
 import re
 import shutil
 import subprocess
 import sys
 from pathlib import Path
+from urllib.parse import urlsplit
 
 TEMPLATE = Path(__file__).with_name("docpage.html")
 
 # A picture paragraph, then a paragraph that is all italic: the caption.
 FIGURE = re.compile(r'<p><img ([^>]*?)\s*/?></p>\s*<p><em>(.*?)</em>\.?</p>', re.S)
-HEADER = re.compile(r'\s*<h1 id="[^"]*">(.*?)</h1>\s*<p>(.*?)</p>\s*', re.S)
+HEADER = re.compile(r'\s*<h1(?: id="[^"]*")?>(.*?)</h1>\s*<p>(.*?)</p>\s*', re.S)
 H2 = re.compile(r'<h2 id="([^"]+)">(.*?)</h2>', re.S)
 TAG = re.compile(r"<[^>]+>")
 # A private page link in repository text leaks it to every reader of the page.
@@ -40,12 +42,42 @@ class PageError(Exception):
     """The document breaks a rule of the page; nothing is written."""
 
 
+def safe_markdown(node):
+    """Make raw HTML text and refuse executable URLs in pandoc's parsed Markdown."""
+    if isinstance(node, list):
+        return [safe_markdown(item) for item in node]
+    if not isinstance(node, dict):
+        return node
+    kind = node.get("t")
+    if kind in ("RawInline", "RawBlock"):
+        text = node["c"][1]
+        return ({"t": "Str", "c": text} if kind == "RawInline" else
+                {"t": "CodeBlock", "c": [["", [], []], text]})
+    if kind in ("Link", "Image"):
+        target = node["c"][2][0]
+        # Browsers ignore ASCII whitespace/control characters in a URL's scheme.
+        normalized = re.sub(r"[\x00-\x20\x7f]", "", target)
+        try:
+            scheme = urlsplit(normalized).scheme
+        except ValueError as error:
+            raise PageError(f"unsafe URL: {target!r}") from error
+        allowed = {"", "http", "https", "mailto"} if kind == "Link" else {"", "http", "https"}
+        if scheme not in allowed:
+            raise PageError(f"unsafe URL: {target!r}")
+    return {key: safe_markdown(value) for key, value in node.items()}
+
+
 def to_html(source: Path) -> str:
     if shutil.which("pandoc") is None:
         raise PageError("pandoc is not installed (README, 'Prerequisite for documents')")
-    return subprocess.run(
-        ["pandoc", source.name, "-f", "gfm", "-t", "html5", "--syntax-highlighting=none", "--wrap=none"],
+    parsed = subprocess.run(
+        ["pandoc", source.name, "-f", "gfm", "-t", "json"],
         check=True, capture_output=True, text=True, cwd=source.parent,
+    ).stdout
+    tree = safe_markdown(json.loads(parsed))
+    return subprocess.run(
+        ["pandoc", "-f", "json", "-t", "html5", "--syntax-highlighting=none", "--wrap=none"],
+        input=json.dumps(tree), check=True, capture_output=True, text=True, cwd=source.parent,
     ).stdout
 
 
@@ -88,7 +120,8 @@ def build(body: str, eyebrow: str, title: str, figures: int | None = None, band:
                        for p in parts)
 
     sections = H2.findall(body)
-    toc = "".join(f'<li><a href="#{i}">{TAG.sub("", t)}</a></li>' for i, t in sections)
+    toc = "".join(f'<li><a href="#{html.escape(html.unescape(i), quote=True)}">'
+                  f'{html.escape(html.unescape(TAG.sub("", t)))}</a></li>' for i, t in sections)
     values = {
         "TAB_TITLE": html.escape(title, quote=False),
         "EYEBROW": html.escape(eyebrow, quote=False),

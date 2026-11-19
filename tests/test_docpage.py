@@ -149,3 +149,51 @@ def test_the_template_colours_are_the_look_that_the_document_skill_records():
     template = docpage.TEMPLATE.read_text()
     for token, value in rows:
         assert f"{token}: {value};" in template, f"{token} is not {value} in docpage.html"
+
+
+@needs_pandoc
+@pytest.mark.parametrize("payload", [
+    '<script>alert(1)</script>',
+    '<img src="x" onerror="alert(1)">',
+    '<a href="javascript:alert(1)">click</a>',
+])
+@pytest.mark.parametrize("location", ["heading", "section", "caption", "body"])
+def test_markdown_html_is_text_in_every_page_slot(tmp_path, payload, location):
+    from html.parser import HTMLParser
+
+    class Elements(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.tags = []
+
+        def handle_starttag(self, tag, attrs):
+            self.tags.append((tag, dict(attrs)))
+
+    src = tmp_path / 'a"&<guide>.md'
+    title = payload if location == "heading" else "A guide"
+    section = payload if location == "section" else "Summary"
+    caption = payload if location == "caption" else "A figure"
+    body = payload if location == "body" else "Text"
+    src.write_text(f"# {title}\n\nA. Writer.\n\n## {section}\n\n{body}\n\n"
+                   f"![An image](images/a.png)\n\n*{caption}*\n")
+    out = tmp_path / "page.html"
+    assert docpage.main([str(src), str(out), "--eyebrow", "A <script>",
+                         "--title", "A </title><script>alert(1)</script>", "--figures", "1"]) == 0
+    parsed = Elements()
+    parsed.feed(out.read_text())
+    assert not any(tag == "script" or "onerror" in attrs or
+                   attrs.get("href", "").startswith("javascript:") for tag, attrs in parsed.tags)
+    assert sum(tag == "img" for tag, _ in parsed.tags) == 1
+
+
+@needs_pandoc
+@pytest.mark.parametrize("target", ["javascript:alert(1)", "JaVaScRiPt:alert(1)",
+                                    "java&#x09;script:alert(1)", "data:text/html,hello", "vbscript:msgbox(1)"])
+@pytest.mark.parametrize("image", [False, True])
+def test_unsafe_markdown_urls_write_nothing(tmp_path, capsys, target, image):
+    src = tmp_path / "guide.md"
+    src.write_text(f"# A guide\n\nA. Writer.\n\n{'!' if image else ''}[click]({target})\n\n*Caption.*\n")
+    out = tmp_path / "page.html"
+    assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--title", "A Guide"]) == 1
+    assert not out.exists()
+    assert "unsafe" in capsys.readouterr().err
