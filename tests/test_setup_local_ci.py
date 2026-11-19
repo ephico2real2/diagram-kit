@@ -115,7 +115,7 @@ def env(tmp_path):
         if [[ $platforms == *" $label "* ]]; then
           echo "[$job] 🏁  Job succeeded"
         else
-          echo "[$job] 🚧  Skipping unsupported platform -- Try running with \`-P $label=...\`"
+          echo "[$job] 🚧  Skipping unsupported platform -- Try running with \\`-P $label=...\\`"
         fi
         exit 0
         """))
