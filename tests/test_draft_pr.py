@@ -131,6 +131,16 @@ def test_draft_keeps_an_empty_commit_and_gives_it_the_owner_authorship(job):
     assert authors == {"Owner Person <owner@example.com>"}
 
 
+def test_draft_refuses_a_commit_with_a_session_trailer(job):
+    clone, folder, env = job
+    (clone / "src" / "more.ts").write_text("export const more = 2;\n")
+    git(clone, "add", "-A", env=env)
+    git(clone, "commit", "-q", "-m", "D2: more\n\nClaude-Session: https://claude.ai/code/session_x", env=env)
+    result = run(clone, folder, env)
+    assert result.returncode == 1 and "Claude-Session" in result.stderr
+    assert "D2: more" in git(clone, "log", "-1", "--format=%s", env=env)
+
+
 def test_draft_keeps_the_shas_when_every_commit_has_the_owner_identity(job):
     clone, folder, env = job
     # On 2026-11-18 the rewrite gave tested commits new SHAs although their author was already the owner.

@@ -35,6 +35,10 @@ if [[ -z $DRY_RUN ]] && git -C $C fetch -q $url "refs/heads/$branch" 2>/dev/null
 fi
 count=$(git -C $C rev-list --count $from..HEAD)
 (( count > 0 )) || fail "no new commit on $branch above $from"
+# The owner's rule (2026-11-19): no commit carries a Claude-Session trailer. The line credits the assistant and puts a
+# session link in the history, and only a force push could remove it after the push, so the draft refuses it here.
+trailers=$(git -C $C log --format='%h %(trailers:key=Claude-Session,valueonly,separator=%x20)' $from..HEAD | awk 'NF > 1')
+[[ -z $trailers ]] || fail "commits with a Claude-Session trailer; remake them without it: ${trailers//$'\n'/; }"
 
 # 3. The person who owns the work is the author, unless KEEP_AUTHOR is set. The map keeps the SHAs of the report usable.
 # A rewrite gives every commit a new SHA, so it runs only when a commit has another author or committer: on

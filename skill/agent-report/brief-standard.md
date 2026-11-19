@@ -26,7 +26,7 @@ Your clone and your report files are under `$HOME/gitRepos/workbench/<project>/`
 
 When you stop, your work becomes a draft pull request. Commit as you go, so that nothing stays only in your clone.
 
-1. When the tests of a deliverable or a fix pass, commit it in your clone: one commit for each, with its ID at the start of the message. Put the tests in the same commit as the code.
+1. When the tests of a deliverable or a fix pass, commit it in your clone: one commit for each, with its ID at the start of the message. Put the tests in the same commit as the code. A commit message has no trailer of any kind: no `Co-Authored-By` and no `Claude-Session`. The runner refuses to push a commit with a `Claude-Session` trailer.
 2. Write a test for each case that applies: unit, contract, migration, integration and end to end. Each new test fails before your change and passes after it. Record both runs in `tests.md`.
 3. If you stop early, at a limit or at a blocker, commit what you have with the message prefix `WIP <ID>:`. Write what is missing in `resume.md`.
 4. Do not commit the report files (`plan.md`, `tests.md`, `verdicts.md` and the others) or `logs/` into the repository. They stay in the job folder.
