@@ -4,6 +4,10 @@ One renderer, one template and one standard for the figures in our repositories;
 two commands for their dashboards, the figures that move; since 0.2.5, one command for a Word document made from
 Markdown; and, since 0.2.6, one command for a page made from a repository's tracker, handover and resume documents.
 
+Version 0.2.7 adds light-only figures, HTML document pages, and expanded skills for application contracts, Envoy,
+mockups, mobile design and device tests. It also adds the delivery playbook, agile records, agent reports and handovers,
+workbench tools, and local CI setup and monitoring.
+
 Each diagram has a `source.html` page, started by `diagram-template` from the template the kit ships. `diagram-render`
 turns every figure on it into a light PNG, and refuses the defects a review of the SVG text does not see:
 
@@ -84,7 +88,7 @@ with one `<img>` (`STANDARD.md` §3 and §4).
 
 ```sh
 python3 -m venv .venv
-.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.6"
+.venv/bin/pip install "diagram-kit @ git+https://github.com/ephico2real2/diagram-kit@v0.2.7"
 .venv/bin/playwright install chromium
 .venv/bin/diagram-template docs/diagrams/<slug>/source.html
 .venv/bin/diagram-render docs/diagrams/<slug>/source.html docs/diagrams/<slug> <name-1>,<name-2>
@@ -194,9 +198,9 @@ calls the kit's job, and copies no steps:
 ```yaml
 jobs:
   diagrams:
-    uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.6
+    uses: ephico2real2/diagram-kit/.github/workflows/check-diagrams.yml@v0.2.7
     with:
-      kit: v0.2.6
+      kit: v0.2.7
 ```
 
 It checks every tracked file named `source.html` (the input `pages` takes another git pathspec) and fails when none is
@@ -207,7 +211,7 @@ Chromium on Linux and on macOS draw text at the same widths since 0.2.3. For the
 in CI all the same, the `Containerfile` builds a Linux with the kit and its Chromium:
 
 ```sh
-podman build --build-arg KIT_REF=v0.2.6 -t diagram-kit-linux .
+podman build --build-arg KIT_REF=v0.2.7 -t diagram-kit-linux .
 podman run --rm -v "$PWD":/repo:ro diagram-kit-linux --check docs/diagrams/<slug>/source.html
 ```
 The tag is given twice because a called workflow cannot learn the ref it was called at.
