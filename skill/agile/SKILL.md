@@ -84,6 +84,8 @@ Write each body to a file and use `--body-file`. Never put a long body inline in
    gh label create class:TDT           --color c5a3ff --description "Tech debt: works today, but costs more to change, operate or upgrade"
    gh label create status:open         --color ededed --description "No fix yet"
    gh label create status:owner-action --color d93f0b --description "Waits for the owner"
+   gh label create out-of-scope        --color 6a737d --description "Out of scope: the owner decided that this will not be done"
+   gh label create wontfix             --color ffffff --description "This will not be worked on"
    ```
 
    Add the other `status:` and `sev:` labels of `LEGEND.md` the same way.
@@ -155,6 +157,12 @@ The token needs the `project` scope: `gh auth refresh -s project`. Dates come fr
 - A pull request names its milestone, its issues, its class and its type label. `/pull-request` gives the template.
 - After a merge to a branch that is not the default branch, `Closes #` closes nothing. Set the status label by hand.
 - Close an issue only through a merged fix on the default branch, with the proof cited.
+- The one other way to close an issue is an owner decision to drop the work. Label it `out-of-scope` and `wontfix`, and close it as not planned, with the decision quoted (`LEGEND.md`, "Out of scope"):
+
+  ```sh
+  gh issue edit <n> --add-label out-of-scope --add-label wontfix --remove-label <status label> --remove-label <work tag>
+  gh issue close <n> --reason "not planned" --comment "Out of scope: <owner decision, date>. <the work that replaces it>."
+  ```
 - Sweep the classes of all issues, not only the new ones. Do it at the first classification, after each change of the class rule, and before each tracker update. List each issue with no class label, read its fix, and add the class that the questions of section 2 give. Report the count: the issues read, the classes added and the issues that keep no class. Record the reason for each issue, also for each issue that keeps no class, so that the next sweep starts from the record.
 
   ```sh

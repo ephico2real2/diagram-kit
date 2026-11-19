@@ -330,6 +330,7 @@ A class says what kind of work an item is. Each item of any prefix can have one 
 | Partly fixed | Part of the work is fixed. The rest is a story or an owner action |
 | Owner action | The work waits for the owner |
 | Closed | The fix reached the default branch |
+| Out of scope | The owner decided that the work will not be done. The issue is closed as not planned |
 
 | Verdict | Meaning |
 |---|---|
