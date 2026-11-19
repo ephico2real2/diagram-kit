@@ -191,3 +191,19 @@ def test_a_page_whose_after_figure_comes_first_writes_nothing(monkeypatch, tmp_p
     reordered = tmp_path / "reordered"
     assert render.render_page(page, reordered, ["after", "before"]) != 0
     assert not list(reordered.glob("*.png"))
+
+
+@pytest.mark.parametrize("case", ["ok", "low-contrast"])
+@pytest.mark.parametrize("stale", [False, True])
+def test_check_status_depends_on_the_page_not_old_dark_pngs(monkeypatch, tmp_path, case, stale):
+    render = _render()
+    _stand_in(monkeypatch, render, case, [])
+    page = tmp_path / "source.html"
+    page.write_text("<html><body>four figures</body></html>")
+    dark = tmp_path / "a.dark.png"
+    if stale:
+        dark.write_bytes(b"old figure")
+    before = {p.name: p.read_bytes() for p in tmp_path.iterdir()}
+    monkeypatch.setattr(render.sys, "argv", ["render.py", "--check", str(page)])
+    assert render.main() == (0 if case == "ok" else 1)
+    assert {p.name: p.read_bytes() for p in tmp_path.iterdir()} == before

@@ -97,7 +97,7 @@ def test_the_page_is_light_on_white():
 
 
 @needs_pandoc
-def test_the_command_builds_from_markdown_and_reads_images_beside_the_source(tmp_path, capsys):
+def test_the_command_builds_from_markdown_and_keeps_image_urls(tmp_path, capsys):
     src = tmp_path / "docs" / "GUIDE.md"
     src.parent.mkdir()
     src.write_text("# A guide\n\nA. Writer, Engineer.\n\n## One\n\n![The claim.](diagrams/a/a.light.png)\n\n"
@@ -149,3 +149,111 @@ def test_the_template_colours_are_the_look_that_the_document_skill_records():
     template = docpage.TEMPLATE.read_text()
     for token, value in rows:
         assert f"{token}: {value};" in template, f"{token} is not {value} in docpage.html"
+
+
+@needs_pandoc
+@pytest.mark.parametrize("payload", [
+    '<script>alert(1)</script>',
+    '<img src="x" onerror="alert(1)">',
+    '<a href="javascript:alert(1)">click</a>',
+])
+@pytest.mark.parametrize("location", ["heading", "section", "caption", "body"])
+def test_markdown_html_is_text_in_every_page_slot(tmp_path, payload, location):
+    from html.parser import HTMLParser
+
+    class Elements(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.tags = []
+
+        def handle_starttag(self, tag, attrs):
+            self.tags.append((tag, dict(attrs)))
+
+    src = tmp_path / 'a"&<guide>.md'
+    title = payload if location == "heading" else "A guide"
+    section = payload if location == "section" else "Summary"
+    caption = payload if location == "caption" else "A figure"
+    body = payload if location == "body" else "Text"
+    src.write_text(f"# {title}\n\nA. Writer.\n\n## {section}\n\n{body}\n\n"
+                   f"![An image](images/a.png)\n\n*{caption}*\n")
+    out = tmp_path / "page.html"
+    assert docpage.main([str(src), str(out), "--eyebrow", "A <script>",
+                         "--title", "A </title><script>alert(1)</script>", "--figures", "1"]) == 0
+    parsed = Elements()
+    parsed.feed(out.read_text())
+    assert not any(tag == "script" or "onerror" in attrs or
+                   attrs.get("href", "").startswith("javascript:") for tag, attrs in parsed.tags)
+    assert sum(tag == "img" for tag, _ in parsed.tags) == 1
+
+
+@needs_pandoc
+@pytest.mark.parametrize("target", ["javascript:alert(1)", "JaVaScRiPt:alert(1)",
+                                    "java&#x09;script:alert(1)", "data:text/html,hello", "vbscript:msgbox(1)"])
+@pytest.mark.parametrize("image", [False, True])
+def test_unsafe_markdown_urls_write_nothing(tmp_path, capsys, target, image):
+    src = tmp_path / "guide.md"
+    src.write_text(f"# A guide\n\nA. Writer.\n\n{'!' if image else ''}[click]({target})\n\n*Caption.*\n")
+    out = tmp_path / "page.html"
+    assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--title", "A Guide"]) == 1
+    assert not out.exists()
+    assert "unsafe" in capsys.readouterr().err
+
+
+@needs_pandoc
+def test_a_source_filename_starting_with_a_dash_is_not_a_pandoc_option(tmp_path):
+    src = tmp_path / "--quiet.md"
+    src.write_text("# A guide\n\nA. Writer.\n\n## Summary\n\nText.\n")
+    out = tmp_path / "page.html"
+    assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--title", "A Guide"]) == 0
+    assert "<h1>A guide</h1>" in out.read_text()
+
+
+@needs_pandoc
+def test_relative_urls_keep_the_publish_layout_and_all_documented_flags_work(tmp_path):
+    from html.parser import HTMLParser
+
+    class URLs(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.urls = []
+
+        def handle_starttag(self, tag, attrs):
+            self.urls.extend(value for key, value in attrs if key in ("href", "src"))
+
+    src = tmp_path / "docs" / "guide.md"
+    src.parent.mkdir()
+    src.write_text('# A guide\n\nA. Writer.\n\n## Summary\n\n'
+                   '[Next](../next.md?q=one&n=two#section) and [local](#summary).\n\n'
+                   '![A & "quote"](images/a%22%3E%3Cimg.png "A & quote")\n\n*Figure 1.*\n')
+    out = tmp_path / "page.html"
+    assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--title", "A Guide",
+                         "--figures", "1", "--band", "summary", "--standalone"]) == 0
+    text = out.read_text()
+    urls = URLs()
+    urls.feed(text)
+    assert "../next.md?q=one&n=two#section" in urls.urls
+    assert "images/a%22%3E%3Cimg.png" in urls.urls
+    assert "#summary" in urls.urls
+    assert text.startswith("<!doctype html>")
+    assert '<section class="story"><h2 id="summary">' in text
+    # Pandoc emits paths; it does not read/copy linked assets. Publishing must preserve their layout.
+    assert not (tmp_path / "images").exists()
+
+
+def test_document_page_instructions_state_the_relative_url_contract():
+    readme = SKILL.parents[2] / "README.md"
+    for path in (SKILL, readme):
+        text = path.read_text()
+        assert "Relative image and link URLs stay unchanged" in text
+        assert "does not copy" in text
+
+
+@needs_pandoc
+@pytest.mark.parametrize("target", ["evil.html", "https://example.com/evil.html", "movie.mp4", "document.pdf"])
+def test_a_markdown_picture_cannot_embed_an_active_document(tmp_path, capsys, target):
+    src = tmp_path / "guide.md"
+    src.write_text(f"# A guide\n\nA. Writer.\n\n![A picture]({target})\n\n*Figure 1.*\n")
+    out = tmp_path / "page.html"
+    assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--title", "A Guide"]) == 1
+    assert not out.exists()
+    assert "unsupported media" in capsys.readouterr().err

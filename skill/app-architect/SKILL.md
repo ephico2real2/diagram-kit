@@ -345,7 +345,7 @@ supports it.
   client gave up ([the record](https://github.com/ephico2real2/cilium-implementation-poc/blob/main/demos/57-sni-fabric-lab/output/r1-5-lost-message.txt)). Scaling in therefore depends on the
   sweeper, or on the worker finishing its in-flight get before it exits.
 - **orders-api** can scale on its request rate from Prometheus.
-- **The scaler's path to MQ:** in the lab every caller reaches MQ through Envoy (`mqrest.mesh`, plain HTTP inside
+- **The scaler's path to MQ:** in the lab every caller reaches MQ through Envoy (the mesh service address, plain HTTP inside
   the mesh, with Envoy opening TLS to MQ). The review must decide whether KEDA joins the mesh like any other
   caller, or reaches MQ's TLS port directly with the lab CA as its `ca`.
 - **The scaler's identity:** measured on 2026-10-23, the worker's `app` user cannot read the endpoint the IBM MQ
