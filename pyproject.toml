@@ -22,9 +22,10 @@ metrics-inventory = "diagram_kit.metrics:main"
 perses-dashboard = "diagram_kit.perses:main"
 doc-docx = "diagram_kit.docx:main"
 delivery-page = "diagram_kit.delivery:main"
+doc-page = "diagram_kit.docpage:main"
 
 [tool.setuptools]
 packages = ["diagram_kit"]
 
 [tool.setuptools.package-data]
-diagram_kit = ["template.html"]
+diagram_kit = ["template.html", "docpage.html"]

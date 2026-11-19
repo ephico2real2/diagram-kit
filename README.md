@@ -29,6 +29,8 @@ with one `<img>` (`STANDARD.md` §3 and §4).
 | `skill/document/SKILL.md` | the `/document` Claude Code skill: when a Word file is made, from what, and how it is checked; link `~/.claude/skills/document` to this directory |
 | `diagram_kit/delivery.py` | `delivery-page`: one page from a repository's tracker, handover and resume documents at one commit; it writes nothing when one of the three is missing, empty or still starter text |
 | `skill/delivery-page/SKILL.md` | the `/delivery-page` Claude Code skill: the three required documents, the render, and how the page is checked and published; link `~/.claude/skills/delivery-page` to this directory |
+| `diagram_kit/docpage.py` | `doc-page`: one light page on a white background from one Markdown document; each picture with its italic caption becomes a figure, and it writes nothing when a caption, the figure count, the title or the byline is missing |
+| `skill/envoy/SKILL.md` | the `/envoy` Claude Code skill: what to learn about the app, one trace ID through every Envoy, two copies of each access line, the collector masks, and the read-back from VictoriaLogs and VictoriaTraces; link `~/.claude/skills/envoy` to this directory |
 | `skill/build-mockup/SKILL.md` | the `/build-mockup` Claude Code skill: an app mockup built as the contract for its page (target, tokens, state, typed data, section types, checks); link `~/.claude/skills/build-mockup` to this directory |
 | `skill/mobile-app-delivery/SKILL.md` | the `/mobile-app-delivery` Claude Code skill: a new mobile app from one round of questions to a build on the owner's phone, with research, decisions, diagrams, design, backlog, repositories, CI and device tests, each through a kit skill; link `~/.claude/skills/mobile-app-delivery` to this directory |
 | `skill/mobile-device-test/SKILL.md` | the `/mobile-device-test` Claude Code skill: test a mobile app on Android emulators, real Android phones, iOS simulators and real iPhones and iPads with Maestro, maestro-runner, XCTest UI and the Android device tests; `check-mac.sh` checks the Mac for each tool and its version, the skill walks through the setup of the Mac and of each device, the scripts beside it find an emulator by its AVD name, make a simulator of the job, never type a person's PIN, and run no test that can change the app's data until its first screen shows that it holds none; link `~/.claude/skills/mobile-device-test` to this directory |
@@ -244,6 +246,23 @@ It refuses a link that would lead nowhere in the document, a link to a `.md` fil
 cannot find. The date is stamped on the file, so the same Markdown and the same pandoc give the same bytes on every
 machine; the kit's CI pins pandoc 3.12.1, and a repository that commits the `.docx` and compares it in CI pins the
 same version.
+
+## Document pages
+
+A document page is made from one Markdown document in a repository, never edited by hand. Its figures are the light
+PNGs that `diagram-render` writes, and the page is light only, on a white background. `doc-page` does the build. It
+needs pandoc, and it runs pandoc in the folder of the document, so relative image paths resolve.
+
+```sh
+.venv/bin/doc-page docs/DESIGN.md design.html --eyebrow "Design · epic 12" --title "Design Review" --figures 2 \
+  --band summary
+```
+
+Each picture must have an italic caption paragraph after it, and the document opens with an H1 and a byline. The
+command refuses a picture with no caption, a figure count that differs from `--figures`, a `--band` section that does
+not exist, a `--title` that is not two to four words, and a link to a private claude.ai page. Publish the images next
+to the page at the same relative paths. A second page published beside the main page takes `--standalone`, which adds
+the doctype and the charset. Each page has one look: `skill/document/SKILL.md`, "The page look", holds its colours.
 
 ## Delivery pages
 

@@ -75,3 +75,46 @@ installs the newest release, which matches the pin only until the next one.
 The `.docx` adds no claim of its own: review the Markdown, and check that the build ran from the reviewed revision.
 A reviewer gets the Markdown paths, the command line and the `--date`, and confirms the committed `.docx` is what that
 command produces.
+
+## 6. A web page from the same Markdown
+
+If the reader needs a page and not a Word file, build it with `doc-page` (README, "Document pages"). The same rules
+apply: the Markdown is the source, the figures are light PNGs, and the page is made again after each change.
+
+```sh
+~/.local/share/diagram-kit/.venv/bin/doc-page docs/DESIGN.md design.html --eyebrow "Design" --title "Design Review" \
+  --figures 2 --band summary
+```
+
+Follow each figure with an italic caption paragraph, because the command refuses a picture with no caption. The
+caption ends with one period, inside or outside the italics.
+
+| Option | Use it |
+| --- | --- |
+| `--title` | Always. It is the name in the browser tab, two to four words. The H1 stays the heading of the page |
+| `--band` | Always. Give the id of the story section, the part that follows one real run. A document with no story bands its summary |
+| `--figures` | When the document has pictures. The command refuses a different count |
+| `--standalone` | For a second page published beside the main page. The host adds the doctype and the charset only to the main page, so without this option a browser shows the second page in quirks mode |
+
+### The page look
+
+Every document page has one look, the look of the kit's light figures. The owner chose it on 2026-11-18 from a
+tracing tutorial, and it is the standard for each page from then on. `docpage.html` holds it, and a test fails when
+the template and this table differ.
+
+| Token | Value | What it marks |
+| --- | --- | --- |
+| `--bg` | `#ffffff` | The page. It stays white in each system theme, as the light figures do |
+| `--surface` | `#ffffff` | Tables, the contents box on a phone, and code inside the band |
+| `--fg` | `#1b2124` | The text |
+| `--muted` | `#59656b` | The byline, the contents and the captions |
+| `--rule` | `#d9dfe1` | Lines between rows, frames of pictures and code |
+| `--accent` | `#1f6f78` | Teal: links, the eyebrow, and the H3 headings inside the band |
+| `--accent-wash` | `#e3f0f1` | The tinted band behind the story or the summary |
+| `--amber` | `#8a5a12` | The rule at the left of each caption |
+| `--code-bg` | `#eef1f2` | Code and command blocks |
+| `--shot-frame` | `#ffffff` | The frame around each picture |
+
+The headings use Archivo, the text IBM Plex Sans, and code IBM Plex Mono, all from Google Fonts. Do not add a dark
+theme, a second accent or a colour of your own to one page. A change to the look is a change to `docpage.html` and to
+this table in the same pull request.
