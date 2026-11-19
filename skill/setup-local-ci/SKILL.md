@@ -68,7 +68,7 @@ act uses the Docker API at `/var/run/docker.sock`, or at `DOCKER_HOST`. On macOS
 
    ```sh
    readlink /var/run/docker.sock
-   docker -H unix:///var/run/docker.sock version --format '{{.Server.Version}}'
+   curl --fail --unix-socket /var/run/docker.sock http://localhost/version
    ```
 
 If you cannot restart the machine now, set `DOCKER_HOST` instead:

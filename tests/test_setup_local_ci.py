@@ -421,3 +421,20 @@ def test_ci_shell_recipe_stops_if_the_source_copy_fails(tmp_path, shell, copy_st
     result = subprocess.run([shell, "-c", stand_in + command], capture_output=True, text=True)
     assert result.returncode == copy_status, result.stdout + result.stderr
     assert marker.exists() == (copy_status == 0)
+
+
+def test_the_socket_probe_needs_only_the_documented_tools():
+    import shlex
+
+    skill = (SETUP.parent / "SKILL.md").read_text()
+    install = next(line for line in skill.splitlines() if line.startswith("brew install "))
+    installed = set(shlex.split(install)[2:])
+    # These tools ship with macOS; every other executable must appear in the installation step.
+    available = installed | {"ls", "sudo", "podman-mac-helper", "cat", "readlink", "export", "curl"}
+    connection = skill.split("## 2. Connect act to Podman", 1)[1].split("## 3.", 1)[0]
+    import re
+
+    for block in re.findall(r"```sh\n(.*?)```", connection, re.S):
+        for line in block.splitlines():
+            if line.strip():
+                assert shlex.split(line.strip())[0] in available, line
