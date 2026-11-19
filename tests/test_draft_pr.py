@@ -129,3 +129,37 @@ def test_draft_keeps_an_empty_commit_and_gives_it_the_owner_authorship(job):
     assert subjects == ["D2: record research outside the repository", "D1: add sum with its test"]
     authors = set(git(clone, "log", "--format=%an <%ae>", "main..HEAD", env=env).splitlines())
     assert authors == {"Owner Person <owner@example.com>"}
+
+
+def test_draft_keeps_the_shas_when_every_commit_has_the_owner_identity(job):
+    clone, folder, env = job
+    # On 2026-11-18 the rewrite gave tested commits new SHAs although their author was already the owner.
+    git(clone, "reset", "-q", "--hard", "main", env=env)
+    (clone / "src").mkdir()
+    (clone / "src" / "one.ts").write_text("export const one = 1;\n")
+    git(clone, "add", "-A", env=env)
+    git(clone, "-c", "user.name=Owner Person", "-c", "user.email=owner@example.com", "commit", "-q", "-m", "D1: one",
+        env=env)
+    before = git(clone, "rev-parse", "HEAD", env=env)
+    result = run(clone, folder, env)
+    assert result.returncode == 0, result.stderr
+    assert git(clone, "rev-parse", "HEAD", env=env) == before
+    assert not (folder / "draft-sha-map.txt").exists()
+    assert "no rewrite" in result.stdout
+
+
+def test_draft_rewrites_when_one_commit_has_another_committer(job):
+    clone, folder, env = job
+    git(clone, "reset", "-q", "--hard", "main", env=env)
+    (clone / "src").mkdir()
+    (clone / "src" / "one.ts").write_text("export const one = 1;\n")
+    git(clone, "add", "-A", env=env)
+    # The author is the owner, but the clone's own identity (codex) commits it.
+    git(clone, "commit", "-q", "--author=Owner Person <owner@example.com>", "-m", "D1: one", env=env)
+    before = git(clone, "rev-parse", "HEAD", env=env)
+    result = run(clone, folder, env)
+    assert result.returncode == 0, result.stderr
+    assert git(clone, "rev-parse", "HEAD", env=env) != before
+    committers = set(git(clone, "log", "--format=%cn <%ce>", "main..HEAD", env=env).splitlines())
+    assert committers == {"Owner Person <owner@example.com>"}
+    assert len((folder / "draft-sha-map.txt").read_text().splitlines()) == 1
