@@ -402,3 +402,22 @@ def test_the_documented_runner_build_uses_the_installed_project_paths(tmp_path):
     assert (tmp_path / args[-1]).is_dir()
     run = next(line for line in skill.splitlines() if line.startswith(("./act-ci.sh ", "ci/local/act-ci.sh ")))
     assert (tmp_path / shlex.split(run)[0]).is_file()
+
+
+@pytest.mark.parametrize("shell", sorted({"/bin/bash", shutil.which("bash")} - {None}))
+@pytest.mark.parametrize("copy_status", [0, 23])
+def test_ci_shell_recipe_stops_if_the_source_copy_fails(tmp_path, shell, copy_status):
+    import shlex
+
+    skill = (SETUP.parent / "SKILL.md").read_text()
+    line = next(line.strip() for line in skill.splitlines() if line.strip().startswith("-c 'bash --version"))
+    command = shlex.split(line)[1]
+    marker = tmp_path / "tests-ran"
+    copy = tmp_path / "copy"
+    command = command.replace("/tmp/w", shlex.quote(str(copy))).replace("<script>", "script.sh")
+    command = command.replace("<its tests>", f"touch {shlex.quote(str(marker))}")
+    # A failed copy can leave a partial destination. Tests must not run against that partial source.
+    stand_in = f'cp() {{ mkdir -p "$3"; touch "$3/script.sh"; return {copy_status}; }}; '
+    result = subprocess.run([shell, "-c", stand_in + command], capture_output=True, text=True)
+    assert result.returncode == copy_status, result.stdout + result.stderr
+    assert marker.exists() == (copy_status == 0)

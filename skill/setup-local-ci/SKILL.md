@@ -168,7 +168,7 @@ A script that CI runs can also run on a developer's Mac. macOS has Bash 3.2 at `
 
    ```sh
    podman run --rm --entrypoint bash -v <clone>:/w:ro -w /w act-runner:ubuntu-24.04 \
-     -c 'bash --version | head -1; cp -r /w /tmp/w; cd /tmp/w && bash -n <script> && <its tests>'
+     -c 'bash --version | head -1 && cp -r /w /tmp/w && cd /tmp/w && bash -n <script> && <its tests>'
    ```
 
 3. Do not use the `node_modules` folder of the Mac in the container. Its packages are built for macOS, and a link to an absolute path of the Mac does not resolve. Measured on 2026-11-18: the same Node test passed on the Mac and failed in the container with `ERR_MODULE_NOT_FOUND` for a nested package. Install the packages in the container copy (`yarn install --frozen-lockfile`). Otherwise, test only the parts that need no package, and get the rest of the proof from act.
