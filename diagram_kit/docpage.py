@@ -95,6 +95,8 @@ def build(body: str, eyebrow: str, title: str, figures: int | None = None, band:
     `title` is the name in the browser tab, two to four words; the H1 of the document stays the heading."""
     if not 2 <= len(title.split()) <= 4:
         raise PageError(f"the title must be two to four words, got {title!r}")
+    if re.search(r"<(?:embed|iframe|object|video|audio)\b", body, re.I):
+        raise PageError("unsupported media: use an image with a caption, not an embedded document, audio or video")
     header = HEADER.match(body)
     if not header:
         raise PageError("the document does not open with an H1 and a byline paragraph")

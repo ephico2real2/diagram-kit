@@ -246,3 +246,14 @@ def test_document_page_instructions_state_the_relative_url_contract():
         text = path.read_text()
         assert "Relative image and link URLs stay unchanged" in text
         assert "does not copy" in text
+
+
+@needs_pandoc
+@pytest.mark.parametrize("target", ["evil.html", "https://example.com/evil.html", "movie.mp4", "document.pdf"])
+def test_a_markdown_picture_cannot_embed_an_active_document(tmp_path, capsys, target):
+    src = tmp_path / "guide.md"
+    src.write_text(f"# A guide\n\nA. Writer.\n\n![A picture]({target})\n\n*Figure 1.*\n")
+    out = tmp_path / "page.html"
+    assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--title", "A Guide"]) == 1
+    assert not out.exists()
+    assert "unsupported media" in capsys.readouterr().err
