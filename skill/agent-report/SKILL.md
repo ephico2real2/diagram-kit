@@ -119,9 +119,11 @@ LABELS="bug" MILESTONE="<milestone>" PART_OF="#<parent>" ${CLAUDE_SKILL_DIR}/scr
 The script does these steps, in this order:
 
 1. It commits what the job left, with the prefix `WIP <job>:`.
-2. It gives the new commits the global git identity, because the person who drives the work is the author. It writes
-   the old and new SHAs to `<folder>/<job>/draft-sha-map.txt`, so the SHAs of the report stay usable. `KEEP_AUTHOR=1`
-   keeps the agent's author.
+2. It gives the new commits the global git identity, because the person who drives the work is the author. The
+   rewrite gives each commit a new SHA, so it runs only if a new commit has another author or committer. If every
+   commit already has the global identity, the SHAs stay. After a rewrite, it writes the old and new SHAs to
+   `<folder>/<job>/draft-sha-map.txt`, so the SHAs of the report stay usable. `KEEP_AUTHOR=1` keeps the agent's
+   author.
 3. It writes `<folder>/<job>/draft-pr.md`: the commits, the number of test files changed, the verdict tally, and each
    report file that a commit put in the repository.
 4. It pushes the branch, with no force. It opens the draft once. A later round of the same branch only pushes and

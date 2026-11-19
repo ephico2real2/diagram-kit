@@ -41,9 +41,16 @@ trailers=$(git -C $C log --format='%h %(trailers:key=Claude-Session,valueonly,se
 [[ -z $trailers ]] || fail "commits with a Claude-Session trailer; remake them without it: ${trailers//$'\n'/; }"
 
 # 3. The person who owns the work is the author, unless KEEP_AUTHOR is set. The map keeps the SHAs of the report usable.
+# A rewrite gives every commit a new SHA, so it runs only when a commit has another author or committer: on
+# 2026-11-18 a rewrite of commits that already had the owner identity broke the SHAs of a tested report.
 if [[ -z $KEEP_AUTHOR ]]; then
   name=$(git config --global user.name) email=$(git config --global user.email)
   [[ -n $name && -n $email ]] || fail "no global git identity; set it or KEEP_AUTHOR=1"
+  others=$(git -C $C log --format='%an <%ae>%n%cn <%ce>' $from..HEAD | grep -cvxF "$name <$email>")
+fi
+if [[ -z $KEEP_AUTHOR ]] && (( others == 0 )); then
+  print "every new commit has the identity $name <$email>; no rewrite, the SHAs stay"
+elif [[ -z $KEEP_AUTHOR ]]; then
   old=($(git -C $C rev-list --reverse $from..HEAD))
   # --allow-empty: an agent can record a step in an empty commit, and the amend refuses one without it.
   git -C $C -c user.name="$name" -c user.email="$email" rebase -q --rebase-merges --exec \
