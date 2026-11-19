@@ -387,3 +387,18 @@ def test_a_workflow_with_no_port_variable_passes_no_var(env):
     result = run(env, "-j", "verify")
     assert result.returncode == 0, result.stdout + result.stderr
     assert all("--var" not in call for call in act_calls(env))
+
+
+def test_the_documented_runner_build_uses_the_installed_project_paths(tmp_path):
+    import shlex
+
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    result = setup(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    skill = (SETUP.parent / "SKILL.md").read_text()
+    build = next(line for line in skill.splitlines() if line.startswith("podman build "))
+    args = shlex.split(build)
+    assert (tmp_path / args[args.index("-f") + 1]).is_file()
+    assert (tmp_path / args[-1]).is_dir()
+    run = next(line for line in skill.splitlines() if line.startswith(("./act-ci.sh ", "ci/local/act-ci.sh ")))
+    assert (tmp_path / shlex.split(run)[0]).is_file()
