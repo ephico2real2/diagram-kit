@@ -197,3 +197,12 @@ def test_unsafe_markdown_urls_write_nothing(tmp_path, capsys, target, image):
     assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--title", "A Guide"]) == 1
     assert not out.exists()
     assert "unsafe" in capsys.readouterr().err
+
+
+@needs_pandoc
+def test_a_source_filename_starting_with_a_dash_is_not_a_pandoc_option(tmp_path):
+    src = tmp_path / "--quiet.md"
+    src.write_text("# A guide\n\nA. Writer.\n\n## Summary\n\nText.\n")
+    out = tmp_path / "page.html"
+    assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--title", "A Guide"]) == 0
+    assert "<h1>A guide</h1>" in out.read_text()

@@ -71,7 +71,7 @@ def to_html(source: Path) -> str:
     if shutil.which("pandoc") is None:
         raise PageError("pandoc is not installed (README, 'Prerequisite for documents')")
     parsed = subprocess.run(
-        ["pandoc", source.name, "-f", "gfm", "-t", "json"],
+        ["pandoc", "./" + source.name, "-f", "gfm", "-t", "json"],
         check=True, capture_output=True, text=True, cwd=source.parent,
     ).stdout
     tree = safe_markdown(json.loads(parsed))
