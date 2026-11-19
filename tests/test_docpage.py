@@ -6,7 +6,9 @@
 The tests that run pandoc are skipped where pandoc is not installed, except in CI (ci.yml installs it): there a
 missing pandoc fails them. The tests of `build` give it the HTML that pandoc makes, so they need no pandoc."""
 import os
+import re
 import shutil
+from pathlib import Path
 
 import pytest
 
@@ -20,7 +22,7 @@ FIG = '<p><img src="diagrams/a/a.light.png" alt="The claim." /></p>\n<p><em>Figu
 
 
 def page(body, **kw):
-    return docpage.build(HEAD + body, kw.pop("eyebrow", "Docs"), **kw)
+    return docpage.build(HEAD + body, kw.pop("eyebrow", "Docs"), kw.pop("title", "The Guide"), **kw)
 
 
 def test_a_picture_and_its_caption_become_one_figure():
@@ -28,6 +30,14 @@ def test_a_picture_and_its_caption_become_one_figure():
     assert count == 1
     assert ('<figure><div class="shot"><img loading="lazy" src="diagrams/a/a.light.png" alt="The claim.">'
             '</div><figcaption>Figure 1. The claim.</figcaption></figure>') in html
+
+
+def test_a_caption_that_ends_in_a_period_gets_no_second_one():
+    # The period can sit inside the italics. The page then showed "the claim.." before this fix.
+    inside = '<p><img src="a.png" alt="x" /></p>\n<p><em>Figure 1. The claim.</em></p>\n'
+    html, _, _ = page(inside, figures=1)
+    assert "<figcaption>Figure 1. The claim.</figcaption>" in html
+    assert "..</figcaption>" not in html
 
 
 def test_a_picture_with_no_caption_is_refused():
@@ -42,14 +52,14 @@ def test_the_figure_count_is_checked_when_given():
 
 def test_the_document_must_open_with_a_title_and_a_byline():
     with pytest.raises(docpage.PageError, match="H1 and a byline"):
-        docpage.build("<p>No title.</p>\n", "Docs")
+        docpage.build("<p>No title.</p>\n", "Docs", "The Guide")
 
 
-def test_the_contents_list_the_h2_headings_and_the_title_tag_is_plain_text():
+def test_the_contents_list_the_h2_headings_and_the_tab_title_is_the_short_name():
     html, _, sections = page('<h2 id="one">One <code>x</code></h2>\n<h2 id="two">Two</h2>\n')
     assert sections == 2
     assert '<li><a href="#one">One x</a></li><li><a href="#two">Two</a></li>' in html
-    assert "<title>The title</title>" in html
+    assert "<title>The Guide</title>" in html
     assert "<h1>The <code>title</code></h1>" in html
 
 
@@ -93,7 +103,7 @@ def test_the_command_builds_from_markdown_and_reads_images_beside_the_source(tmp
     src.write_text("# A guide\n\nA. Writer, Engineer.\n\n## One\n\n![The claim.](diagrams/a/a.light.png)\n\n"
                    "*Figure 1. The claim.*\n\n| a | b |\n|---|---|\n| 1 | 2 |\n")
     out = tmp_path / "guide.html"
-    assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--figures", "1"]) == 0
+    assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--title", "A Guide", "--figures", "1"]) == 0
     html = out.read_text()
     assert '<img loading="lazy" src="diagrams/a/a.light.png" alt="The claim.">' in html
     assert '<div class="scroll"><table>' in html
@@ -105,6 +115,37 @@ def test_the_command_writes_nothing_when_a_check_fails(tmp_path, capsys):
     src = tmp_path / "GUIDE.md"
     src.write_text("# A guide\n\nA. Writer.\n\n![x](a.png)\n\nNo caption.\n")
     out = tmp_path / "guide.html"
-    assert docpage.main([str(src), str(out), "--eyebrow", "Docs"]) == 1
+    assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--title", "A Guide"]) == 1
     assert not out.exists()
     assert "no italic caption" in capsys.readouterr().err
+
+
+def test_a_title_of_one_word_or_of_five_words_is_refused():
+    for title in ("Guide", "A guide to the whole platform"):
+        with pytest.raises(docpage.PageError, match="two to four words"):
+            page("", title=title)
+
+
+def test_the_tab_title_is_text_and_the_heading_keeps_its_markup():
+    html, _, _ = page("", title="Trace & Logs")
+    assert "<title>Trace &amp; Logs</title>" in html
+    assert "<h1>The <code>title</code></h1>" in html
+
+
+def test_only_a_standalone_page_carries_its_own_doctype_and_charset():
+    beside, _, _ = page("", standalone=True)
+    assert beside.startswith('<!doctype html>\n<html lang="en">\n<meta charset="utf-8">\n')
+    main_page, _, _ = page("")
+    assert "<!doctype" not in main_page.lower()
+
+
+SKILL = Path(__file__).resolve().parents[1] / "skill" / "document" / "SKILL.md"
+
+
+def test_the_template_colours_are_the_look_that_the_document_skill_records():
+    # The skill holds the table of the page look; the template must use exactly those values.
+    rows = re.findall(r"^\| `(--[a-z-]+)` \| `(#[0-9a-f]{6})` \|", SKILL.read_text(), re.M)
+    assert len(rows) >= 8, "the page look table is missing from skill/document/SKILL.md"
+    template = docpage.TEMPLATE.read_text()
+    for token, value in rows:
+        assert f"{token}: {value};" in template, f"{token} is not {value} in docpage.html"

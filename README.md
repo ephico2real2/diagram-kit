@@ -251,12 +251,15 @@ PNGs that `diagram-render` writes, and the page is light only, on a white backgr
 needs pandoc, and it runs pandoc in the folder of the document, so relative image paths resolve.
 
 ```sh
-.venv/bin/doc-page docs/DESIGN.md design.html --eyebrow "Design · epic 12" --figures 2
+.venv/bin/doc-page docs/DESIGN.md design.html --eyebrow "Design · epic 12" --title "Design Review" --figures 2 \
+  --band summary
 ```
 
 Each picture must have an italic caption paragraph after it, and the document opens with an H1 and a byline. The
 command refuses a picture with no caption, a figure count that differs from `--figures`, a `--band` section that does
-not exist, and a link to a private claude.ai page. Publish the images next to the page at the same relative paths.
+not exist, a `--title` that is not two to four words, and a link to a private claude.ai page. Publish the images next
+to the page at the same relative paths. A second page published beside the main page takes `--standalone`, which adds
+the doctype and the charset. Each page has one look: `skill/document/SKILL.md`, "The page look", holds its colours.
 
 ## Delivery pages
 
