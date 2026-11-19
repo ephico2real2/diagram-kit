@@ -194,8 +194,8 @@ Replace the repositories in the first line, then paste the output into the docum
 for r in <owner>/<repository-1> <owner>/<repository-2>; do
   gh issue list -R "$r" --state all --limit 1000 --json title,labels
 done | jq -rs '
-  def order: ["SEC", "BUG", "PERF", "BP", "UX", "OA", "INV", "TDT", "Other work"];
-  def category: (.title | capture("^(?<p>SEC|BUG|PERF|BP|UX|OA|INV|TDT)-[0-9]+").p) // "Other work";
+  def order: ["SEC", "BUG", "PERF", "BP", "UX", "OA", "MG", "MA", "APM", "INV", "TDT", "Other work"];
+  def category: (.title | capture("^(?<p>SEC|BUG|PERF|BP|UX|OA|MG|MA|APM|INV|TDT)-[0-9]+").p) // "Other work";
   def classes: [.labels[].name | select(. == "class:INV" or . == "class:TDT")] | sort;
   def row($name; $items): [$name,
     ($items | map(select(classes == ["class:INV"])) | length),
