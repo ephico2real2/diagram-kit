@@ -80,6 +80,9 @@ command produces.
 
 If the reader needs a page and not a Word file, build it with `doc-page` (README, "Document pages"). The same rules
 apply: the Markdown is the source, the figures are light PNGs, and the page is made again after each change.
+Relative image and link URLs stay unchanged. The command does not copy linked files or convert Markdown links to
+internal document links. Publish images and linked files at the same relative URLs beside the HTML page.
+Raw HTML becomes text. The command refuses unsafe link or image URL schemes before it writes the page.
 
 ```sh
 ~/.local/share/diagram-kit/.venv/bin/doc-page docs/DESIGN.md design.html --eyebrow "Design" --title "Design Review" \

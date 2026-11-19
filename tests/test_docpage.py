@@ -97,7 +97,7 @@ def test_the_page_is_light_on_white():
 
 
 @needs_pandoc
-def test_the_command_builds_from_markdown_and_reads_images_beside_the_source(tmp_path, capsys):
+def test_the_command_builds_from_markdown_and_keeps_image_urls(tmp_path, capsys):
     src = tmp_path / "docs" / "GUIDE.md"
     src.parent.mkdir()
     src.write_text("# A guide\n\nA. Writer, Engineer.\n\n## One\n\n![The claim.](diagrams/a/a.light.png)\n\n"
@@ -206,3 +206,43 @@ def test_a_source_filename_starting_with_a_dash_is_not_a_pandoc_option(tmp_path)
     out = tmp_path / "page.html"
     assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--title", "A Guide"]) == 0
     assert "<h1>A guide</h1>" in out.read_text()
+
+
+@needs_pandoc
+def test_relative_urls_keep_the_publish_layout_and_all_documented_flags_work(tmp_path):
+    from html.parser import HTMLParser
+
+    class URLs(HTMLParser):
+        def __init__(self):
+            super().__init__()
+            self.urls = []
+
+        def handle_starttag(self, tag, attrs):
+            self.urls.extend(value for key, value in attrs if key in ("href", "src"))
+
+    src = tmp_path / "docs" / "guide.md"
+    src.parent.mkdir()
+    src.write_text('# A guide\n\nA. Writer.\n\n## Summary\n\n'
+                   '[Next](../next.md?q=one&n=two#section) and [local](#summary).\n\n'
+                   '![A & "quote"](images/a%22%3E%3Cimg.png "A & quote")\n\n*Figure 1.*\n')
+    out = tmp_path / "page.html"
+    assert docpage.main([str(src), str(out), "--eyebrow", "Docs", "--title", "A Guide",
+                         "--figures", "1", "--band", "summary", "--standalone"]) == 0
+    text = out.read_text()
+    urls = URLs()
+    urls.feed(text)
+    assert "../next.md?q=one&n=two#section" in urls.urls
+    assert "images/a%22%3E%3Cimg.png" in urls.urls
+    assert "#summary" in urls.urls
+    assert text.startswith("<!doctype html>")
+    assert '<section class="story"><h2 id="summary">' in text
+    # Pandoc emits paths; it does not read/copy linked assets. Publishing must preserve their layout.
+    assert not (tmp_path / "images").exists()
+
+
+def test_document_page_instructions_state_the_relative_url_contract():
+    readme = SKILL.parents[2] / "README.md"
+    for path in (SKILL, readme):
+        text = path.read_text()
+        assert "Relative image and link URLs stay unchanged" in text
+        assert "does not copy" in text

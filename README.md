@@ -251,7 +251,8 @@ same version.
 
 A document page is made from one Markdown document in a repository, never edited by hand. Its figures are the light
 PNGs that `diagram-render` writes, and the page is light only, on a white background. `doc-page` does the build. It
-needs pandoc, and it runs pandoc in the folder of the document, so relative image paths resolve.
+needs pandoc. Relative image and link URLs stay unchanged, and the command does not copy linked files.
+Publish the page with images and linked files at those same relative URLs.
 
 ```sh
 .venv/bin/doc-page docs/DESIGN.md design.html --eyebrow "Design · epic 12" --title "Design Review" --figures 2 \
@@ -259,7 +260,7 @@ needs pandoc, and it runs pandoc in the folder of the document, so relative imag
 ```
 
 Each picture must have an italic caption paragraph after it, and the document opens with an H1 and a byline. The
-command refuses a picture with no caption, a figure count that differs from `--figures`, a `--band` section that does
+command treats raw HTML as text and refuses unsafe link or image URL schemes. It also refuses a picture with no caption, a figure count that differs from `--figures`, a `--band` section that does
 not exist, a `--title` that is not two to four words, and a link to a private claude.ai page. Publish the images next
 to the page at the same relative paths. A second page published beside the main page takes `--standalone`, which adds
 the doctype and the charset. Each page has one look: `skill/document/SKILL.md`, "The page look", holds its colours.
