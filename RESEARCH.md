@@ -19,6 +19,9 @@ the home directory.
 PNGs by `render.py` (the operator, 2026-10-06). The prior art below is therefore read only for checks and ideas to
 borrow into our renderer and standard, never as a replacement format.
 
+**Light only, since 2026-11-18.** The owner decided that figures are light only: the renderer draws the light theme and
+writes no dark PNG (`STANDARD.md` §3). The measurements below were taken in both themes and are kept as taken.
+
 ## 1. Prior art: cathrynlavery/diagram-design
 
 **What was read.** The repository is MIT-licensed, by Cathryn Lavery, created 2026-04-16. It was read at commit
@@ -153,7 +156,7 @@ and ran the suite:
 | HTTP ≥ 400 | stand-in `404`, `phone-404` |
 | count check | stand-in `mismatch`; browser: name count |
 | 375 px check | stand-in `scroll`; browser: sideways scroll |
-| contrast check | stand-in `low-contrast`; browser: no fill on a dark figure |
+| contrast check | stand-in `low-contrast`; browser: no fill on a dark figure (since the figures went light only on 2026-11-18, `test_contrast_is_measured_against_the_last_box_painted_under_the_text`) |
 | crossing check | stand-in `crossing`; browser: label past its box |
 | watching the 375 px page | stand-in `phone-requestfailed`, `phone-404`, `phone-pageerror` |
 

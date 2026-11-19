@@ -8,7 +8,7 @@
 #         kit: v0.2.6
 #
 # It installs the kit at the tag given and runs `diagram-render --check` on every tracked page: a font that did not
-# load, a label past its box, text under 4.5:1 in either theme, a dashed arrow with no label, sideways scroll at
+# load, a label past its box, text under 4.5:1 contrast, a dashed arrow with no label, sideways scroll at
 # 375 px. It writes no PNG: the committed ones are a person's to render and look at. A called workflow cannot learn
 # the ref it was called at, so the tag is given twice; keep the two the same.
 name: check-diagrams

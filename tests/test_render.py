@@ -39,14 +39,13 @@ def _render():
     return module
 
 
-@pytest.mark.parametrize("case", ["ok", "mismatch", "scroll", "fallback-face", "crossing", "low-contrast",
-                                  "dark-low-contrast", "unlabelled-dashed", *EVENTS])
-def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, case):
-    render = _render()
+def _stand_in(monkeypatch, render, case: str, opened: list) -> None:
+    """Replace Playwright with a stand-in that fails `case` on demand. Each page opened is appended to `opened` as
+    (viewport width, color_scheme, the data-theme values set on its root)."""
 
     class Page:
         def __init__(self, phone: bool):
-            self.phone, self.handlers, self.theme = phone, {}, None
+            self.phone, self.handlers, self.themes = phone, {}, []
 
         def on(self, name, callback):
             self.handlers.setdefault(name, []).append(callback)
@@ -60,13 +59,11 @@ def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, 
 
         def evaluate(self, expression):
             if "setAttribute('data-theme'" in expression:
-                self.theme = "dark" if "'dark'" in expression else "light"
+                self.themes.append(expression.split("'data-theme', '")[1].split("'")[0])
             if expression == render.UNLOADED_FAMILIES:
                 return ["no loaded face of 'IBM Plex Sans' draws its letters"] if case == "fallback-face" else []
             if expression == render.LOW_CONTRAST:
-                # dark-low-contrast fails in the dark pass only, after the light PNGs were taken
-                low = case == "low-contrast" or (case == "dark-low-contrast" and self.theme == "dark")
-                return ['figure 1: "Ownership" at 1.22:1'] if low else []
+                return ['figure 1: "Ownership" at 1.22:1'] if case == "low-contrast" else []
             if expression == render.CROSSINGS:
                 return ['figure 1: "a label longer than its box"'] if case == "crossing" else []
             if expression == render.DASHED_UNLABELLED:
@@ -94,7 +91,9 @@ def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, 
             assert args == render.CHROMIUM_ARGS       # the same text widths on Linux as on macOS
 
         def new_page(self, *, viewport, **kwargs):
-            return Page(viewport["width"] == 375)
+            page = Page(viewport["width"] == 375)
+            opened.append((viewport["width"], kwargs.get("color_scheme"), page.themes))
+            return page
 
         def close(self):
             pass
@@ -111,11 +110,18 @@ def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, 
     monkeypatch.setattr(render, "sync_playwright", Playwright)
     # The browser's part runs in a process of its own; here it runs in this one, where the stand-in is.
     monkeypatch.setattr(render, "_stage_in_child", render._stage)
+
+
+@pytest.mark.parametrize("case", ["ok", "mismatch", "scroll", "fallback-face", "crossing", "low-contrast",
+                                  "unlabelled-dashed", *EVENTS])
+def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, case):
+    render = _render()
+    _stand_in(monkeypatch, render, case, [])
     page = tmp_path / "page.html"
     page.write_text("<html><body>four figures</body></html>")
     out = tmp_path / "png"
     out.mkdir()
-    previous = {f"{name}.{theme}.png": b"last good render" for name in "abcd" for theme in ("light", "dark")}
+    previous = {f"{name}.light.png": b"last good render" for name in "abcd"}
     for name, data in previous.items():
         (out / name).write_bytes(data)
     monkeypatch.setattr(render.sys, "argv", ["render.py", str(page), str(out), "a,b,c,d"])
@@ -124,7 +130,29 @@ def test_every_page_turns_a_failure_into_a_non_zero_exit(monkeypatch, tmp_path, 
     if case == "ok":
         assert after == {name: b"png" for name in previous}, case
     else:
-        assert after == previous, case  # the 375 px and dark-theme failures included, and no staging dir left
+        assert after == previous, case  # the 375 px failures included, and no staging dir left
+
+
+def test_the_figures_are_drawn_in_the_light_theme_only(monkeypatch, tmp_path, capsys):
+    # The owner, 2026-11-18: figures are light only. One page draws the figures, every page answers
+    # prefers-color-scheme with light, the root is set to data-theme="light" and never to dark, and the only PNGs
+    # written are <name>.light.png. A dark PNG an older kit left is named as stale and kept, so that a document whose
+    # <picture> still links it does not break.
+    render = _render()
+    opened = []
+    _stand_in(monkeypatch, render, "ok", opened)
+    page = tmp_path / "page.html"
+    page.write_text("<html><body>four figures</body></html>")
+    out = tmp_path / "png"
+    out.mkdir()
+    (out / "a.dark.png").write_bytes(b"older kit")
+    monkeypatch.setattr(render.sys, "argv", ["render.py", str(page), str(out), "a,b,c,d"])
+    assert render.main() == 0
+    assert opened == [(1180, "light", ["light"]), (375, "light", [])]
+    assert sorted(p.name for p in out.iterdir()) == ["a.dark.png", "a.light.png", "b.light.png", "c.light.png",
+                                                     "d.light.png"]
+    assert (out / "a.dark.png").read_bytes() == b"older kit"
+    assert f"stale: {out / 'a.dark.png'} is not rendered any more" in capsys.readouterr().out
 
 
 @pytest.mark.parametrize(
@@ -153,14 +181,13 @@ def test_a_page_whose_after_figure_comes_first_writes_nothing(monkeypatch, tmp_p
     def staged(_page, stage, wanted):
         # Every PNG a good render stages, so that only the order check can stop the write.
         for i in range(wanted):
-            for theme in ("light", "dark"):
-                (stage / f"{i}.{theme}.png").write_bytes(b"png")
+            (stage / f"{i}.png").write_bytes(b"png")
         return {"failures": [], "count": wanted, "width": 375}
 
     monkeypatch.setattr(render, "_stage_in_child", staged)
     out = tmp_path / "out"
     assert render.render_page(page, out, ["before", "after"]) == 0
-    assert sorted(p.name for p in out.glob("*.png")) == ["after.dark.png", "after.light.png", "before.dark.png", "before.light.png"]
+    assert sorted(p.name for p in out.glob("*.png")) == ["after.light.png", "before.light.png"]
     reordered = tmp_path / "reordered"
     assert render.render_page(page, reordered, ["after", "before"]) != 0
     assert not list(reordered.glob("*.png"))

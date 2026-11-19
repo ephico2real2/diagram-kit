@@ -72,19 +72,19 @@ Result:
 
 ```text
 wrote …/docs/diagrams/first/sign-in.light.png (…bytes)
-wrote …/docs/diagrams/first/sign-in.dark.png (…bytes)
 375 px viewport: scrollWidth 375
 ```
 
-and exit status 0. Every render reaches the network for the Google Fonts stylesheet and the font files it names.
+and exit status 0. The figure is drawn in the light theme only: there is no dark PNG (`STANDARD.md` §3, Light
+only). Every render reaches the network for the Google Fonts stylesheet and the font files it names.
 
 ## 4. Look at it
 
 ```sh
-open docs/diagrams/first/sign-in.light.png docs/diagrams/first/sign-in.dark.png    # xdg-open on Linux
+open docs/diagrams/first/sign-in.light.png    # xdg-open on Linux
 ```
 
-Read both PNGs. The checks cannot see these, so you look for them:
+Read the PNG. The checks cannot see these, so you look for them:
 
 - clipped text;
 - a line crossing a label;
@@ -116,7 +116,7 @@ mv docs/diagrams/first/source.html.bak docs/diagrams/first/source.html
 .venv/bin/diagram-render docs/diagrams/first/source.html docs/diagrams/first sign-in; echo "exit $?"
 ```
 
-Result: the two `wrote` lines, then `exit 0`. `STANDARD.md` §5 lists every check and what each one means.
+Result: the `wrote` line, then `exit 0`. `STANDARD.md` §5 lists every check and what each one means.
 
 ## 6. Embed it in a document
 
@@ -125,11 +125,7 @@ sources" section. Write this into it:
 
 ````markdown
 <!-- markdownlint-disable MD033 -->
-<picture>
-  <source media="(prefers-color-scheme: dark)" srcset="diagrams/first/sign-in.dark.png">
-  <source media="(prefers-color-scheme: light)" srcset="diagrams/first/sign-in.light.png">
-  <img alt="The caller signs in on the host; the remote step runs only after it." src="diagrams/first/sign-in.light.png">
-</picture>
+<img alt="The caller signs in on the host; the remote step runs only after it." src="diagrams/first/sign-in.light.png">
 <!-- markdownlint-enable MD033 -->
 
 *Figure 1. The caller signs in on the host; the remote step runs only after it. The dashed gate is proposed.*
@@ -146,13 +142,13 @@ Figure 1 is rendered from `docs/diagrams/first/source.html`:
 The picture, its text twin and the page change together.
 ````
 
-Every path in `srcset` and `src` is relative to the document. Check that each one exists:
+Every `src` is relative to the document. Check that each one exists:
 
 ```sh
 for f in $(grep -o 'diagrams/first/[a-z.-]*\.png' docs/first.md | sort -u); do test -f "docs/$f" && echo "ok $f"; done
 ```
 
-Result: `ok diagrams/first/sign-in.dark.png` and `ok diagrams/first/sign-in.light.png`.
+Result: `ok diagrams/first/sign-in.light.png`.
 
 ## 7. Get it reviewed
 
@@ -173,3 +169,7 @@ Walked on 2026-10-06 at kit commit `b9c9b2f`, from a fresh `git clone`, a fresh 
 the one look by eye), and every result matched: step 2's second run refused with exit 1, and step 5's failed render
 left the PNGs of step 3 byte for byte. Installing from the tag is the one command not walked, because the repository
 is not published yet.
+
+Steps 2 to 6 were walked again on 2026-11-18, when the figures went light only, from a clone install on macOS 15.8.1
+(Darwin 24.6.0), Python 3.14.7, Playwright 1.63.0: step 3 wrote the one `sign-in.light.png`, step 5 refused with exit 1
+and the next render wrote it again with exit 0, and step 6's check printed `ok diagrams/first/sign-in.light.png`.

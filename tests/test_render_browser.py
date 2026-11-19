@@ -48,10 +48,10 @@ def render(tmp_path: pathlib.Path, html: str, names: str = "fig") -> subprocess.
                           capture_output=True, text=True, timeout=120)
 
 
-def test_a_page_drawn_in_its_declared_face_renders_both_themes(tmp_path):
+def test_a_page_drawn_in_its_declared_face_renders_the_light_theme_only(tmp_path):
     result = render(tmp_path, page())
     assert result.returncode == 0, result.stderr
-    assert sorted(p.name for p in (tmp_path / "out").glob("*.png")) == ["fig.dark.png", "fig.light.png"]
+    assert sorted(p.name for p in (tmp_path / "out").glob("*.png")) == ["fig.light.png"]
     assert "375 px viewport: scrollWidth 375" in result.stdout
 
 
@@ -310,13 +310,17 @@ def test_a_label_that_runs_past_its_box_fails(tmp_path):
     assert 'text crosses the edge of a box in figure 1: "NOT_FOUND → 404, ALREADY_EXISTS → 409"' in result.stderr
 
 
-def test_text_with_no_fill_on_a_dark_figure_fails_in_the_dark_theme(tmp_path):
-    # The shape of mongodb-poc's "Ownership" legend: no fill, so black, readable in light and lost in dark.
-    dark = '<style>:root[data-theme="dark"] .fig-scroll { background: #151c25; }</style>'
+def test_a_page_that_still_carries_a_dark_palette_is_drawn_light(tmp_path):
+    # The shape of mongodb-poc's "Ownership" legend: no fill, so black, readable in light and 1.22:1 on a dark figure.
+    # The page reaches its dark ground by both routes of a page made from the template before 2026-11-18: the media
+    # query and the attribute. The figures are light only, so neither route is taken, the black label passes on the
+    # light ground, and no dark PNG is written.
+    dark = ('<style>:root[data-theme="dark"] .fig-scroll { background: #151c25; }'
+            '@media (prefers-color-scheme: dark) { .fig-scroll { background: #151c25; } }</style>')
     result = render(tmp_path, page(head=dark, label="Ownership"))
-    assert result.returncode == 1
-    assert 'dark: text under 4.5:1 contrast in figure 1: "Ownership" at 1.22:1' in result.stderr
-    assert "light: text under" not in result.stderr
+    assert result.returncode == 0, result.stderr
+    assert "under 4.5:1" not in result.stderr
+    assert sorted(p.name for p in (tmp_path / "out").glob("*.png")) == ["fig.light.png"]
 
 
 def test_contrast_is_measured_against_the_last_box_painted_under_the_text(tmp_path):
@@ -342,7 +346,7 @@ def test_a_name_in_a_subdirectory_renders_the_whole_set(tmp_path):
     assert result.returncode == 0, result.stderr
     out = tmp_path / "out"
     assert sorted(str(p.relative_to(out)) for p in out.rglob("*.png")) == [
-        "a.dark.png", "a.light.png", "sub/b.dark.png", "sub/b.light.png"]
+        "a.light.png", "sub/b.light.png"]
 
 
 def dashed_figure(arrow: str, label: str = "") -> str:

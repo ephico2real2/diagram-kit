@@ -112,16 +112,32 @@ def document(label: str, value: str, prefix: str) -> Document:
     return Document(label, path, section.strip(), prefix)
 
 
+# The dark theme of a delivery page. The figures are light only (the owner, 2026-11-18), so the diagram template no
+# longer carries a dark palette; a delivery page draws no figure and keeps its dark theme, whose one home is here.
+DARK_PALETTE = """@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --ground: #0e131a; --surface: #151c25; --ink: #e5e9ef; --muted: #9aa5b3; --rule: #2a3440;
+    --host: #f0a53c; --host-wash: #2a2014; --remote: #3fcfc0; --remote-wash: #122a28;
+    --gap: #f2857c; --gap-wash: #2d1614; --none: #9aa5b3; --none-wash: #1b232d;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --ground: #0e131a; --surface: #151c25; --ink: #e5e9ef; --muted: #9aa5b3; --rule: #2a3440;
+  --host: #f0a53c; --host-wash: #2a2014; --remote: #3fcfc0; --remote-wash: #122a28;
+  --gap: #f2857c; --gap-wash: #2d1614; --none: #9aa5b3; --none-wash: #1b232d;
+}"""
+
+
 def palette(theme: str) -> str:
-    """The kit's palette, read from the template, so that a colour has one home. 'light' leaves dark mode out, for a
-    repository whose rule is that its pages are light only."""
+    """The kit's palette: the light one read from the template, so that a light colour has one home, then the dark one.
+    'light' leaves dark mode out, for a repository whose rule is that its pages are light only."""
     template = pathlib.Path(__file__).with_name("template.html").read_text(encoding="utf-8")
     light = re.search(r"^:root \{.*?^\}", template, re.S | re.M)
-    dark = re.search(r'^@media \(prefers-color-scheme: dark\) \{.*?^\}\n:root\[data-theme="dark"\] \{.*?^\}', template,
-                     re.S | re.M)
-    if light is None or dark is None:
+    if light is None:
         raise RuntimeError("template.html no longer holds the palette in the shape this command reads")
-    return light.group(0) if theme == "light" else f"{light.group(0)}\n{dark.group(0)}"
+    return light.group(0) if theme == "light" else f"{light.group(0)}\n{DARK_PALETTE}"
 
 
 def web_url(remote: str) -> str:
