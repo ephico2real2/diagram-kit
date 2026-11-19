@@ -311,8 +311,8 @@ A class says what kind of work an item is. Each item of any prefix can have one 
 | Status | Meaning |
 |---|---|
 | Open | No fix yet. A story describes the work |
-| Fixed on the review branch | The fix and its test are merged on a branch that is not the default branch. Nothing is deployed |
 | Partly fixed | Part of the work is fixed. The rest is a story or an owner action |
+| Fixed on the review branch | The fix and its test are merged on a branch that is not the default branch. Nothing is deployed |
 | Owner action | The work waits for the owner |
 | Closed | The fix reached the default branch |
 | Out of scope | The owner decided that the work will not be done. The issue is closed as not planned |

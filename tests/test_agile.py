@@ -280,3 +280,9 @@ def test_the_deploy_tag_check_allows_a_closed_issue_with_go_live():
     ]
     found = subprocess.run(["jq", "-c", program], input=json.dumps(issues), capture_output=True, text=True, check=True)
     assert json.loads(found.stdout) == [2, 4]
+
+
+def test_the_playbook_status_rows_keep_the_standard_order():
+    legend = (AGILE / "LEGEND.md").read_text()
+    playbook = (ROOT / "skill" / "delivery-playbook" / "PLAYBOOK.md").read_text().split("## 14. Legend", 1)[1]
+    assert table_rows(playbook, "| Status |") == [[r[0], r[2]] for r in table_rows(legend, "| Status |")]
