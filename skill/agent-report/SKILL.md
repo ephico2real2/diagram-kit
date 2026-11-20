@@ -148,7 +148,7 @@ keeps it a draft.
 
 ## 7. The arbiter's own research
 
-Research that the arbiter does without an agent follows the same structure, because the next reader cannot tell a fact from an impression in a chat reply. Write it to `<topic>/arbiter/`: `research.md`, `tests.md` and `verdicts.md`, one heading per ID. Label each statement MEASURED, READ FROM CODE, WEB RESULT NOT TESTED or PROPOSAL NOT OPERATED. A short lookup by a fetch agent is a source of the arbiter: quote it with its URL and the date read. A source counts only if it was read in full: a search result summary is not a source. Before you repeat a claim from an agent report, make sure that the agent read its source. If it did not, write an arbiter note and do not relay the claim.
+The arbiter researches first too: before it rules on a finding, designs a step or states how a tool or a standard behaves, it searches for the standard and what others do, and again whenever it is not certain. Then it reads the primary source and quotes it. Its own memory is not a source. Research that the arbiter does without an agent follows the same structure, because the next reader cannot tell a fact from an impression in a chat reply. Write it to `<topic>/arbiter/`: `research.md`, `tests.md` and `verdicts.md`, one heading per ID. Label each statement MEASURED, READ FROM CODE, WEB RESULT NOT TESTED or PROPOSAL NOT OPERATED. A short lookup by a fetch agent is a source of the arbiter: quote it with its URL and the date read. A source counts only if it was read in full: a search result summary is not a source. Before you repeat a claim from an agent report, make sure that the agent read its source. If it did not, write an arbiter note and do not relay the claim.
 
 ## Read code through the graph
 
