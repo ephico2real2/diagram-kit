@@ -30,6 +30,8 @@ This skill changes who does the work, not the brief. Each Codex job gets the sam
 - `brief_check.py` checks each brief, with the planted answers in a file outside the job folder.
 - If the project has a brief gate, the gate checks each start. A refusal stands: fix the brief.
 - `/codex-arbiter` gives the rules for the clones. `/fix-defect` gives the form of each defect that a round finds.
+- Each brief says: a defect that you find is filed and fixed now, with a test that fails before the fix. Do not leave it
+  for later. A defect that predates the change is no exception.
 
 The mission head below is the project part of that brief, above the standard.
 
@@ -96,8 +98,9 @@ read-only --skip-git-repo-check -`.
 4. Work on the draft branch. Revert each refused fix with a commit that gives the reason. Add each accepted change that
    the rounds did not make, one commit for each, with its test. Operate the tests and the local CI yourself.
 5. Decide from the results: mark the draft ready and merge it, ask for another round on the same draft, or close it
-   with the reason. Before ready, rewrite the body in the project template. File an issue for each defect that stays
-   open.
+   with the reason. Before ready, rewrite the body in the project template.
+6. File an issue for each defect that the rounds or the ruling find, and fix it in the same session: on this draft when
+   it is in scope, or in a follow-up job that starts before the session moves on. No defect waits in a backlog.
 
 ## 5. Mark the work for the deep review
 
@@ -110,7 +113,7 @@ gh issue edit <n> --add-label review:opus-xhigh --add-label review:fable
 ```
 
 The deep review tests every API contract, every data exchange and the security of the service. After its review is done and each
-finding has an issue, remove the label.
+finding is filed and fixed, remove the label.
 
 ## Anti-patterns
 
@@ -121,3 +124,4 @@ finding has an issue, remove the label.
 | Read the Codex log while it runs | Wait for the wake-up, then read `verdicts.md` |
 | Trust round 1 because round 2 found nothing | Audit both against their planted answers |
 | Merge work built from scratch with no label | Add `review:opus-xhigh` and `review:fable` |
+| File a found defect for later | File it and fix it in the same session, with its test |
