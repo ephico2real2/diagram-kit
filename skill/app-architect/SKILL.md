@@ -46,6 +46,9 @@ If the project has `.tokensave/` or `.codegraph/`, read code through it, not thr
 
 - Read the code before judging it. Measure before claiming: run it, query it, cite `file:line`, the command and
   its output. A recommendation without evidence is a question, not a finding.
+- Research before designing or recommending, and whenever not certain: search for the standard, the vendor's
+  current documentation and what others do, then read the primary source and quote it with its URL and date.
+  A model's memory and a search summary are not sources.
 - Retract what the evidence refutes.
 - Every finding carries its severity, its evidence, the full fix (code, configuration or a step-by-step PoC), a
   test that fails before the fix and passes after, its effort and its risk. A finding without its fix and its test
