@@ -88,6 +88,32 @@ def test_draft_body_flags_no_tests_and_report_files_in_the_repository(job):
     assert "Report files in the repository (move them out before ready): tests.md" in body
 
 
+def test_draft_body_counts_kotlin_and_swift_tests(job):
+    clone, folder, env = job
+    git(clone, "reset", "-q", "--hard", "main", env=env)
+    for path in ["shared/src/commonTest/kotlin/a/CopyTest.kt", "shared/src/androidHostTest/kotlin/a/Big.kt",
+                 "iosApp/AppTests/ModelTests.swift", "app/src/main/kotlin/a/Copy.kt"]:
+        (clone / path).parent.mkdir(parents=True, exist_ok=True)
+        (clone / path).write_text("// x\n")
+    git(clone, "add", "-A", env=env)
+    git(clone, "commit", "-q", "-m", "D1: Kotlin code with its tests", env=env)
+    result = run(clone, folder, env)
+    assert result.returncode == 0, result.stderr
+    assert "3 test files changed." in (folder / "draft-pr.md").read_text()
+
+
+def test_draft_tally_counts_one_verdict_per_row(job):
+    clone, folder, env = job
+    (folder / "verdicts.md").write_text(
+        "| ID | Verdict | Reason |\n|---|---|---|\n"
+        "| C1 | CONFIRMED | MEASURED, not REFUTED by the rerun |\n"
+        "| H3 | CONFIRMED on the host; NOT REACHED on Android | |\n"
+        "| C3 | NOT REACHED | |\n\nTally: 2 CONFIRMED, 1 NOT REACHED.\n")
+    result = run(clone, folder, env)
+    assert result.returncode == 0, result.stderr
+    assert "Verdicts: 2 CONFIRMED, 1 NOT REACHED." in (folder / "draft-pr.md").read_text()
+
+
 def test_draft_body_opens_with_the_parent_issue(job):
     clone, folder, env = job
     result = run(clone, folder, env, PART_OF="#307")

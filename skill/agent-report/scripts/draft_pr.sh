@@ -62,9 +62,13 @@ fi
 
 # 4. The body. It states facts that a command measured; the arbiter rewrites it in the project template before ready.
 files=$(git -C $C diff --name-only $(git -C $C merge-base HEAD "$base")..HEAD)
-tests=$(print -r -- $files | grep -cE '(^|/)(test|tests|__tests__|e2e|spec)/|\.(test|spec|pg-spec|e2e-spec)\.[cm]?[jt]sx?$|_test\.(py|go)$|(^|/)test_[^/]+\.py$')
+# Also the Gradle and Xcode forms: a source set such as commonTest/ or androidHostTest/, an AppTests/ target, and a
+# FooTest.kt or FooTests.swift file. Without them a Kotlin draft read "No test file changed" (2026-11-20).
+tests=$(print -r -- $files | grep -cE '(^|/)(test|tests|__tests__|e2e|spec)/|(^|/)[A-Za-z]+(Test|Tests)/|\.(test|spec|pg-spec|e2e-spec)\.[cm]?[jt]sx?$|_test\.(py|go)$|(^|/)test_[^/]+\.py$|(Test|Tests|Spec)\.(kt|java|swift|scala)$')
 reports=$(print -r -- $files | grep -E '(^|/)(plan|research|tests|verdicts|fixes|recommendations|resume)\.md$' | grep -v '^docs/')
-tally=$( [[ -f $J/verdicts.md ]] && grep -oE '\b(CONFIRMED|REFUTED|PLAUSIBLE|NOT REACHED)\b' $J/verdicts.md | sort | uniq -c | awk '{c=$1; $1=""; printf "%s%s %s", sep, c, substr($0,2); sep=", "}')
+# One verdict per row of the table: the first verdict word of the second cell. A word in a reason, a tally line or
+# a cell such as "CONFIRMED on the host; NOT REACHED on Android" counted twice before (14 for 10 rows, 2026-11-20).
+tally=$( [[ -f $J/verdicts.md ]] && awk -F'|' 'NF > 3 && match($3, /CONFIRMED|REFUTED|PLAUSIBLE|NOT REACHED/) { print substr($3, RSTART, RLENGTH) }' $J/verdicts.md | sort | uniq -c | awk '{c=$1; $1=""; printf "%s%s %s", sep, c, substr($0,2); sep=", "}')
 body=$J/draft-pr.md
 {
   [[ -n $PART_OF ]] && { print "Part of $PART_OF."; print; }
