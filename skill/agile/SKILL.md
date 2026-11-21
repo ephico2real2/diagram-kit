@@ -27,6 +27,7 @@ Epic           a goal with exit criteria                                   label
 - A feature is optional. A small epic holds its stories directly.
 - A defect found under an issue becomes a sub-issue of that issue. `/fix-defect` gives its form.
 - A sub-issue and its parent have the same owner. A parent in another repository of the same owner is permitted.
+- An owner action that needs a decision is made with `/decide`: research first, then ask.
 
 ## 2. Map each item to the legend
 
@@ -157,6 +158,7 @@ The token needs the `project` scope: `gh auth refresh -s project`. Dates come fr
 - A pull request names its milestone, its issues, its class and its type label. `/pull-request` gives the template.
 - After a merge to a branch that is not the default branch, `Closes #` closes nothing. Set the status label by hand.
 - Close an issue only through a merged fix on the default branch, with the proof cited.
+- A pull request that delivers a story says `Part of #N`, never `Closes #N`. The story stays open for the owner's approval. A `Closes` line would close it at the merge, before the owner approves.
 - The one other way to close an issue is an owner decision to drop the work. Label it `out-of-scope` and `wontfix`, and close it as not planned, with the decision quoted (`LEGEND.md`, "Out of scope"):
 
   ```sh
@@ -177,6 +179,50 @@ The token needs the `project` scope: `gh auth refresh -s project`. Dates come fr
   gh issue list --state all --limit 500 --json number,labels \
     --jq '[.[] | select(([.labels[].name | select(startswith("status:"))] | length) > 1) | .number]'
   ```
+
+### As-built updates: drafted from the code, checked, then posted
+
+When the work is merged, the records of the story, the epic and the issues must say what was built. A documentation model drafts them from the code. The coordinator checks them and posts them.
+
+**Who does what:**
+
+- A documentation model (Sonnet 5.5 on cmapi) reads the **as-built** sources: merged commits, tests, run records and screenshots. It **drafts** the updates of the story, the epic and the issues. It never posts.
+- The coordinator writes the brief and watches the run. Then it checks each claim against the evidence: commits, file and line, tests and run-record lines. It corrects each claim, or marks it "not found" when it is not proven. Then it posts.
+
+**Why:** on 2026-11-21 the owner noted that it "seems to be finding things that we missed at a fraction of token". The first run found three faults in the records that nobody had seen:
+
+1. A story was closed against the rule. A pull request's `Closes` line closed it before the owner approved.
+2. A review was recorded only in a commit message.
+3. A stale `Backlog` label stayed on an issue.
+
+**The shape of the brief.** Copy it and fill it in:
+
+```markdown
+## Standard
+Read <the standard, for example /agile section 6 and LEGEND.md> first.
+
+## As-built sources
+<merged pull requests and commits, test files, run records, screenshots, by path>
+
+## For each acceptance criterion
+- What was built: file:line.
+- The check, and its mutant (the change that makes the check fail).
+- The result, and the environment it ran on.
+- What was **not** proven live. Be exact.
+
+## Rules
+- Every claim cites its source: a commit, file:line, a test or a run-record line.
+- Write "not found" instead of guessing.
+- Write draft files only, at <named path>. Do not post anything.
+- Reply in a few lines: what you could not prove.
+```
+
+**The coordinator's check, before posting:**
+
+- Spot-check the file:line references against the main branch.
+- Spot-check the run-record lines and the merge times.
+- Correct what is wrong, and write "not found" for what is not proven.
+- The check also finds gaps in the coordinator's own records. Fix those before posting.
 
 ## 7. Show the class of each issue
 
