@@ -68,7 +68,7 @@ act uses the Docker API at `/var/run/docker.sock`, or at `DOCKER_HOST`. On macOS
 
    ```sh
    readlink /var/run/docker.sock
-   docker -H unix:///var/run/docker.sock version --format '{{.Server.Version}}'
+   curl --fail --unix-socket /var/run/docker.sock http://localhost/version
    ```
 
 If you cannot restart the machine now, set `DOCKER_HOST` instead:
@@ -79,10 +79,10 @@ export DOCKER_HOST="unix://$(podman machine inspect --format '{{.ConnectionInfo.
 
 ## 3. Build the runner image
 
-act uses `catthehacker/ubuntu:act-latest` as the runner. `Dockerfile.runner` pins it by the digest of its multi-arch index, and corrects two differences from the GitHub runner. Build it for the CPU of the host:
+act uses `catthehacker/ubuntu:act-latest` as the runner. `Dockerfile.runner` pins it by the digest of its multi-arch index, and corrects two differences from the GitHub runner. From the project root, build it for the CPU of the host:
 
 ```sh
-podman build --platform linux/arm64 -t act-runner:ubuntu-24.04 -f Dockerfile.runner .
+podman build --platform linux/arm64 -t act-runner:ubuntu-24.04 -f ci/local/Dockerfile.runner ci/local
 ```
 
 On an Intel Mac, use `--platform linux/amd64`. When the GitHub runner image changes, compare its tool list with the derived image again.
@@ -94,8 +94,8 @@ Run the jobs in a clone of the branch, not in your working repository. act mount
 ```sh
 git clone -q --no-hardlinks -b <branch> <repository> <folder>/<repository name>
 git -C <folder>/<repository name> remote remove origin
-./act-ci.sh -r <folder>/<repository name> -b <base commit of the pull request>
-./act-ci.sh -r <folder>/<repository name> -b <base commit> -j "verify migrations"
+ci/local/act-ci.sh -r <folder>/<repository name> -b <base commit of the pull request>
+ci/local/act-ci.sh -r <folder>/<repository name> -b <base commit> -j "verify migrations"
 ```
 
 `act-ci.sh` writes one log for each job, `status.txt` and the copy of the workflow that act ran, to `<folder>/act-logs`, or to the folder of `-o`. When each job exits 0, it exits 0. When the working tree has changes, it stops, but `-d` lets it continue. Never operate `act` with no arguments: it runs every workflow that runs on a push, and that can include a deploy workflow.
@@ -168,7 +168,7 @@ A script that CI runs can also run on a developer's Mac. macOS has Bash 3.2 at `
 
    ```sh
    podman run --rm --entrypoint bash -v <clone>:/w:ro -w /w act-runner:ubuntu-24.04 \
-     -c 'bash --version | head -1; cp -r /w /tmp/w; cd /tmp/w && bash -n <script> && <its tests>'
+     -c 'bash --version | head -1 && cp -r /w /tmp/w && cd /tmp/w && bash -n <script> && <its tests>'
    ```
 
 3. Do not use the `node_modules` folder of the Mac in the container. Its packages are built for macOS, and a link to an absolute path of the Mac does not resolve. Measured on 2026-11-18: the same Node test passed on the Mac and failed in the container with `ERR_MODULE_NOT_FOUND` for a nested package. Install the packages in the container copy (`yarn install --frozen-lockfile`). Otherwise, test only the parts that need no package, and get the rest of the proof from act.

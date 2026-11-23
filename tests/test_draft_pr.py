@@ -199,3 +199,25 @@ def test_draft_rewrites_when_one_commit_has_another_committer(job):
     committers = set(git(clone, "log", "--format=%cn <%ce>", "main..HEAD", env=env).splitlines())
     assert committers == {"Owner Person <owner@example.com>"}
     assert len((folder / "draft-sha-map.txt").read_text().splitlines()) == 1
+
+
+@pytest.mark.parametrize("identity", ["owner", "other", "keep"])
+@pytest.mark.parametrize("trailer", [
+    "Claude-Session: https://claude.ai/code/session_x",
+    "claude-session: https://claude.ai/code/session_x",
+    "Claude-Session:\n https://claude.ai/code/session_x",
+    "Claude-Session:",
+])
+def test_session_trailer_is_refused_before_either_identity_path(job, identity, trailer):
+    clone, folder, env = job
+    git(clone, "reset", "-q", "--hard", "main", env=env)
+    if identity == "owner":
+        git(clone, "config", "user.name", "Owner Person", env=env)
+        git(clone, "config", "user.email", "owner@example.com", env=env)
+    git(clone, "commit", "-q", "--allow-empty", "-m", "D1: trailer\n\n" + trailer, env=env)
+    before = git(clone, "rev-parse", "HEAD", env=env)
+    result = run(clone, folder, env, **({"KEEP_AUTHOR": "1"} if identity == "keep" else {}))
+    assert result.returncode == 1 and "Claude-Session" in result.stderr
+    assert git(clone, "rev-parse", "HEAD", env=env) == before
+    assert not (folder / "draft-sha-map.txt").exists()
+    assert not (folder / "draft-pr.md").exists()

@@ -514,3 +514,11 @@ def test_the_visual_skill_puts_the_state_before_first_and_the_renderer_checks_it
     standard = (ROOT / "STANDARD.md").read_text()
     assert "**Before, then after.**" in skill and "later state first" in skill
     assert "figure names that put a later state first" in standard
+
+
+def test_public_review_guides_do_not_name_private_service_hosts():
+    files = ["README.md", "skill/app-architect/CONTRACTS.md", "skill/app-architect/SKILL.md",
+             "skill/agile/SKILL.md", "skill/agile/LEGEND.md", "skill/delivery-playbook/PLAYBOOK.md",
+             "skill/setup-local-ci/SKILL.md"]
+    for name in files:
+        assert not re.search(r"\b[\w-]+\.(?:mesh|internal|corp)\b", (ROOT / name).read_text()), name

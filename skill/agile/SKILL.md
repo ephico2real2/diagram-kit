@@ -47,7 +47,7 @@ Rules for the legend:
 - An ID never changes after it is filed, because commits, pull requests and documents refer to it. To correct a category, add a class label or a note. Do not rename the ID.
 - Take the next free number of the prefix from the issue list. Never reuse a number.
 - An `INV` or `TDT` ID is only for work that comes from no finding. A finding keeps its own prefix and gets a class label.
-- Each issue has exactly one `status:` label. Change it with `--add-label` and `--remove-label` in one command.
+- Each open issue has exactly one `status:` label. Change it with `--add-label` and `--remove-label` in one command.
 
 Decide the class with these questions, in this order:
 
@@ -230,7 +230,7 @@ Each report and each build tracker shows the class of all issues, by category. T
 
 - The columns do not overlap: `INV only`, `TDT only`, `Both`, `No class`, then `Total`. Each row adds up to its total.
 - There is one row for each prefix of the legend, in the order of the legend, then "Other work" and "Total". "Other work" is a story, a task, a spike or an epic with no finding ID. A prefix with no issue gets no row.
-- The table counts all issues of all repositories, open and closed. Its totals can differ from a table of findings, so say so under the table.
+- The table counts all issues of all repositories, open and closed. Its totals can differ from a table of findings, so say so under the table. This is an inventory, not a progress count; it includes out-of-scope records.
 - Give the date and the time of the read. Under the table, give the number of `INV` issues and `TDT` issues, and the kinds of issues with no class.
 - Make the table again after each sweep, in the same commit as the tracker.
 
@@ -240,8 +240,8 @@ Replace the repositories in the first line, then paste the output into the docum
 for r in <owner>/<repository-1> <owner>/<repository-2>; do
   gh issue list -R "$r" --state all --limit 1000 --json title,labels
 done | jq -rs '
-  def order: ["SEC", "BUG", "PERF", "BP", "UX", "OA", "INV", "TDT", "Other work"];
-  def category: (.title | capture("^(?<p>SEC|BUG|PERF|BP|UX|OA|INV|TDT)-[0-9]+").p) // "Other work";
+  def order: ["SEC", "BUG", "PERF", "BP", "UX", "OA", "MG", "MA", "APM", "INV", "TDT", "Other work"];
+  def category: (.title | capture("^(?<p>SEC|BUG|PERF|BP|UX|OA|MG|MA|APM|INV|TDT)-[0-9]+").p) // "Other work";
   def classes: [.labels[].name | select(. == "class:INV" or . == "class:TDT")] | sort;
   def row($name; $items): [$name,
     ($items | map(select(classes == ["class:INV"])) | length),
@@ -257,16 +257,16 @@ done | jq -rs '
 
 ### Highlight the innovations
 
-A report for a client is also a business document, so it shows the innovations of the work, built and proposed. In the summary, under the class table, add two tables:
+A report for a client is also a business document, so it shows the innovations of the work, built and proposed. Exclude issues labeled `out-of-scope` from both progress tables and their totals. In the summary, under the class table, add two tables:
 
-1. A table of themes. Put each `INV` issue in one business theme, such as new services, the admin portal, security controls, test methods or CI/CD. Count its state from its status label: Built (`status:fixed-on-review-branch`), Partly built (`status:partly-fixed`), Proposed (`status:open`, or no status label) and Owner decision (`status:owner-action`). Each issue is in exactly one theme, and the total equals the number of `INV` issues.
+1. A table of themes. Put each `INV` issue in one business theme, such as new services, the admin portal, security controls, test methods or CI/CD. Count its state from its status label: Built (`status:fixed-on-review-branch`), Partly built (`status:partly-fixed`), Proposed (`status:open`, or no status label) and Owner decision (`status:owner-action`). Each issue is in exactly one theme, and the total equals the number of in-scope `INV` issues.
 2. A table of the main innovations, with the columns Innovation, What it gives the business, State and Where. Take the business result from the Business value field of the issue, in plain words, not the code change. Name the issue numbers, the design or the proof branch of each row.
 
 A proposed innovation is never shown as built. If an innovation has a design but no issue yet, say so in its row. This command lists each `INV` issue with its status, to start the themes:
 
 ```sh
 gh issue list -R <owner>/<repository> --state all --limit 1000 --json number,title,labels \
-  --jq '.[] | select([.labels[].name] | index("class:INV")) | "\(.number) [\([.labels[].name | select(startswith("status:"))] | join(","))] \(.title)"'
+  --jq '.[] | select([.labels[].name] | index("out-of-scope") | not) | select([.labels[].name] | index("class:INV")) | "\(.number) [\([.labels[].name | select(startswith("status:"))] | join(","))] \(.title)"'
 ```
 
 ## 8. Show progress to the client: work tags and deploy tags
@@ -304,11 +304,11 @@ Give a deploy tag only with evidence, by hand:
 
 1. Local-Deploy: the change runs on the local deploy, and a walk through it passed: device tests for a mobile app, browser tests for a portal, or the owner's own test. The evidence is the run and its screenshots, each marked as taken on the local deploy.
 2. Sbx-Deploy: the change runs on the sandbox. The evidence is a deploy log, a CI run or the owner's word. Do not call the sandbox to prove it unless the owner allows it.
-3. Go-Live: the change runs in production from the default branch. Close the GitHub issue at this point, and only at this point.
+3. Go-Live: the change runs in production from the default branch. Close the GitHub issue at this point. An owner decision to drop the work is the exception in section 6.
 
 If a walk or a test on an environment fails, file the defect, remove the deploy tag, and move the issue back to In-Progress.
 
-An epic takes its label from its children. If each child is Done, the epic is Done. If at least one child is Done, In-QA or In-Progress, the epic is In-Progress. Otherwise the epic is Backlog. A new child of a Done epic moves the epic back to In-Progress.
+An epic takes its label from its in-scope children. Ignore out-of-scope children when counting progress. If none remain, ask the owner whether to drop the epic too. If each child is Done, the epic is Done. If at least one child is Done, In-QA or In-Progress, the epic is In-Progress. Otherwise the epic is Backlog. A new child of a Done epic moves the epic back to In-Progress.
 
 Rules for the labels and the comments:
 

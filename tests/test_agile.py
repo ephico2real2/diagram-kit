@@ -280,3 +280,35 @@ def test_the_deploy_tag_check_allows_a_closed_issue_with_go_live():
     ]
     found = subprocess.run(["jq", "-c", program], input=json.dumps(issues), capture_output=True, text=True, check=True)
     assert json.loads(found.stdout) == [2, 4]
+
+
+def test_the_playbook_status_rows_keep_the_standard_order():
+    legend = (AGILE / "LEGEND.md").read_text()
+    playbook = (ROOT / "skill" / "delivery-playbook" / "PLAYBOOK.md").read_text().split("## 14. Legend", 1)[1]
+    assert table_rows(playbook, "| Status |") == [[r[0], r[2]] for r in table_rows(legend, "| Status |")]
+
+
+@pytest.mark.skipif(shutil.which("jq") is None, reason="jq is not installed")
+def test_the_class_table_has_every_legend_prefix_in_order():
+    prefixes = [r[0].strip("`") for r in table_rows((AGILE / "LEGEND.md").read_text(), "| Prefix |")]
+    issues = [{"title": f"{prefix}-01: work", "labels": []} for prefix in prefixes]
+    result = subprocess.run(["jq", "-rs", class_table_program()], input=json.dumps(issues),
+                            capture_output=True, text=True, check=True)
+    rows = result.stdout.splitlines()[2:-1]
+    assert [row.split("|")[1].strip() for row in rows] == prefixes
+    assert all(row.endswith("| 1 | 1 |") for row in rows)
+
+
+@pytest.mark.skipif(shutil.which("jq") is None, reason="jq is not installed")
+def test_innovation_progress_excludes_work_the_owner_dropped():
+    text = (AGILE / "SKILL.md").read_text()
+    section = text.split("### Highlight the innovations", 1)[1].split("\n## ", 1)[0]
+    program = re.search(r"--jq '(.*)'", section).group(1)
+    issues = [
+        {"number": 1, "title": "Keep", "labels": [{"name": "class:INV"}, {"name": "status:open"}]},
+        {"number": 2, "title": "Dropped", "labels": [{"name": "class:INV"}, {"name": "out-of-scope"}, {"name": "wontfix"}]},
+    ]
+    result = subprocess.run(["jq", "-r", program], input=json.dumps(issues), capture_output=True, text=True, check=True)
+    assert result.stdout.splitlines() == ["1 [status:open] Keep"]
+    assert "Each open issue has exactly one `status:` label" in text
+    assert "Ignore out-of-scope children" in text

@@ -176,7 +176,7 @@ PAGE_SECONDS = 120
 
 
 # The figures are drawn light only (the owner, 2026-11-18). A page's dark palette is chosen either by the
-# prefers-color-scheme query or by data-theme="dark" on <html> (the template's pattern until 0.2.6), so the browser
+# prefers-color-scheme query or by data-theme="dark" on <html> (the template's pattern before 0.2.7), so the browser
 # answers the query with light and the root is set to data-theme="light": both routes then give the light palette.
 THEME = "light"
 

@@ -115,7 +115,7 @@ def env(tmp_path):
         if [[ $platforms == *" $label "* ]]; then
           echo "[$job] 🏁  Job succeeded"
         else
-          echo "[$job] 🚧  Skipping unsupported platform -- Try running with \`-P $label=...\`"
+          echo "[$job] 🚧  Skipping unsupported platform -- Try running with \\`-P $label=...\\`"
         fi
         exit 0
         """))
@@ -387,3 +387,54 @@ def test_a_workflow_with_no_port_variable_passes_no_var(env):
     result = run(env, "-j", "verify")
     assert result.returncode == 0, result.stdout + result.stderr
     assert all("--var" not in call for call in act_calls(env))
+
+
+def test_the_documented_runner_build_uses_the_installed_project_paths(tmp_path):
+    import shlex
+
+    subprocess.run(["git", "init", "-q", str(tmp_path)], check=True)
+    result = setup(tmp_path)
+    assert result.returncode == 0, result.stdout + result.stderr
+    skill = (SETUP.parent / "SKILL.md").read_text()
+    build = next(line for line in skill.splitlines() if line.startswith("podman build "))
+    args = shlex.split(build)
+    assert (tmp_path / args[args.index("-f") + 1]).is_file()
+    assert (tmp_path / args[-1]).is_dir()
+    run = next(line for line in skill.splitlines() if line.startswith(("./act-ci.sh ", "ci/local/act-ci.sh ")))
+    assert (tmp_path / shlex.split(run)[0]).is_file()
+
+
+@pytest.mark.parametrize("shell", sorted({"/bin/bash", shutil.which("bash")} - {None}))
+@pytest.mark.parametrize("copy_status", [0, 23])
+def test_ci_shell_recipe_stops_if_the_source_copy_fails(tmp_path, shell, copy_status):
+    import shlex
+
+    skill = (SETUP.parent / "SKILL.md").read_text()
+    line = next(line.strip() for line in skill.splitlines() if line.strip().startswith("-c 'bash --version"))
+    command = shlex.split(line)[1]
+    marker = tmp_path / "tests-ran"
+    copy = tmp_path / "copy"
+    command = command.replace("/tmp/w", shlex.quote(str(copy))).replace("<script>", "script.sh")
+    command = command.replace("<its tests>", f"touch {shlex.quote(str(marker))}")
+    # A failed copy can leave a partial destination. Tests must not run against that partial source.
+    stand_in = f'cp() {{ mkdir -p "$3"; touch "$3/script.sh"; return {copy_status}; }}; '
+    result = subprocess.run([shell, "-c", stand_in + command], capture_output=True, text=True)
+    assert result.returncode == copy_status, result.stdout + result.stderr
+    assert marker.exists() == (copy_status == 0)
+
+
+def test_the_socket_probe_needs_only_the_documented_tools():
+    import shlex
+
+    skill = (SETUP.parent / "SKILL.md").read_text()
+    install = next(line for line in skill.splitlines() if line.startswith("brew install "))
+    installed = set(shlex.split(install)[2:])
+    # These tools ship with macOS; every other executable must appear in the installation step.
+    available = installed | {"ls", "sudo", "podman-mac-helper", "cat", "readlink", "export", "curl"}
+    connection = skill.split("## 2. Connect act to Podman", 1)[1].split("## 3.", 1)[0]
+    import re
+
+    for block in re.findall(r"```sh\n(.*?)```", connection, re.S):
+        for line in block.splitlines():
+            if line.strip():
+                assert shlex.split(line.strip())[0] in available, line

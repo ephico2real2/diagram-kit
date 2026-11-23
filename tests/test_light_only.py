@@ -18,7 +18,7 @@ import re
 import pytest
 
 ROOT = pathlib.Path(__file__).resolve().parents[1]
-SKIPPED = {".git", ".venv", "out", "node_modules", "__pycache__"}
+SKIPPED = {".git", ".tmp", ".venv", "out", "node_modules", "__pycache__"}
 HISTORY = {ROOT / "RESEARCH.md", ROOT / "docs" / "reviews"}
 
 
@@ -69,3 +69,15 @@ def test_no_document_or_skill_embeds_a_dark_render_or_says_to_make_one(path):
     text = path.read_text(encoding="utf-8")
     found = [m.group(0) for m in DARK_EMBED.finditer(text)] + [m.group(0) for m in BOTH_RENDERS.finditer(text)]
     assert found == []
+
+
+def test_job_scratch_files_are_not_kit_figures_or_instructions(tmp_path, monkeypatch):
+    monkeypatch.setitem(globals(), "ROOT", tmp_path)
+    scratch = tmp_path / ".tmp" / "job"
+    scratch.mkdir(parents=True)
+    (scratch / "source.html").write_text('<html data-theme="dark"></html>')
+    (scratch / "fixture.dark.png").write_bytes(b"test fixture")
+    (scratch / "README.md").write_text("light and dark PNG")
+    (tmp_path / "README.md").write_text("light only")
+    assert _kit_files(".md", ".html") == [tmp_path / "README.md"]
+    test_no_dark_render_is_kept()
