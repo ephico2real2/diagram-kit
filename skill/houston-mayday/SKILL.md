@@ -94,7 +94,7 @@ read-only --skip-git-repo-check -`.
 
 1. Read `status.txt`, then round 2's `verdicts.md`. Open other files only for the ID that you rule on.
 2. Audit each round against its planted answers. A wrong planted answer means the report is not trusted. Read more of it.
-3. For each finding: read the cited code, accept it, accept it in part, or refuse it, with the reason.
+3. For each finding: read the cited code, research the standard it rests on (search, then read the primary source and quote it; never rule from memory), then accept it, accept it in part, or refuse it, with the reason and the source.
 4. Work on the draft branch. Revert each refused fix with a commit that gives the reason. Add each accepted change that
    the rounds did not make, one commit for each, with its test. Operate the tests and the local CI yourself.
 5. Decide from the results: mark the draft ready and merge it, ask for another round on the same draft, or close it

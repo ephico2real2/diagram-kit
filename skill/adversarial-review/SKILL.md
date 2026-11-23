@@ -74,6 +74,9 @@ the skeleton.
   without its full snippet and its test is not a finding and will be discarded.
 - **The constraints:** no commits and no edits to tracked files. Run the change only in a copy outside the
   repository, create nothing in the tree, and delete every temporary file.
+- **Research first:** a reviewer searches for the standard, the vendor's current documentation and what others do
+  before it judges a claim, and again whenever it is not certain. Then it reads the primary source and quotes it
+  (URL and date). Memory and search summaries are not sources. Say it in the brief in these words.
 - **What to cover:** the semantics the change relies on (an expression, a default, a version), the off state and
   every switch, fidelity to the specification, what depends on the change, and what goes wrong on the next real
   use.
