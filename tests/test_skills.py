@@ -514,3 +514,14 @@ def test_the_visual_skill_puts_the_state_before_first_and_the_renderer_checks_it
     standard = (ROOT / "STANDARD.md").read_text()
     assert "**Before, then after.**" in skill and "later state first" in skill
     assert "figure names that put a later state first" in standard
+
+
+def test_houston_mayday_updates_the_records_as_built_after_the_merge():
+    skill = (ROOT / "skill" / "houston-mayday" / "SKILL.md").read_text()
+    agile = (ROOT / "skill" / "agile" / "SKILL.md").read_text()
+    # The step names the method that /agile defines, so the two skills cannot drift apart.
+    heading = "As-built updates: drafted from the code, checked, then posted"
+    assert f"### {heading}" in agile
+    assert heading in skill
+    assert "Sonnet 5.5" in skill and "it posts nothing" in skill
+    assert "| As-built records, after the merge |" in skill
