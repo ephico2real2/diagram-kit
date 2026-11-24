@@ -17,6 +17,7 @@ after the ruling.
 | Round 1: research, build, code | Codex | `high`, or `xhigh` for work across layers | Commits with their tests, pushed at once to a draft pull request, and the report files |
 | Round 2: adversarial review | Codex, a separate job | `high` | Verdicts, and fixes with tests, pushed to the same draft |
 | Round 3: ruling | Opus at high effort (the main session) | high | One ruling per finding, applied and tested on the draft, then ready and merge, another round, or close |
+| As-built records, after the merge | Sonnet 5.5 drafts, Claude checks and posts | - | The story, the epic and the issues say what was built, each claim with its source (`/agile`, "As-built updates") |
 | Later: the deep review | Opus at extra-high effort and Fable | xhigh | Issues for each finding |
 
 If a job changes more than one of these, it crosses layers: the schema, the API, the service code, the UI, the mobile
@@ -101,6 +102,12 @@ read-only --skip-git-repo-check -`.
    with the reason. Before ready, rewrite the body in the project template.
 6. File an issue for each defect that the rounds or the ruling find, and fix it in the same session: on this draft when
    it is in scope, or in a follow-up job that starts before the session moves on. No defect waits in a backlog.
+7. After the merge, update the records as built. `/agile` gives the method, in its section
+   "As-built updates: drafted from the code, checked, then posted". A Sonnet 5.5 agent reads the merged commits, the
+   tests and the run records. It writes draft updates of the story, the epic, the closed issues and the design
+   document. It writes draft files only, and it posts nothing. Claude checks each file:line and each run-record line
+   against the merged branch. Claude corrects each wrong claim or marks it "not found", and then posts. A change to a
+   document in the repository goes by pull request.
 
 ## 5. Mark the work for the deep review
 
@@ -123,5 +130,6 @@ finding is filed and fixed, remove the label.
 | Give Codex a vague mission | Name each file, line, claim and the command that tests it |
 | Read the Codex log while it runs | Wait for the wake-up, then read `verdicts.md` |
 | Trust round 1 because round 2 found nothing | Audit both against their planted answers |
+| Close the issues and leave the epic and the design as they were before the build | Draft the as-built records with Sonnet 5.5, check each claim, then post |
 | Merge work built from scratch with no label | Add `review:opus-xhigh` and `review:fable` |
 | File a found defect for later | File it and fix it in the same session, with its test |
