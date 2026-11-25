@@ -57,6 +57,8 @@ cd "${W}" && nohup cursor agent -p --force --output-format text --trust --worksp
   --model <model> "$(cat "${W}/brief.md")" < /dev/null > "${W}/answer.txt" 2> "${W}/answer.err" &
 ```
 
+Use the pull request number as `<id>`, so that `sweep-stale.py --workbench` can tie each directory to the pull request. After the merge, remove the directories with step 6 of `/fix-defect`.
+
 A Claude Code subagent is the third kind. Launch it with the Agent tool and the brief as its whole prompt. Put one
 paragraph before the brief that makes it read-only: no file changes, no git writes, nothing that changes a cluster.
 
