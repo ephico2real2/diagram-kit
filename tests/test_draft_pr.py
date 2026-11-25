@@ -132,6 +132,26 @@ def test_draft_refuses_a_parent_that_is_not_an_issue_reference(job):
     assert git(clone, "status", "--porcelain", env=env) == "?? left.ts\n"
 
 
+def test_draft_counts_from_the_remote_base_when_the_local_base_is_behind(job):
+    clone, folder, env = job
+    # The base moved on the remote (a squash merge) and the work was rebuilt on it, but the local base stayed behind.
+    git(clone, "switch", "-q", "--detach", "main", env=env)
+    (clone / "merged.md").write_text("merged on the remote\n")
+    git(clone, "add", "-A", env=env)
+    git(clone, "commit", "-q", "-m", "squash merge on the remote", env=env)
+    merged = git(clone, "rev-parse", "HEAD", env=env).strip()
+    git(clone, "update-ref", "refs/remotes/origin/main", merged, env=env)
+    git(clone, "switch", "-q", "-C", "work/fix", merged, env=env)
+    (clone / "fix.ts").write_text("export const fix = 1;\n")
+    git(clone, "add", "-A", env=env)
+    git(clone, "commit", "-q", "-m", "D2: the fix", env=env)
+    result = run(clone, folder, env)
+    assert result.returncode == 0, result.stderr
+    assert "DRY RUN: 1 new commits" in result.stdout
+    assert "squash merge on the remote" not in result.stdout
+    assert git(clone, "merge-base", "--is-ancestor", merged, "HEAD", env=env) == ""
+
+
 def test_draft_refuses_a_branch_with_no_new_commit(job):
     clone, folder, env = job
     git(clone, "reset", "-q", "--hard", "main", env=env)

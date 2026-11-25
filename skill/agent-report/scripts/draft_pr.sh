@@ -7,7 +7,7 @@
 # 2026-11-12). The runner calls this after each round, never the agent: an agent sandbox has no push and no gh write.
 #
 # usage: draft_pr.sh <clone> <owner/repo> <branch> <base> <job folder> <title>
-#   <base>   the base branch, as a local branch of the clone (the clone was made from it)
+#   <base>   the base branch, as a local branch of the clone; origin/<base> counts instead when the local one is behind it
 #   DRY_RUN=1          write the body and the plan to stdout; no push, no gh call
 #   LABELS="a b"       labels for a new draft;  MILESTONE="name"  its milestone
 #   PART_OF="#123"     the parent issue: the body opens with "Part of #123.", as the project flow asks of each PR
@@ -27,8 +27,15 @@ if [[ -n $(git -C $C status --porcelain) ]]; then
 fi
 
 # 2. The new commits: those above the remote branch when a draft exists, otherwise those above the base.
+# A local base behind its remote-tracking branch counts the commits of the remote base as new, and step 3 rewrote them:
+# on 2026-11-25 a squash merge of the base came back as a second copy with a new committer. The newer tip counts.
+tip=$base
+if git -C $C rev-parse --verify -q "refs/remotes/origin/$base" >/dev/null &&
+   git -C $C merge-base --is-ancestor "$base" "refs/remotes/origin/$base"; then
+  tip=refs/remotes/origin/$base
+fi
 url=https://github.com/$slug.git
-from=$(git -C $C merge-base HEAD "$base")
+from=$(git -C $C merge-base HEAD "$tip")
 if [[ -z $DRY_RUN ]] && git -C $C fetch -q $url "refs/heads/$branch" 2>/dev/null; then
   git -C $C merge-base --is-ancestor FETCH_HEAD HEAD || fail "the remote $branch is not an ancestor of HEAD; no force push"
   from=$(git -C $C rev-parse FETCH_HEAD)
@@ -61,7 +68,7 @@ elif [[ -z $KEEP_AUTHOR ]]; then
 fi
 
 # 4. The body. It states facts that a command measured; the arbiter rewrites it in the project template before ready.
-files=$(git -C $C diff --name-only $(git -C $C merge-base HEAD "$base")..HEAD)
+files=$(git -C $C diff --name-only $(git -C $C merge-base HEAD "$tip")..HEAD)
 # Also the Gradle and Xcode forms: a source set such as commonTest/ or androidHostTest/, an AppTests/ target, and a
 # FooTest.kt or FooTests.swift file. Without them a Kotlin draft read "No test file changed" (2026-11-20).
 tests=$(print -r -- $files | grep -cE '(^|/)(test|tests|__tests__|e2e|spec)/|(^|/)[A-Za-z]+(Test|Tests)/|\.(test|spec|pg-spec|e2e-spec)\.[cm]?[jt]sx?$|_test\.(py|go)$|(^|/)test_[^/]+\.py$|(Test|Tests|Spec)\.(kt|java|swift|scala)$')
@@ -78,7 +85,7 @@ body=$J/draft-pr.md
   print
   print "## Commits"
   print
-  git -C $C log --reverse --format='- `%h` %s' $(git -C $C merge-base HEAD "$base")..HEAD
+  git -C $C log --reverse --format='- `%h` %s' $(git -C $C merge-base HEAD "$tip")..HEAD
   print
   print "## Tests"
   print
