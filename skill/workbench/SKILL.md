@@ -71,6 +71,8 @@ A file that a merged commit holds is a record. Do not change it.
 
 When its work is merged or pushed, and the owner says yes, you can remove a folder. Before you remove it, make sure that `git status --porcelain` is empty and that `git log @{u}..` shows no commit. A worktree is removed with `git worktree remove`, so that its main repository forgets it.
 
+After a pull request merges, step 6 of `/fix-defect` removes its scratch in the same session. The owner's rule of 2026-11-25 is the yes for that removal. `sweep-stale.py --workbench` of `/sweep-stale` finds the folders, and it saves each uncommitted change before it removes a worktree.
+
 ## Anti-patterns
 
 | Do not | Do |

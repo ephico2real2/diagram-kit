@@ -179,3 +179,13 @@ def test_the_skill_lists_every_app_the_guard_protects(sweep):
     for app in ("Claude.app", "Cursor.app", "Code Helper"):
         assert sweep.PROTECT.search(f"/opt/{app}/bin/x"), app
         assert f"`{app}`" in section, app
+
+
+def test_the_hook_hint_names_the_script_that_ran(sweep, monkeypatch, capsys):
+    """#85: the hint named a private copy under ~/.claude/tools, which an install of the kit does not have."""
+    monkeypatch.setattr(sweep, "snapshot", lambda: {500: broker()})
+    monkeypatch.setattr(sweep, "socket_holders", lambda: {SOCKET: {500}})
+    monkeypatch.setattr(sys, "argv", ["sweep-stale.py", "--json"])
+    assert sweep.main() == 0
+    context = json.loads(capsys.readouterr().out)["hookSpecificOutput"]["additionalContext"]
+    assert f"`{SCRIPT} --sweep`" in context and "~/.claude/tools" not in context

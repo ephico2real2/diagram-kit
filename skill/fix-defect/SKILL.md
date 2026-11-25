@@ -1,6 +1,6 @@
 ---
 name: fix-defect
-description: How each defect is handled, in the form used on ephico2real2/cmapi. A defect gets a GitHub issue at once. The issue has what is wrong, where, how to prove it, measured or inferred, a research mandate and its parent. An agent researches the fix, reviewers attack it, and the arbiter tests it before it is applied. Use when a defect, bug, failed test, proof gap or required configuration is found by anyone, at any stage, also in a review, in CI or on work that is not merged. Also use it when the user types /fix-defect.
+description: How each defect is handled, in the form used on ephico2real2/cmapi. A defect gets a GitHub issue at once. The issue has what is wrong, where, how to prove it, measured or inferred, a research mandate and its parent. An agent researches the fix, reviewers attack it, and the arbiter tests it before it is applied. After the merge, the scratch of the pull request is removed. Use when a defect, bug, failed test, proof gap or required configuration is found by anyone, at any stage, also in a review, in CI or on work that is not merged. Also use it when the user types /fix-defect.
 ---
 
 # /fix-defect: every defect is logged, researched, reviewed and proven
@@ -142,6 +142,41 @@ Reports are claims until tested. Before accepting anything, the main session:
 - Merge only after CI passes on the pull request, and tick the checklist of the template part for that branch.
 - Save the review record where the project keeps it.
 - Close a defect only through its merged fix, with the proof cited. A fix on a review branch does not close it.
+
+## 6. Clean up after the merge
+
+The owner's rule, 2026-11-25. In one project, the scratch of reviews and fix runs grew to 45 GB, and the Mac became slow. A review export is a full copy of the repository for each reviewer, so one pull request can leave gigabytes.
+
+`<scratch>` is the scratch root that the project names, with one folder for each job, for example `$HOME/gitRepos/workbench/<project>` of `/workbench`. Use the folder names of the project.
+
+When the pull request has merged and its review record is saved in the repository, remove the scratch of that pull request in the same session. This rule is the owner's yes for that removal.
+
+1. **Report.** Run `~/.claude/skills/sweep-stale/sweep-stale.py --workbench <scratch> --repo <owner>/<repo>`, the script of `/sweep-stale`. Add `--prefix <name>` for each folder prefix of the project that a number follows. The report gives each folder that it can tie to a pull request or an issue, with its size and its state on GitHub. It deletes nothing.
+2. **Check.** Read each line marked `removable`. Make sure that no brief of a running agent names that path.
+3. **Remove.** Run the same command with `--sweep`. It removes only the folders marked `removable`:
+   - the reviewers' exports of the pull request, for example `review-<N>`;
+   - the implementer's output folders, for example `wt-<N>-outputs`;
+   - the worktree, with `git worktree remove`, so that the main repository forgets it. The branch and its commits stay.
+
+   Before it removes a checkout, it saves each uncommitted change as a patch, with `git diff`, in `<scratch>/worktree-archive-<date>/`.
+4. **Report again**, and put the freed size in the session report.
+
+Keep these:
+
+- the shared test environments, for example a virtual environment built from the lock file of the main branch;
+- the latest deploy-run records, as many as the project names;
+- each folder of a pull request or an issue that is still open;
+- the archive folders. Only the owner removes them.
+
+Never remove a path that the brief of a running agent names. The script sees open files and working directories, but it cannot see a path that a brief names for later use.
+
+The script never removes a folder whose state it cannot read. If `gh` fails, with no network or no login, the folder is `unknown`, and it stays. For a folder whose name the script does not read, apply the same rules by hand. Save the change first, then remove the worktree:
+
+```sh
+A=<scratch>/worktree-archive-$(date +%F); mkdir -p "$A"
+git -C <worktree> add -A && git -C <worktree> diff --cached --binary HEAD > "$A/<name>.patch"
+git -C <main repository> worktree remove --force <worktree>
+```
 
 ## A permission refusal stands
 
