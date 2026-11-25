@@ -296,7 +296,7 @@ def main() -> int:
         text = f"Background-process sweeper: {len(findings)} finding(s)."
         if to_end:
             text += (f" About {reclaim} MB is reclaimable by ending {len(to_end)} stale tree(s) — "
-                     f"run `~/.claude/tools/sweep-stale.py --sweep`.")
+                     f"run `{os.path.abspath(__file__)} --sweep`.")      # the copy that ran, as invoked
         text += "\n" + "\n".join(f"  - {f}" for f in findings)
         print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit",
                                                  "additionalContext": text}}))
